@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Daybook palette.
+   Bright and energetic without being childish. Green and red are
+   reserved: green means completed, red means overdue. Nothing else
+   is allowed to use them, or they stop meaning anything.
+   ------------------------------------------------------------------ */
+@theme {
+  --color-ink-50: #f6f7fb;
+  --color-ink-100: #eceef6;
+  --color-ink-200: #d6dae9;
+  --color-ink-400: #8a90ab;
+  --color-ink-600: #4a5070;
+  --color-ink-900: #171a2b;
+
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+
+  --color-done-100: #d1fae5;
+  --color-done-500: #10b981;
+  --color-done-700: #047857;
+
+  --color-late-100: #fee2e2;
+  --color-late-500: #ef4444;
+  --color-late-700: #b91c1c;
+
+  --color-quick-100: #fef3c7;
+  --color-quick-700: #b45309;
+  --color-deep-100: #ede9fe;
+  --color-deep-700: #6d28d9;
+
+  --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-50 text-ink-900 antialiased;
+  font-family: var(--font-sans);
+  /* iOS: stop the whole page rubber-banding behind the app shell. */
+  overscroll-behavior-y: none;
+}
+
+/* Respect the notch on an installed iOS PWA. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Completion animation. Phase 3 replaces this with the full row-leave
+   choreography, but the strike and dim are worth having now. */
+@keyframes task-complete {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.985);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.task-completing {
+  animation: task-complete 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
