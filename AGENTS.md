@@ -9,6 +9,17 @@ change. Feature state is tracked there and nowhere else.
 
 The Notion page is historical. Do not update it.
 
+## Session log
+
+Start every session with `/session-handoff start` and end it with
+`/session-handoff`. `docs/SESSIONS.md` is the only shared memory between
+agents, since none of them can see another's conversation.
+
+The skill's canonical copy is `.agents/skills/session-handoff/SKILL.md`,
+symlinked to `.claude/skills/session-handoff` so Claude Code auto-discovers it.
+Claude Code only reads skills from `.claude/skills/`, never from `.agents/`, so
+that symlink is load-bearing. Edit the `.agents/` copy.
+
 ## Stack
 
 - Angular 22, standalone components, zoneless
