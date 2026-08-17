@@ -22,21 +22,23 @@ publishable key is safe in the bundle: every table is behind RLS.
 Migrations in `supabase/migrations/` are already applied to the live project.
 They are here so the schema is reproducible, not because anything is pending.
 
-### Turning on Google sign-in
+### Auth
 
-The button is already wired. It stays inactive until the provider exists:
+Google sign-in is live. Google Cloud project `daybook-505822`, consent screen
+published to Production. Full configuration is recorded in `BUILD-PLAN.md` §2.
 
-1. Google Cloud console → APIs & Services → Credentials → **Create OAuth
-   client ID** → Web application.
-2. Authorised redirect URI:
-   `https://zzacswfongmzpnhcjiqp.supabase.co/auth/v1/callback`
-3. Supabase dashboard → Authentication → Providers → **Google** → paste the
-   client ID and secret, enable.
-4. Authentication → URL Configuration → add `http://localhost:4200` and the
-   production URL to the redirect allow list.
+The magic link still works and is kept deliberately as a recovery path.
 
-Until then the magic link works, and it is worth keeping afterwards as a
-recovery path.
+**Deploying to production** needs no Google console change. In the Supabase
+dashboard only:
+
+- Authentication → URL Configuration → set **Site URL** to the production URL
+- Add `https://<production-domain>/**` to the **Redirect URLs** allow list
+
+The `/**` wildcard is required. `login.ts` passes
+`redirectTo: location.origin + '/today'`, and Supabase silently rejects any
+`redirectTo` not on the allow list, bouncing you back to the login screen with
+no error shown.
 
 ## Capture syntax
 

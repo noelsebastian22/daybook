@@ -39,7 +39,7 @@ getting deeper into Angular Signals and NgRx SignalStore.
 | State | Signals locally, NgRx SignalStore (`22.0.0-rc.0`) for shared state |
 | Styling | Tailwind v4 via `.postcssrc.json`, theme tokens in `src/styles.css` |
 | Backend | Supabase: Postgres 17, Auth, later Storage and Edge Functions |
-| Auth | Google OAuth, with an email magic link as fallback and recovery path |
+| Auth | Google OAuth (live), with an email magic link as fallback and recovery path |
 | Delivery | Installable PWA via `@angular/pwa`. No native codebase |
 | Date parsing | `chrono-node` |
 | Hosting | Netlify (not set up yet) |
@@ -52,6 +52,44 @@ Free tier covers this comfortably: 50,000 monthly active users and built-in
 Google OAuth at no extra cost. Free projects pause after 7 days of inactivity
 and resume with no data loss. The org also hosts `sweep`, which takes the other
 free active-project slot.
+
+### Google OAuth configuration
+
+Configured 17 Aug 2026 and confirmed working end to end.
+
+| Setting | Value |
+|---|---|
+| Google Cloud project | `Daybook` / `daybook-505822`, no organisation |
+| Consent screen app name | Daybook |
+| Audience | External, **published to Production** |
+| Support and contact email | noelsimc69@gmail.com |
+| Client type | Web application, named `Daybook Web` |
+| Authorised redirect URI | `https://zzacswfongmzpnhcjiqp.supabase.co/auth/v1/callback` |
+| Authorised JavaScript origins | none |
+| Scopes | email, profile, openid |
+
+Three things worth not relearning:
+
+- **The Supabase callback is the only redirect URI Google needs.** Not
+  localhost, not the production URL. Google always returns to Supabase, and
+  Supabase redirects on to the app afterwards.
+- **No JavaScript origins.** Supabase does a full-page redirect, so no browser
+  origin ever calls Google directly. Origins are only needed if Google One Tap
+  gets added later.
+- **Published to Production deliberately.** Testing mode expires refresh tokens
+  after 7 days, which would mean re-signing in on the phone every week.
+  Publishing needs no verification review because none of the three scopes are
+  sensitive or restricted.
+
+**A new OAuth client is never needed again.** One consent screen per project is
+a hard Google limit, but client IDs under it are unlimited. Deploying to
+Netlify needs no console change at all: only the Supabase redirect allow list
+gains the production URL.
+
+Supabase auth config: Site URL `http://localhost:4200`, redirect allow list
+contains `http://localhost:4200/**`. The wildcard is load-bearing, since
+`login.ts` passes `redirectTo: location.origin + '/today'` and Supabase
+silently rejects anything not on the list.
 
 ---
 
@@ -74,21 +112,26 @@ is useful without a history view. Phase 4 sits where it does because a calendar
 needs a few weeks of real data before it is worth looking at. Phase 5's three
 items are built together because they share one cron plus Edge Function.
 
-**Phase 2 is built but nobody has signed in.** Every rollover path was proven
-against the live database with a seeded auth user and forged JWT claims, but no
-task has been added through the UI by a person. Until that happens, treat
-Phase 2 as unverified.
+**Phase 2 is half verified.** Google sign-in works end to end and
+`ensure_user_setup` seeds the four default categories on first login, both
+confirmed by hand on 17 Aug. Every rollover path was proven against the live
+database with a seeded auth user and forged JWT claims. What has **not** been
+done by a person: adding a task through the capture box, completing one, and
+watching a real overnight rollover. Until that happens, treat the task loop as
+unverified.
 
 ---
 
 ## 4. Remaining work, in the order it should be done
 
-### 0. Verify Phase 2 by hand
+### 0. Verify the task loop by hand
 
-`npm install && npm start`, sign in with the magic link, add a task carrying a
-date, a `#tag` and an `!energy`, complete it, reload. One evening.
+Sign-in is done. What is left: add a task carrying a date, a `#tag` and an
+`!energy`, confirm the chips render and it lands on the right day in the
+Upcoming strip, complete something and check the timestamp, then leave an
+incomplete task overnight and confirm it carries over with the badge showing.
 
-Do this before anything else. Everything below assumes the loop works.
+One evening plus one morning. Everything below assumes the loop works.
 
 ### Phase 3, the differentiator
 
@@ -134,10 +177,11 @@ Do this before anything else. Everything below assumes the loop works.
 
 ### Not phased, needed before daily use
 
-- **Hosting on Netlify.**
+- **Hosting on Netlify.** When it goes up, the only auth change needed is
+  adding the production URL to the Supabase redirect allow list and updating
+  Site URL. No Google console change.
 - **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt, and an
   uninstalled PWA can have its cached storage evicted after roughly 7 days.
-- **Google OAuth credentials.** Steps are in `README.md`.
 
 ---
 
@@ -437,9 +481,17 @@ categories are trivial to delete.
 Triggers on that table fail in ways that are painful to debug and can block
 sign-up entirely.
 
-**Google OAuth ships alongside a magic-link fallback.** Google needs manual
-Google Cloud configuration. The fallback means Phase 1 is testable before that
-happens, and it stays useful as a recovery path afterwards.
+**Google OAuth ships alongside a magic-link fallback.** The fallback made
+Phase 1 testable before the Google Cloud work was done, and it stays as a
+recovery path if the OAuth client is ever broken or revoked.
+
+**Daybook got its own Google Cloud project rather than reusing "Website
+Development".** A project can hold unlimited OAuth client IDs but only ever one
+consent screen, and the consent screen carries the app name, logo and
+verification status that users see. Putting Daybook's consent screen in the
+general-purpose project would have branded that project Daybook permanently and
+forced a new project for the next app needing Google sign-in anyway. A project
+is free and takes two minutes. `Website Development` stays clean for API keys.
 
 **`@ngrx/signals` is on `22.0.0-rc.0`.** The stable line (21.x) peer-requires
 Angular 21. Reverting to Angular 21 LTS is a one-command change if the RC
@@ -486,7 +538,8 @@ Not core. Revisit once the main app is solid.
   Edge Function, Phase 5.
 - **Web Push needs VAPID keys** and a real subscription flow. Phase 5.
 - **No hosting, no CI, not deployed anywhere.**
-- **Nothing verified through a real signed-in session.**
+- **The task loop is unverified by a person.** Sign-in and first-login seeding
+  are confirmed; adding, completing and carrying over a real task are not.
 
 ---
 
