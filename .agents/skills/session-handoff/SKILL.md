@@ -93,15 +93,27 @@ from memory.
   "changed `carried_over_count` to increment by `v_today - scheduled_date`" is usable.
 - **Record the false starts.** An entry with no "Didn't work" section on a hard session
   is a sign the entry is too shallow.
-- **A decision about the database goes in `BUILD-PLAN.md` too.** The log records that a
-  decision was made, the plan records what the decision *is*. Do not let them drift.
+- **Any decision that outlives the session goes in `BUILD-PLAN.md` too.** The log records
+  that a decision was made, the plan records what the decision *is*. Do not let them
+  drift.
 - If a change contradicts `AGENTS.md`, update that file in the same commit.
 
-### 4. Update the phase status
+### 4. Update BUILD-PLAN.md
 
-If the session moved a phase forward, update the **Phase status** table in
-`BUILD-PLAN.md` in the same commit. The log is chronological; the table is current
-state. Both are needed.
+`BUILD-PLAN.md` is the single source of truth. The log is chronological; the plan is
+current state. Both are needed, and the plan is the one that goes stale silently.
+
+In the same commit, update whichever of these the session moved:
+
+- **§3 Phase status** if a phase advanced.
+- **§5 Features** if any feature's state changed. Feature state is tracked there and
+  nowhere else, so a shipped feature still marked "not started" is a real bug in the
+  docs.
+- **§4 Remaining work** if an item was finished, or a new one was discovered.
+- **§9 Decisions made during the build** if something was decided.
+- **§12 Known gaps** if a gap opened or closed.
+
+Never update the Notion page. It is historical.
 
 ### 5. Commit
 

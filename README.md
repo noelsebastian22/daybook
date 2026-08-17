@@ -86,5 +86,9 @@ supabase/
   migrations/      numbered SQL, never edited once applied
 ```
 
-`AGENTS.md` has the repo conventions. `BUILD-PLAN.md` has the reasoning
-behind the locked decisions and the list of deliberate gaps.
+**`BUILD-PLAN.md` is the single source of truth**: what the app is, the full
+feature list with current state, the data model, rollover logic, every locked
+decision and everything still to do.
+
+`AGENTS.md` has the repo conventions. `docs/SESSIONS.md` is the chronological
+log, written by the `session-handoff` skill in `.agents/skills/`.

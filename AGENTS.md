@@ -1,9 +1,13 @@
 # AGENTS.md
 
 Conventions for this repo. Read this before changing anything.
-`BUILD-PLAN.md` holds the reasoning behind the locked decisions. If a change
-contradicts something in there, update that file in the same commit or don't
-make the change.
+
+**`BUILD-PLAN.md` is the single source of truth** for what Daybook is, what is
+built, what is left and why every decision was made. If a change contradicts
+something in there, update that file in the same commit or don't make the
+change. Feature state is tracked there and nowhere else.
+
+The Notion page is historical. Do not update it.
 
 ## Stack
 
