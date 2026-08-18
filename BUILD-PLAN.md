@@ -137,24 +137,46 @@ One evening plus one morning. Everything below assumes the loop works.
 
 ### Phase 3, the differentiator
 
-- **Task-as-object.** A `/today/:id` route, `view-transition-name: task-{id}`
-  per row, list **unmounted** while the card shows.
-- **Magic Plus.** Draggable FAB. Drop in the list to insert there, on a
-  category chip to pre-tag. The calendar drop target is blocked on Phase 4, so
-  build the list and chip targets first.
-- **Completion choreography.** Checkbox fills, text strikes and dims, row
-  leaves, list closes the gap. Currently only a scale keyframe exists.
-- **Swipe gestures.** Right to complete, left to reschedule, mobile only.
-- **Delete and edit a task.** `TaskStore.remove()` exists with no UI, and there
-  is no way to fix a typo at all. Not in the original spec. Needed the first
-  day of real use.
-- **Confirm that a task was added.** `Capture.onKeydown` clears the box and
-  emits, with no toast. A task scheduled for a future day then lands in the
-  Upcoming strip, which is collapsed by default, so it disappears from view the
-  instant it is created and the add reads as a failure. Found in real use on
-  18 Aug. Fix is a `ToastStore` message naming the day it landed on, with undo;
-  auto-expanding the strip was considered and rejected because it moves the
-  page under the cursor mid-typing.
+Ordered. Each item below is a prerequisite for the ones under it more often
+than not, and the order was set on 18 Aug against the Todoist captures.
+
+1. **Confirm that a task was added.** `Capture.onKeydown` clears the box and
+   emits, with no toast. A task scheduled for a future day then lands in the
+   Upcoming strip, which is collapsed by default, so it disappears from view
+   the instant it is created and the add reads as a failure. Found in real use
+   on 18 Aug — the only thing here proven broken by a person. Fix is a
+   `ToastStore` message naming the day it landed on ("Added to Friday 21 Aug"),
+   with undo. Auto-expanding the strip was considered and rejected because it
+   moves the page under the cursor mid-typing. The `Open` action waits for the
+   `/today/:id` route below.
+2. **Date picker.** The date chip in capture becomes a button that opens it: a
+   shortcut row with each option's resolved day printed beside it (Today,
+   Tomorrow, This weekend, Next week — Mon 24 Aug) above a month grid, plus a
+   time field writing `reminder_at`. No "No Date", no "Repeat" — see §9. Built
+   before the edit UI on purpose, because one picker then serves capture, edit
+   and reschedule-from-a-row.
+3. **Task-as-object and inline edit.** A `/today/:id` route,
+   `view-transition-name: task-{id}` per row, list **unmounted** while the card
+   shows. Edit is the `Capture` component rendered in the row's slot, not a
+   second form. `TaskStore.remove()` exists with no UI, and there is currently
+   no way to fix a typo at all. Not in the original spec; needed the first day
+   of real use.
+4. **Floating composer.** Capture moves from the always-visible box at
+   `today.ts:45` to a floating input invoked by an `Add task` button, with
+   explicit cancel and commit. Replaces the Magic Plus FAB, which is now out of
+   scope — see §10.
+5. **Nav shell.** Drawer on desktop, hamburger sheet on mobile, one nav model
+   on both: Today / Upcoming / Reporting. Reporting is the home for §5's weekly
+   review and §6's completion chart and will be empty until there is real data.
+   **Opens from the button only, never a left-edge swipe** — see §9.
+6. **Completion choreography.** Checkbox fills, text strikes and dims, row
+   leaves, list closes the gap. Currently only a scale keyframe exists.
+7. **Swipe gestures.** Right to complete, left to reschedule, mobile only.
+
+**6 and 7 are blocked on captures.** Both are judged on touch timing and every
+Todoist capture taken so far is the web app driven by a mouse. They need the
+Todoist **iOS app** recorded before the work starts. See
+`docs/reference/todoist/NOTES.md`.
 
 ### Phase 4, history
 
@@ -243,10 +265,10 @@ tracked.
 The three interactions that make this a product rather than a CRUD list.
 Treated as core, not polish.
 
-- **Magic Plus** (borrowed from Things 3). A draggable floating add button.
-  Drop it in the list to add a task there, on a calendar cell to schedule it
-  for that day, on a category chip to create it pre-tagged. One control,
-  context-aware. State: not started.
+- **Floating composer** (borrowed from Todoist). An `Add task` button opens a
+  floating input over the list, with the date chip live from the moment it
+  opens and explicit cancel and commit. Replaced the Magic Plus draggable FAB
+  on 18 Aug; see §9 and §10. State: not started, Phase 3.
 - **Task as object.** Tapping a task expands it into a card while the rest of
   the list fades back, using the View Transitions API with
   `view-transition-name: task-{id}` per row. Implemented as a route so
@@ -275,9 +297,14 @@ Treated as core, not polish.
 |---|---|---|
 | **Login** | Google OAuth, magic-link fallback | done |
 | **Dashboard / Today** | Add and complete tasks, filter Quick/Deep, collapsed Upcoming strip | done |
+| **Upcoming** | The next 7 days as a list grouped by day header, with a per-day `+ Add task` row that schedules by position, and a week strip that pages forward. Not the calendar — that is a grid, and it is the row below | not started, Phase 3 |
 | **Calendar** | Bidirectional. Past cells show completion density as a heat map, future cells show a count of scheduled tasks, today is the boundary. Tap a cell for that day's list | not started |
 | **Weekly Review** | Most carried over, most rescheduled, completion trend | not started |
 | **Settings** | Email digest preferences, timezone, manage categories | not started |
+
+Navigation is a drawer on desktop and a hamburger sheet on mobile, the same
+model at both widths: Today / Upcoming / Reporting. Reporting is where Weekly
+Review and the §6 chart live. State: not started, Phase 3.
 
 ### 5.4 UI direction
 
@@ -529,6 +556,79 @@ and moved the task to the day after that one. The row does not show its own
 date — the Upcoming strip's day header already carries it, and repeating it per
 row is noise — so the only date on the row is the button's target.
 
+### From the Todoist captures, 18 Aug
+
+Nine decisions taken while reading `docs/reference/todoist/`. Each names the
+capture it came from so the reasoning can be re-checked against the picture.
+
+**Capture becomes a floating composer, and the Magic Plus FAB is dropped.**
+From `quick-add--composer-to-toast.mov`. An `Add task` button opens a floating
+input over the list rather than a box that is always sitting there. The two
+were competing answers to the same problem — where the add control lives — and
+building both would have meant two ways to start a task. Noel's call on the
+FAB: a draggable control is too complicated to use. The FAB also carried a
+hidden cost the composer does not, in that its most interesting drop target
+was a calendar cell and the calendar is Phase 4, so two thirds of the idea was
+blocked on unbuilt work. Reversal recorded in §10; §5.1 updated.
+
+**The add-confirmation toast names the day, not the project.** From frame 15
+of the same recording, where Todoist shows `Task added to Inbox · Open · ×`
+bottom-left, with the destination as a link. Daybook's version says "Added to
+Friday 21 Aug", because a Daybook task has no project and the day is the thing
+the user cannot see — it is the whole reason the add read as a failure on
+18 Aug. `Open` navigates to `/today/:id` and so waits on that route.
+
+**The date chip is present and interactive from the moment capture opens.**
+Same recording, frames 4 and 12: it reads `Today ×` before a character is
+typed and becomes `Tomorrow 16:00 ×` as the date is recognised. Daybook's
+(`capture.ts:69`) appears only once a date parses and is a read-only span.
+`scheduled_date` is required on every task, so a default is always being
+applied; showing it up front and letting it be corrected without retyping is
+honest about that, and hiding it is not.
+
+**A parsed time surfaces a reminder chip.** Same recording — typing a time
+adds a second chip, `At time of task`. `parse-capture.ts` already sets
+`reminder_at` and nothing in the UI acknowledges it, which is how feature 7
+ended up "parsed and stored, never fires".
+
+**The date picker has no "No Date" and no "Repeat".** From
+`scheduling--date-picker.png`, which offers both. "No Date" is the someday
+bucket §10 has already rejected and `scheduled_date` is `not null`, so the
+control would have to fail. "Repeat" has no column, no phase and no request
+behind it. What is kept is the shortcut row with **each option's resolved day
+printed beside it** — Next week reads `Mon 24 Aug` — which lets the choice be
+checked before it is committed.
+
+**Edit reuses the `Capture` component; there is no separate edit form.** From
+`task-detail--inline-edit.png`, where clicking edit replaces the row in place
+with the quick-add composer: same field, same chip row, cancel and commit on
+the right. Two components that parse the same syntax into the same shape would
+drift, and the second one to be written is always the one that misses a token.
+
+**Overdue does not get its own group or a bulk "Reschedule" button.** From
+`list--today-with-drawer.png`, which has both. Todoist parks slipped work in a
+permanent bucket you clear by hand. Daybook rolls it forward automatically and
+increments `carried_over_count` by the number of days slipped, and that count
+is the product — it is the answer to "what do I keep avoiding". A bucket that
+is cleared in one click destroys the signal the app exists to collect.
+Recorded here so it is not re-proposed in three months on the grounds that
+Todoist does it.
+
+**Mobile navigation is a hamburger sheet mirroring the desktop drawer, and it
+opens from the button only — never a left-edge swipe.** From
+`nav--mobile-drawer.mov`. One nav model at both widths is one component rather
+than two. The gesture restriction is the load-bearing half: Phase 3 puts
+swipe-left-to-reschedule on every task row, and a left-edge drawer gesture
+competes for the same pixels at the same moment. Todoist's own drawer here is
+button-driven, so copying it costs nothing.
+
+**Upcoming becomes a route, not only a strip.** From
+`upcoming--week-grouped-by-day.png`. A list grouped by day header with a
+per-day `+ Add task` row, which schedules by position instead of by typing a
+date, and a week strip that pages forward. It is not the Phase 4 calendar;
+that is a grid over months, this is a list over one week. **Still open:** what
+happens to the collapsed strip on Today once this exists.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -543,6 +643,22 @@ to sit for weeks.
 `scheduled_date` is required on every task, which forces a decision at capture
 time. This is friction by design. Revisit only if it becomes a real reason to
 stop using the app.
+
+**The Magic Plus draggable FAB.** Dropped on 18 Aug, having been a §5.1
+signature interaction since the brief. Noel's call, and the reason is that a
+control you drag onto a target is more work to use than a button that opens a
+composer — it asks the user to aim where a tap would do. The floating composer
+from `quick-add--composer-to-toast.mov` answers the same question (where does
+adding a task start) with less. Its most distinctive drop target, a calendar
+cell, was blocked on Phase 4 anyway. Reversal reasoning in §9.
+
+**Priorities, saved filters and task assignment.** Not rejected before because
+they were never proposed; visible in `nav--filters-and-labels.png` and worth
+naming so the capture does not read as an endorsement. P1–P4 has no column and
+duplicates what `energy` already does more usefully. Saved filters need a query
+builder to be worth anything on a one-week horizon. Assignment needs a second
+user, and this is a personal app. The category list in that screenshot's
+sidebar is the part worth having, and it is part of the nav shell.
 
 ---
 
@@ -567,8 +683,16 @@ Not core. Revisit once the main app is solid.
 - **The task loop is half verified by a person.** Sign-in, first-login seeding
   and adding a dated, tagged task through the capture box are confirmed as of
   18 Aug. Completing a task and watching a real overnight rollover are not.
-- **Adding a task gives no feedback.** See §4. Known-broken in real use, not
-  yet fixed.
+- **Adding a task gives no feedback.** See §4 item 1. Known-broken in real use,
+  not yet fixed, and now first in the Phase 3 order.
+- **No edit or delete UI.** `TaskStore.remove()` exists and nothing calls it;
+  a typo cannot be corrected at all. §4 item 3.
+- **The reminder is invisible.** `parse-capture.ts` sets `reminder_at` and no
+  component reads it, so a time typed into capture disappears silently. The
+  chip is §4 item 2; actually firing the reminder is Phase 5.
+- **Completion and swipe motion are blocked on captures from the wrong
+  device.** Every Todoist reference so far is the web app driven by a mouse.
+  See `docs/reference/todoist/NOTES.md`.
 
 ---
 

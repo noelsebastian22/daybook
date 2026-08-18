@@ -11,6 +11,40 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-18 · claude-code · todoist captures annotated, phase 3 ordered
+
+**Did**
+- **Correction to the entry below:** it says the Todoist screenshots were "not taken yet". Wrong. Six stills and `Adding tasks.mov` were already in commit `0adc201`, the same commit the entry describes. Two more (`Login page.png`, `Mobile screen drawer.mov`) were sitting untracked and are committed now. Ten captures total.
+- Renamed all ten to the `<area>--<thing>` convention `NOTES.md` specifies. None of them followed it — they were named after the screen (`Screen1 - today tab selected.png`), which is the exact failure the convention exists to prevent. Added `nav` and `auth` to the area list, which the captures needed and it did not have.
+- Annotated every capture. Noel's text kept verbatim; anything added is marked **Read —** and is a second opinion, not a correction.
+- Restored the annotation template at `NOTES.md`, which had been overwritten with the body of the Login page entry, and finished that entry — it had a **What it does** and nothing else.
+- Recorded the `ffmpeg` frame-extraction command in `NOTES.md`. An agent cannot play a `.mov` and this was rediscovered from cold twice.
+- `BUILD-PLAN.md` §4 Phase 3 is now an ordered list of seven items instead of an unordered pile. §9 gained nine decisions, §10 two reversals, §12 four gaps that were real but unlisted, §5.1 and §5.3 updated.
+- **No code touched.** Docs only, so no build and no test run this session; the numbers in the entry below stand.
+
+**Decided**
+- **Magic Plus draggable FAB is dropped** — Noel: too complicated to use. The floating composer from `quick-add--composer-to-toast.mov` answers the same question with less, and the FAB's most distinctive drop target (a calendar cell) was blocked on Phase 4 anyway. This reverses a §5.1 signature interaction that had been in since the brief. §10.
+- **Overdue gets no bucket and no bulk Reschedule button**, though Todoist has both. Daybook rolls slipped work forward and counts the days; that count is the product. A bucket cleared in one click destroys the signal the app exists to collect. Recorded so it is not re-proposed on the grounds that Todoist does it.
+- **Edit reuses `Capture`**, rendered in the row's slot. Not a second form — two components parsing the same syntax would drift, and the newer one always misses a token.
+- **Mobile nav is a hamburger sheet, button-only, never a left-edge swipe.** Phase 3 puts swipe-left-to-reschedule on task rows and an edge gesture competes for the same pixels.
+- **Date picker drops "No Date" and "Repeat"**; keeps the shortcut row with each option's resolved day printed beside it. Full list of nine in §9.
+- **Phase 3 order changed.** Toast first (only item proven broken by a person), then the date picker, then `/today/:id` + inline edit. The picker sits before edit on purpose: one picker then serves capture, edit and reschedule-from-a-row.
+
+**Didn't work**
+- Nothing was abandoned — but the session's real finding is a process one. Roughly half the opening prompt was re-typing decisions that a previous session made and never wrote down, and it carried at least one factual error about the repo's own state (the screenshots). Decisions that live only in a chat log are decisions the next agent gets to re-litigate. §9 and this file are the fix and both are cheap.
+
+**Open**
+- **What happens to the collapsed 7-day strip on Today** once Upcoming is a route of its own — stay, go, or shrink to a peek. Decides whether the 18 Aug add-feedback bug is fixed in the strip or dissolved by navigation.
+- **Settings as a modal rather than the page §5.3 specifies.** Recommended — no route, no back-button ambiguity in an installed PWA. Not yet Noel's call.
+- **Filters & Labels: recommend not building it.** ~80% of that screen is saved filters that are all Reject. The real parallel to Daybook's categories is the sidebar list, not the page, and categories self-create from `#tags` so there is nothing to create. Reasoning in `NOTES.md`.
+- **Phase 3 items 6 and 7 (completion choreography, swipe) are blocked on captures from the wrong device.** Every Todoist reference so far is the web app driven by a mouse; `nav--mobile-drawer.mov` is a narrowed desktop window, not a phone. Both are judged on touch timing. Needs the Todoist **iOS app** recorded before that work starts.
+- Unchanged and still true: the task loop is half verified — completing a task and a real overnight rollover have not been done by a person.
+
+**Next**
+The add-confirmation toast, §4 Phase 3 item 1. `Capture.onKeydown` clears the box and emits with no toast; a future-dated task lands in the collapsed strip and vanishes. "Added to Friday 21 Aug" with undo, via `ToastStore` and `shared/toasts.ts`, which already support it. Leave the `Open` action out — it needs `/today/:id`, which is item 3.
+
+**Touched** — `BUILD-PLAN.md`, `docs/reference/todoist/NOTES.md`, all ten captures in `docs/reference/todoist/` (renamed), `docs/SESSIONS.md`
+
 ## 2026-08-18 · claude-code · push button label, todoist reference
 
 **Did**
