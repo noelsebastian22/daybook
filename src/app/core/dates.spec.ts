@@ -5,6 +5,7 @@ import {
   comingMonday,
   comingSaturday,
   daysInMonth,
+  sentenceDate,
   startOfMonth,
   timeOfDay,
   toLocalDate,
@@ -63,6 +64,22 @@ describe('shortcut days', () => {
     expect(comingMonday('2026-08-18')).toBe('2026-08-24'); // Tue -> Mon
     expect(comingMonday('2026-08-23')).toBe('2026-08-24'); // Sun -> tomorrow
     expect(comingMonday('2026-08-17')).toBe('2026-08-24'); // Mon -> a week out
+  });
+});
+
+describe('sentenceDate', () => {
+  const tue = '2026-08-18';
+
+  it('uses a bare word for the three days that have one', () => {
+    expect(sentenceDate(tue, tue)).toBe('today');
+    expect(sentenceDate('2026-08-19', tue)).toBe('tomorrow');
+    expect(sentenceDate('2026-08-17', tue)).toBe('yesterday');
+  });
+
+  it('spells the weekday out for anything further away', () => {
+    // The chip would say "Fri 21 Aug"; a sentence has room for the rest.
+    expect(sentenceDate('2026-08-21', tue)).toContain('Friday');
+    expect(sentenceDate('2026-08-21', tue)).not.toContain('Fri ');
   });
 });
 

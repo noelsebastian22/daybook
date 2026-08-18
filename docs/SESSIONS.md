@@ -11,6 +11,40 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-18 · claude-code · add toast, task loop closed
+
+**Did**
+- **Phase 3 item 1 built.** `TaskStore.addFromCapture` toasts `Added to <day>.` with an Undo. Phase 3 is now items 1 and 2 of 7.
+- New `sentenceDate(date, from = today())` in `core/dates.ts` — "today", "tomorrow", "yesterday", otherwise "Friday 21 Aug" with the weekday spelled out. `friendlyDate` stays short for chips.
+- `remove` hoisted out of the returned methods object into a local `removeTask`, so the undo closure can call it without `this`. `remove: removeTask` is now the only line in the public method.
+- **Verified by hand in Chrome, the first end-to-end use of the picker path.** Typing `test the add toast friday` toasted "Added to Friday 21 Aug." and Next 7 days went 2 → 3. A second task toasted "Added to tomorrow.". A third was undone, and `select * from tasks` confirmed the server row was gone, not just the local one.
+- Two test rows left in the live DB (`test the add toast`, `undo me`) were deleted by id with Noel's confirmation — there is no delete UI once the toast expires.
+- `ng test` 18 → 20. `ng build` 491.03 kB initial / 122.73 kB transferred, `today` chunk 71.60 kB.
+- `BUILD-PLAN.md`: §3 phase status, §4 item 1 marked done, §5 feature 1, §9 gained "The add toast, 18 Aug" with three decisions, §12 lost the "adding a task gives no feedback" gap and rewrote the edit/delete one.
+
+**Decided**
+- **The toast fires before the insert resolves**, like the optimistic row. Waiting on the round trip would put the delay in front of the only feedback the add produces. On failure the add toast is dismissed by id and the error toast replaces it, so they are never on screen together.
+- **Undo on an add deletes the task.** It is the first and only caller of `TaskStore.remove()`.
+- **Undo pressed mid-flight sets a flag rather than racing.** The row goes locally at once; when the insert lands, the store deletes the server copy it just created. Without it a fast Undo leaves a ghost row invisible until the next reload.
+- **The message names the day, not the task text.** Where it went is what is in doubt.
+- All in §9 under "The add toast, 18 Aug".
+
+**Didn't work**
+- **The 6-second toast timeout beats a screenshot round trip.** Two attempts to click Undo — one via `find`, one via a `javascript_tool` call issued after `computer:screenshot` — both arrived after the toast had auto-dismissed, and each left a junk task behind. What worked: one `browser_batch` of type → Enter → `wait 1` → JS click. Anything time-boxed under ~10s has to be driven inside a single batch.
+- **A `javascript_tool` call placed immediately after `key: Enter` in a batch runs before Angular renders.** It returned `clicked: false` with the toast plainly visible in the screenshot taken one item later. A `wait` item between them is required.
+- Confirmed again from the last entry: click by `ref`, never by coordinate. Screenshots came back 1568×746, 1502×652 and 1358×905 across four calls in one session against an unchanged viewport.
+
+**Open**
+- **Completing a task and a real overnight rollover are still not done by a person.** Unchanged for three sessions. `physio` on 17 Aug is the only completion in the table and it predates the UI work.
+- `call doctor` on 19 Aug appeared in the table mid-session and is not from this work — Noel added it in his own window. Left alone.
+- Undo is now the only way to delete anything, and it lasts six seconds. That makes §4 item 3 more urgent than the order suggests, not less.
+- Unchanged: Phase 3 items 6 and 7 blocked on Todoist **iOS** captures; Settings-as-modal and the Today strip's fate after Upcoming both still Noel's call.
+
+**Next**
+Phase 3 item 3, `/today/:id` plus inline edit. `view-transition-name: task-{id}` per row, list unmounted while the card shows, edit rendered as the `Capture` component in the row's slot. This is also where delete gets a permanent home and where the toast finally earns its `Open` action.
+
+**Touched** — `src/app/core/{task.store.ts,dates.ts,dates.spec.ts}`, `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-08-18 · claude-code · date picker built, repo pushed
 
 **Did**

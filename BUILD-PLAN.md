@@ -99,7 +99,7 @@ silently rejects anything not on the list.
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
-| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **in progress** — item 2 of 7 done |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **in progress** — items 1 and 2 of 7 done |
 | 4 | Calendar, history drill-in, category filter, offline queue | not started |
 | 5 | Settings, email digest, weekly review, Web Push reminders | not started |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
@@ -140,15 +140,15 @@ One evening plus one morning. Everything below assumes the loop works.
 Ordered. Each item below is a prerequisite for the ones under it more often
 than not, and the order was set on 18 Aug against the Todoist captures.
 
-1. **Confirm that a task was added.** `Capture.onKeydown` clears the box and
-   emits, with no toast. A task scheduled for a future day then lands in the
-   Upcoming strip, which is collapsed by default, so it disappears from view
-   the instant it is created and the add reads as a failure. Found in real use
-   on 18 Aug — the only thing here proven broken by a person. Fix is a
-   `ToastStore` message naming the day it landed on ("Added to Friday 21 Aug"),
-   with undo. Auto-expanding the strip was considered and rejected because it
-   moves the page under the cursor mid-typing. The `Open` action waits for the
-   `/today/:id` route below.
+1. **Confirm that a task was added.** **Done, 18 Aug.**
+   `TaskStore.addFromCapture` now toasts `Added to <day>.` with an Undo that
+   deletes the task. The day is worded by `sentenceDate` — "today",
+   "tomorrow", otherwise "Friday 21 Aug". Auto-expanding the Upcoming strip was
+   considered and rejected because it moves the page under the cursor
+   mid-typing. The `Open` action still waits for the `/today/:id` route below.
+   Verified by hand: a task typed as `friday` toasted "Added to Friday 21 Aug."
+   and the Undo on a later one removed the row from the database, not just the
+   list.
 2. **Date picker.** **Done, 18 Aug**, in `shared/date-picker.ts`. The date chip
    in capture is a button that opens it: a shortcut row with each option's
    resolved day printed beside it (Today, Tomorrow, This weekend, Next week —
@@ -222,7 +222,8 @@ Todoist **iOS app** recorded before the work starts. See
 Each feature carries its own state. This is the only place feature status is
 tracked.
 
-1. **Add to-dos for the day.** State: done.
+1. **Add to-dos for the day.** State: done, with an undo toast naming the day
+   it landed on.
 2. **Schedule to-dos for a future date**, entered primarily through natural
    language, with the date picker behind the chip for anything the sentence
    does not say. State: done.
@@ -664,6 +665,25 @@ pointing six days out. It resolves to the coming Saturday, and a shortcut that
 duplicates an earlier row's day is dropped. On a Sunday the weekend is already
 here, so it collapses into Today.
 
+### The add toast, 18 Aug
+
+**The toast fires before the insert resolves,** exactly as the optimistic row
+does. Waiting for the round trip would put a spinner's worth of delay in front
+of the only feedback the add produces, which §2's performance bar rules out. If
+the insert then fails, the add toast is dismissed by id and the error toast
+replaces it, so the two are never on screen contradicting each other.
+
+**Undo on an add deletes the task**, and it is the first and only caller of
+`TaskStore.remove()`. Undo pressed while the insert is still in flight drops
+the row locally and sets a flag; when the insert lands, the store deletes the
+server copy it just created. Without that, a fast Undo leaves a ghost row that
+is invisible until the next reload.
+
+**The message names the day, not the task.** "Added to Friday 21 Aug." rather
+than the text just typed, because the text is not what is in doubt — where it
+went is. `sentenceDate` exists for this: `friendlyDate` returns "Today" and
+"Fri 21 Aug", which read like a chip that escaped into a sentence.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -720,10 +740,9 @@ Not core. Revisit once the main app is solid.
 - **The task loop is half verified by a person.** Sign-in, first-login seeding
   and adding a dated, tagged task through the capture box are confirmed as of
   18 Aug. Completing a task and watching a real overnight rollover are not.
-- **Adding a task gives no feedback.** See §4 item 1. Known-broken in real use,
-  not yet fixed, and now first in the Phase 3 order.
-- **No edit or delete UI.** `TaskStore.remove()` exists and nothing calls it;
-  a typo cannot be corrected at all. §4 item 3.
+- **No edit or delete UI.** The add toast's Undo is the only caller of
+  `TaskStore.remove()`, and it lasts six seconds. After that a task cannot be
+  deleted or corrected from the app at all. §4 item 3.
 - **The reminder is set but never sent.** The chip and the picker's time field
   landed on 18 Aug, so a time is now visible and correctable. Nothing delivers
   it. Phase 5.

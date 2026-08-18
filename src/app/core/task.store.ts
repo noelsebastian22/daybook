@@ -10,7 +10,7 @@ import { Supabase } from './supabase';
 import { SessionStore } from './session.store';
 import { ToastStore } from './toast.store';
 import { parseCapture } from './parse-capture';
-import { addDays, today } from './dates';
+import { addDays, sentenceDate, today } from './dates';
 import type { Category, Energy, Scheduling, Task } from './models';
 
 export type EnergyFilter = 'all' | Energy;
@@ -164,6 +164,15 @@ export const TaskStore = signalStore(
         }
       }
 
+      async function removeTask(task: Task): Promise<void> {
+        removeLocal(task.id);
+        const { error } = await sb.client.from('tasks').delete().eq('id', task.id);
+        if (error) {
+          patchState(store, { tasks: [...store.tasks(), task] });
+          toast.error('Could not delete that task.');
+        }
+      }
+
       /** Unknown #slug creates the category rather than dropping the tag. */
       async function resolveCategory(slug: string | null): Promise<string | null> {
         if (!slug) return null;
@@ -206,6 +215,12 @@ export const TaskStore = signalStore(
          * Optimistic: the row lands in the list before the network call.
          * On failure it is pulled back out and the input is handed back to
          * the caller so nothing typed is lost.
+         *
+         * The toast is the only proof the add worked. A task scheduled for a
+         * future day goes straight into the collapsed Upcoming strip and is
+         * never seen, so it names the day it landed on. It fires before the
+         * insert resolves, for the same reason the row does — feedback does
+         * not wait on a round trip.
          */
         async addFromCapture(
           input: string,
@@ -241,15 +256,39 @@ export const TaskStore = signalStore(
           };
           patchState(store, { tasks: [...store.tasks(), optimistic] });
 
+          // Undo may be pressed while the insert is still in flight, when
+          // there is no server row to delete yet. Drop it locally now and let
+          // the insert clean up after itself below.
+          let saved: Task | null = null;
+          let undone = false;
+          const toastId = toast.show(
+            `Added to ${sentenceDate(optimistic.scheduled_date)}.`,
+            () => {
+              undone = true;
+              if (saved) void removeTask(saved);
+              else removeLocal(tempId);
+            },
+          );
+
           const { id: _drop, ...insert } = optimistic;
           const { data, error } = await sb.client.from('tasks').insert(insert).select().single();
 
           if (error || !data) {
+            toast.dismiss(toastId);
             removeLocal(tempId);
             toast.error('Could not save that task.');
             return false;
           }
-          replace(tempId, data as Task);
+
+          if (undone) {
+            // The row is already gone from the list; only the server copy is
+            // left, and removeTask puts it back if the delete fails.
+            await removeTask(data as Task);
+            return false;
+          }
+
+          saved = data as Task;
+          replace(tempId, saved);
           return true;
         },
 
@@ -300,14 +339,7 @@ export const TaskStore = signalStore(
           toast.show('Moved.', () => void this.reschedule({ ...task, ...patch }, before.scheduled_date));
         },
 
-        async remove(task: Task): Promise<void> {
-          removeLocal(task.id);
-          const { error } = await sb.client.from('tasks').delete().eq('id', task.id);
-          if (error) {
-            patchState(store, { tasks: [...store.tasks(), task] });
-            toast.error('Could not delete that task.');
-          }
-        },
+        remove: removeTask,
       };
     },
   ),

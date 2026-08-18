@@ -49,6 +49,25 @@ export function friendlyDate(date: string): string {
   });
 }
 
+/**
+ * The same day as `friendlyDate`, worded to sit inside a sentence:
+ * "today", "tomorrow", otherwise "Friday 21 Aug".
+ *
+ * Chips are short because they are narrow. A toast is prose and has the room,
+ * so it spells the weekday out — "Added to Fri 21 Aug." reads like a chip that
+ * escaped into a sentence.
+ */
+export function sentenceDate(date: string, from: string = today()): string {
+  if (date === from) return 'today';
+  if (date === addDays(from, 1)) return 'tomorrow';
+  if (date === addDays(from, -1)) return 'yesterday';
+  return fromLocalDate(date).toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
 /** "Sat" — short weekday name, for places too narrow for a full date. */
 export function shortWeekday(date: string): string {
   return fromLocalDate(date).toLocaleDateString(undefined, { weekday: 'short' });
