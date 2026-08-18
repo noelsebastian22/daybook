@@ -11,6 +11,44 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-18 · claude-code · date picker built, repo pushed
+
+**Did**
+- **Phase 3 item 2 built**, skipping item 1 on Noel's instruction ("continue from step 2"). The toast is still unwritten; nothing in the picker depended on it.
+- New `src/app/shared/date-picker.ts`: shortcut row (Today / Tomorrow / This weekend / Next week) with each option's resolved day printed beside it, a Monday-first month grid, and a time field writing `reminder_at`. No "No Date", no "Repeat", per §9.
+- `capture.ts`: the date chip is now always present — reads `Today` before a word is typed — and is a button that opens the picker. A reminder chip appears whenever a time is set, with an `×` to clear it. The old `preview()` computed is gone; the chip row is no longer conditional on there being text.
+- **`reminder_at` is visible for the first time.** `parse-capture.ts` has set it since Phase 2 and no component read it. Feature 7 moves from "parsed and stored, never fires" to "visible and editable, never fires".
+- `Capture.submitted` now emits `CaptureSubmit { text, scheduling }`; `TaskStore.addFromCapture(input, scheduling)` takes the override. New `Scheduling` type in `models.ts`.
+- Eight helpers added to `core/dates.ts`: `startOfMonth`, `addMonths`, `daysInMonth`, `weekdayIndex`, `monthLabel`, `weekdayAndDate`, `comingSaturday`, `comingMonday`, plus `toTimestamp` / `timeOfDay` / `friendlyClock` for the reminder.
+- Date tests moved out of `parse-capture.spec.ts` into a new `core/dates.spec.ts` and extended. `ng test` 12 → 18. `ng build` 490.85 kB initial / 122.54 kB transferred, `today` chunk 63.12 → 71.44 kB.
+- Shortcut buttons got an explicit `aria-label` — two text spans inside a button computed to an empty accessible name in the a11y tree.
+- **`git remote add origin git@github.com:noelsebastian22/daybook.git`**, `master` pushed and tracking. Noel's instruction, mid-session.
+
+**Decided**
+- **A date typed after the picker was used wins.** The pick is held beside the parse and dropped by `Capture.onInput` the moment the text parses to a different day or time. Picking Friday, then typing "monday", must not silently keep Friday.
+- **The reminder travels with the chosen day.** Picking a date rebuilds `reminder_at` from that date plus the current time. Keeping the parsed timestamp would leave 2pm on the day that was typed — a bug with no error message.
+- **Past days are disabled in the grid.** Not a data rule; `scheduled_date` may sit in the past between rollovers. But a day already gone is a choice the next rollover immediately undoes.
+- **The picker owns nothing but the visible month.** It takes a date and a time, emits a new pair, and the caller holds the value. That is what lets one component serve capture, edit and reschedule-from-a-row rather than three.
+- **"This weekend" disappears on Fri / Sat / Sun** rather than pointing six days out — it resolves to the coming Saturday and a shortcut duplicating an earlier row's day is dropped. On a Sunday the weekend is already here, so it collapses into Today.
+- All five are in §9 under "Building the date picker, 18 Aug".
+
+**Didn't work**
+- **Verifying the insert path end to end was abandoned deliberately.** Pressing Enter would have written a junk task into the live database and **there is no delete UI** (§12), so it would be stuck in Noel's list until Phase 3 item 3. The picker → `scheduling` → insert path is unit-tested and unproven by a person.
+- **Raw coordinates from a `computer` screenshot do not click where they appear to.** The screenshot came back 1568×745 against a 1502×714 viewport and the tool does not rescale, so two clicks silently landed ~4% off and hit nothing. Clicking by `ref` from `read_page` worked every time. Use refs, not coordinates.
+- **`signal(startOfMonth(this.date()))` as a field initializer throws** — a required `input()` cannot be read during field initialization. `linkedSignal` is the fix and has the better behaviour anyway: the visible month resets when the picker is reopened on a different date.
+- `ng serve` refused: port 4200 was already taken by Noel's own dev server, which had hot-reloaded the changes. Nothing to fix — check `lsof -ti :4200` before assuming the server is dead.
+
+**Open**
+- **The add-confirmation toast, Phase 3 item 1, is still not built.** It is the only item proven broken by a person and it is now the one thing between here and item 3.
+- **The picker has not been used by a person to actually create a task.** Everything up to the Enter key was driven in Chrome and looks right: shortcuts resolve correctly, "Next week" set the chip to `Mon 24 Aug`, typing `friday 5pm` overrode it to `Fri 21 Aug` with a `17:00` reminder chip.
+- The reminder chip prints `17:00`, not `5:00 PM` — `toLocaleTimeString` following the browser locale, same as `friendlyTime` elsewhere. Consistent, but if Noel wants 12-hour it is one place to change.
+- Unchanged: completing a task and a real overnight rollover have still not been done by a person; no edit or delete UI; Phase 3 items 6 and 7 still blocked on iOS captures; Settings-as-modal and the Today strip's fate after Upcoming both still Noel's call.
+
+**Next**
+Phase 3 item 1, the add-confirmation toast. `Capture.onKeydown` emits and clears with no acknowledgement; a future-dated task lands in the collapsed strip and vanishes. `ToastStore.show(message, undo)` already takes an undo callback and `shared/toasts.ts` renders it, so this is a call site plus a message naming the day — "Added to Friday 21 Aug". Leave `Open` out until `/today/:id` exists in item 3.
+
+**Touched** — `src/app/shared/date-picker.ts`, `src/app/features/today/capture.ts`, `src/app/features/today/today.ts`, `src/app/core/{dates.ts,dates.spec.ts,models.ts,task.store.ts,parse-capture.spec.ts}`, `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-08-18 · claude-code · todoist captures annotated, phase 3 ordered
 
 **Did**

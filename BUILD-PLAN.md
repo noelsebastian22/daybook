@@ -99,7 +99,7 @@ silently rejects anything not on the list.
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
-| 3 | Magic Plus, task-as-object view transitions, swipe, completion choreography | **next** |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **in progress** — item 2 of 7 done |
 | 4 | Calendar, history drill-in, category filter, offline queue | not started |
 | 5 | Settings, email digest, weekly review, Web Push reminders | not started |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
@@ -714,7 +714,9 @@ Not core. Revisit once the main app is solid.
 - **Email digest has no provider.** Supabase does not send mail. Resend plus an
   Edge Function, Phase 5.
 - **Web Push needs VAPID keys** and a real subscription flow. Phase 5.
-- **No hosting, no CI, not deployed anywhere.**
+- **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
+  `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
+  That is a remote, not a deployment.
 - **The task loop is half verified by a person.** Sign-in, first-login seeding
   and adding a dated, tagged task through the capture box are confirmed as of
   18 Aug. Completing a task and watching a real overnight rollover are not.
