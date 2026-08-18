@@ -149,12 +149,13 @@ than not, and the order was set on 18 Aug against the Todoist captures.
    with undo. Auto-expanding the strip was considered and rejected because it
    moves the page under the cursor mid-typing. The `Open` action waits for the
    `/today/:id` route below.
-2. **Date picker.** The date chip in capture becomes a button that opens it: a
-   shortcut row with each option's resolved day printed beside it (Today,
-   Tomorrow, This weekend, Next week — Mon 24 Aug) above a month grid, plus a
-   time field writing `reminder_at`. No "No Date", no "Repeat" — see §9. Built
-   before the edit UI on purpose, because one picker then serves capture, edit
-   and reschedule-from-a-row.
+2. **Date picker.** **Done, 18 Aug**, in `shared/date-picker.ts`. The date chip
+   in capture is a button that opens it: a shortcut row with each option's
+   resolved day printed beside it (Today, Tomorrow, This weekend, Next week —
+   Mon 24 Aug) above a month grid, plus a time field writing `reminder_at`. No
+   "No Date", no "Repeat" — see §9. Built before the edit UI on purpose,
+   because one picker then serves capture, edit and reschedule-from-a-row; the
+   latter two are wired up in item 3. **Not yet used by a person.**
 3. **Task-as-object and inline edit.** A `/today/:id` route,
    `view-transition-name: task-{id}` per row, list **unmounted** while the card
    shows. Edit is the `Capture` component rendered in the row's slot, not a
@@ -223,7 +224,8 @@ tracked.
 
 1. **Add to-dos for the day.** State: done.
 2. **Schedule to-dos for a future date**, entered primarily through natural
-   language. State: done.
+   language, with the date picker behind the chip for anything the sentence
+   does not say. State: done.
 3. **Natural language capture.** Typing `call physio thursday 2pm #physio
    !quick` parses into date, time, category and energy, with tokens rendering
    as inline chips as you type. State: done.
@@ -234,9 +236,9 @@ tracked.
    no UI to read them. Phase 4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done.
-7. **Optional reminder times.** State: **parsed and stored, never fires.**
-   `reminder_at` is set by the capture parser and read by nothing. Not editable
-   either. Phase 5.
+7. **Optional reminder times.** State: **visible and editable, never fires.**
+   `reminder_at` is set by the capture parser or the date picker's time field,
+   and shows as its own chip beside the date. Nothing sends it. Phase 5.
 8. **Energy tag per task, Quick or Deep**, so the list can be filtered by how
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
@@ -329,6 +331,11 @@ Review and the §6 chart live. State: not started, Phase 3.
 | `!quick` / `!deep` | energy tag | `!quick` |
 
 No date means today. Enter adds, Shift+Enter is a newline.
+
+The chips under the box are not only a preview. The date chip is always
+present — it reads `Today` before a word is typed — and opens the picker;
+the reminder chip appears whenever a time is set and can be cleared from
+there. Typing a date afterwards overrides whatever the picker chose (§9).
 
 Parsing order matters: `#tags` and `!energy` are extracted before chrono runs,
 so chrono cannot claim a substring inside one of them. It will otherwise read
@@ -629,6 +636,34 @@ date, and a week strip that pages forward. It is not the Phase 4 calendar;
 that is a grid over months, this is a list over one week. **Still open:** what
 happens to the collapsed strip on Today once this exists.
 
+### Building the date picker, 18 Aug
+
+**A date typed after the picker was used wins.** The picker's choice is held
+separately from the parse and overrides it, but `Capture.onInput` drops that
+choice the moment the text parses to a different day or time. Newer intent
+wins, whichever way it was expressed. Without this, picking Friday and then
+typing "monday" would silently keep Friday and the box would be lying.
+
+**The reminder travels with the chosen day.** Picking a new date rebuilds
+`reminder_at` from that date plus the current time rather than keeping the
+timestamp the text produced. A 2pm reminder left behind on the day that was
+typed is a bug with no error message.
+
+**Past days are disabled in the grid.** Not a rule about the data —
+`scheduled_date` may legitimately sit in the past between rollovers — but a
+day already gone is a choice the next rollover immediately undoes, so offering
+it is offering nothing.
+
+**The picker holds no state but the visible month.** It takes a date and a
+time and emits a new pair. Capture owns the value, and so will edit and
+reschedule-from-a-row when they arrive, which is what makes one component
+serve all three.
+
+**"This weekend" disappears on a Friday, Saturday and Sunday** rather than
+pointing six days out. It resolves to the coming Saturday, and a shortcut that
+duplicates an earlier row's day is dropped. On a Sunday the weekend is already
+here, so it collapses into Today.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -687,9 +722,9 @@ Not core. Revisit once the main app is solid.
   not yet fixed, and now first in the Phase 3 order.
 - **No edit or delete UI.** `TaskStore.remove()` exists and nothing calls it;
   a typo cannot be corrected at all. §4 item 3.
-- **The reminder is invisible.** `parse-capture.ts` sets `reminder_at` and no
-  component reads it, so a time typed into capture disappears silently. The
-  chip is §4 item 2; actually firing the reminder is Phase 5.
+- **The reminder is set but never sent.** The chip and the picker's time field
+  landed on 18 Aug, so a time is now visible and correctable. Nothing delivers
+  it. Phase 5.
 - **Completion and swipe motion are blocked on captures from the wrong
   device.** Every Todoist reference so far is the web app driven by a mouse.
   See `docs/reference/todoist/NOTES.md`.

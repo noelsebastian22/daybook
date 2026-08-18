@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { TaskStore, type EnergyFilter } from '../../core/task.store';
 import { SessionStore } from '../../core/session.store';
-import { Capture } from './capture';
+import { Capture, type CaptureSubmit } from './capture';
 import { TaskRow } from './task-row';
 import { addDays, friendlyDate, today } from '../../core/dates';
 import type { Task } from '../../core/models';
@@ -156,8 +156,8 @@ export class Today implements OnInit {
 
   protected label = friendlyDate;
 
-  protected add(input: string): void {
-    void this.tasks.addFromCapture(input);
+  protected add(submit: CaptureSubmit): void {
+    void this.tasks.addFromCapture(submit.text, submit.scheduling);
   }
 
   protected pushOneDay(task: Task): void {

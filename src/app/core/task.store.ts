@@ -11,7 +11,7 @@ import { SessionStore } from './session.store';
 import { ToastStore } from './toast.store';
 import { parseCapture } from './parse-capture';
 import { addDays, today } from './dates';
-import type { Category, Energy, Task } from './models';
+import type { Category, Energy, Scheduling, Task } from './models';
 
 export type EnergyFilter = 'all' | Energy;
 
@@ -207,7 +207,10 @@ export const TaskStore = signalStore(
          * On failure it is pulled back out and the input is handed back to
          * the caller so nothing typed is lost.
          */
-        async addFromCapture(input: string): Promise<boolean> {
+        async addFromCapture(
+          input: string,
+          scheduling: Scheduling | null = null,
+        ): Promise<boolean> {
           const uid = session.userId();
           if (!uid || !input.trim()) return false;
 
@@ -224,11 +227,14 @@ export const TaskStore = signalStore(
             user_id: uid,
             text: parsed.text,
             created_date: today(),
-            scheduled_date: parsed.scheduled_date,
+            // The picker wins over the text when it was used, and it carries
+            // the reminder with it, so a picked day is never paired with a
+            // time left behind on the day that was typed.
+            scheduled_date: scheduling?.scheduled_date ?? parsed.scheduled_date,
             completed_at: null,
             energy: parsed.energy,
             category_id,
-            reminder_at: parsed.reminder_at,
+            reminder_at: scheduling ? scheduling.reminder_at : parsed.reminder_at,
             carried_over_count: 0,
             reschedule_count: 0,
             created_at: new Date().toISOString(),

@@ -47,6 +47,15 @@ export interface UserSettings {
   seeded_at: string | null;
 }
 
+/**
+ * A day, and optionally a time, chosen explicitly through the date picker.
+ * Overrides whatever the capture text parsed to.
+ */
+export interface Scheduling {
+  scheduled_date: string;
+  reminder_at: string | null;
+}
+
 export interface TaskDraft {
   text: string;
   scheduled_date: string;

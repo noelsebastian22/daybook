@@ -8,7 +8,15 @@ import {
   viewChild,
 } from '@angular/core';
 import { parseCapture, segments } from '../../core/parse-capture';
-import { friendlyDate } from '../../core/dates';
+import { friendlyClock, friendlyDate, timeOfDay, toTimestamp } from '../../core/dates';
+import { DatePicker, type PickedDate } from '../../shared/date-picker';
+import type { Scheduling } from '../../core/models';
+
+export interface CaptureSubmit {
+  text: string;
+  /** Set only when the picker was used. Null means the text speaks for itself. */
+  scheduling: Scheduling | null;
+}
 
 /**
  * Natural language capture.
@@ -17,10 +25,16 @@ import { friendlyDate } from '../../core/dates';
  * Not contenteditable: contenteditable fights the IME, mangles paste and
  * loses the caret on re-render. The two elements must share identical font,
  * padding and line-height or the chips drift away from the text.
+ *
+ * The date chip is live from the moment the box is open, not only once a date
+ * parses (BUILD-PLAN §9): `scheduled_date` is required, so a default is always
+ * being applied and hiding it is dishonest about what is about to happen.
+ * Clicking it opens the picker.
  */
 @Component({
   selector: 'app-capture',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DatePicker],
   template: `
     <div class="rounded-2xl bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500">
       <div class="relative">
@@ -64,55 +78,125 @@ import { friendlyDate } from '../../core/dates';
         ></textarea>
       </div>
 
-      @if (preview(); as p) {
-        <div class="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs">
-          <span class="rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700">
-            {{ p.when }}
-          </span>
-          @if (p.category) {
-            <span class="rounded-full bg-ink-100 px-2 py-1 font-medium text-ink-600">
-              #{{ p.category }}
-            </span>
+      <div class="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs">
+        <div class="relative">
+          <button
+            #dateChip
+            type="button"
+            class="rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700 transition hover:bg-brand-100"
+            [attr.aria-expanded]="pickerOpen()"
+            [attr.aria-label]="'Scheduled for ' + when() + '. Change the date'"
+            (click)="pickerOpen.set(!pickerOpen())"
+          >
+            {{ when() }}
+          </button>
+
+          @if (pickerOpen()) {
+            <app-date-picker
+              class="absolute left-0 top-full z-50 mt-2"
+              [date]="scheduledDate()"
+              [time]="reminderTime()"
+              (picked)="onPicked($event)"
+              (closed)="closePicker()"
+            />
           }
-          @if (p.energy) {
-            <span
-              class="rounded-full px-2 py-1 font-medium"
-              [class]="p.energy === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'"
-            >
-              {{ p.energy }}
-            </span>
-          }
-          <span class="ml-auto text-ink-400">Enter to add</span>
         </div>
-      }
+
+        @if (reminderTime(); as t) {
+          <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700">
+            {{ clock(t) }}
+            <button
+              type="button"
+              class="text-brand-700/60 transition hover:text-brand-700"
+              [attr.aria-label]="'Clear the ' + clock(t) + ' reminder'"
+              (click)="clearReminder()"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </span>
+        }
+
+        @if (parsed().categorySlug; as category) {
+          <span class="rounded-full bg-ink-100 px-2 py-1 font-medium text-ink-600">
+            #{{ category }}
+          </span>
+        }
+
+        @if (parsed().energy; as energy) {
+          <span
+            class="rounded-full px-2 py-1 font-medium"
+            [class]="energy === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'"
+          >
+            {{ energy }}
+          </span>
+        }
+
+        @if (value().trim()) {
+          <span class="ml-auto text-ink-400">Enter to add</span>
+        }
+      </div>
     </div>
   `,
 })
 export class Capture {
-  readonly submitted = output<string>();
+  readonly submitted = output<CaptureSubmit>();
 
   private readonly inputEl = viewChild.required<ElementRef<HTMLTextAreaElement>>('input');
+  private readonly dateChip = viewChild.required<ElementRef<HTMLButtonElement>>('dateChip');
 
   protected readonly value = signal('');
+  protected readonly pickerOpen = signal(false);
+
+  /** What the picker chose, if it was used. Null means the text decides. */
+  private readonly picked = signal<PickedDate | null>(null);
 
   protected readonly parsed = computed(() => parseCapture(this.value()));
   protected readonly parts = computed(() => segments(this.value(), this.parsed().tokens));
 
-  protected readonly preview = computed(() => {
-    const v = this.value().trim();
-    if (!v) return null;
-    const p = this.parsed();
-    return {
-      when: friendlyDate(p.scheduled_date),
-      category: p.categorySlug,
-      energy: p.energy,
-    };
+  protected readonly scheduledDate = computed(
+    () => this.picked()?.date ?? this.parsed().scheduled_date,
+  );
+
+  /** Local "HH:MM", from the picker if it was used, otherwise from the text. */
+  protected readonly reminderTime = computed(() => {
+    const chosen = this.picked();
+    if (chosen) return chosen.time;
+    const at = this.parsed().reminder_at;
+    return at ? timeOfDay(at) : null;
   });
+
+  protected readonly when = computed(() => friendlyDate(this.scheduledDate()));
+
+  protected clock = friendlyClock;
 
   protected onInput(event: Event): void {
     const el = event.target as HTMLTextAreaElement;
+    const before = this.parsed();
     this.value.set(el.value);
+    const after = this.parsed();
+
+    // A date typed after the picker was used is the newer intent, so it wins.
+    if (
+      after.scheduled_date !== before.scheduled_date ||
+      after.reminder_at !== before.reminder_at
+    ) {
+      this.picked.set(null);
+    }
+
     el.style.height = 'auto';
+  }
+
+  protected onPicked(picked: PickedDate): void {
+    this.picked.set(picked);
+  }
+
+  protected closePicker(): void {
+    this.pickerOpen.set(false);
+    this.dateChip().nativeElement.focus();
+  }
+
+  protected clearReminder(): void {
+    this.picked.set({ date: this.scheduledDate(), time: null });
   }
 
   protected onKeydown(event: KeyboardEvent): void {
@@ -121,8 +205,22 @@ export class Capture {
     event.preventDefault();
     const text = this.value().trim();
     if (!text) return;
-    this.submitted.emit(text);
+
+    const chosen = this.picked();
+    this.submitted.emit({
+      text,
+      scheduling: chosen
+        ? {
+            scheduled_date: chosen.date,
+            // The reminder follows the chosen day, so moving the date does not
+            // leave the time behind on the old one.
+            reminder_at: chosen.time ? toTimestamp(chosen.date, chosen.time) : null,
+          }
+        : null,
+    });
+
     this.value.set('');
     this.inputEl().nativeElement.value = '';
+    this.picked.set(null);
   }
 }

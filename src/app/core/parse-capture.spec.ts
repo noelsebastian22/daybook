@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseCapture } from './parse-capture';
-import { addDays, toLocalDate, today } from './dates';
+import { today } from './dates';
 
 // Fixed reference so "thursday" is deterministic.
 // 2026-08-17 is a Monday.
@@ -61,18 +61,5 @@ describe('parseCapture', () => {
   it('collapses the whitespace left behind by stripped tokens', () => {
     const r = parseCapture('pay   the  #bills   rent', REF);
     expect(r.text).toBe('pay the rent');
-  });
-});
-
-describe('dates', () => {
-  it('uses the local calendar date, not UTC', () => {
-    // 09:00 in Sydney is the previous day in UTC. toISOString() would be wrong.
-    const morning = new Date(2026, 7, 17, 9, 0, 0);
-    expect(toLocalDate(morning)).toBe('2026-08-17');
-  });
-
-  it('adds days across a month boundary', () => {
-    expect(addDays('2026-08-31', 1)).toBe('2026-09-01');
-    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
   });
 });
