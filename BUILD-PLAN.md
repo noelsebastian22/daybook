@@ -126,9 +126,11 @@ unverified.
 
 ### 0. Verify the task loop by hand
 
-Sign-in is done. What is left: add a task carrying a date, a `#tag` and an
-`!energy`, confirm the chips render and it lands on the right day in the
-Upcoming strip, complete something and check the timestamp, then leave an
+Sign-in is done. **Capture is done too**, confirmed by hand on 18 Aug: a task
+with a date and a `#tag` parsed correctly, the category chip rendered and it
+landed on the right day under the right header in the Upcoming strip.
+
+What is left: complete something and check the timestamp, then leave an
 incomplete task overnight and confirm it carries over with the badge showing.
 
 One evening plus one morning. Everything below assumes the loop works.
@@ -146,6 +148,13 @@ One evening plus one morning. Everything below assumes the loop works.
 - **Delete and edit a task.** `TaskStore.remove()` exists with no UI, and there
   is no way to fix a typo at all. Not in the original spec. Needed the first
   day of real use.
+- **Confirm that a task was added.** `Capture.onKeydown` clears the box and
+  emits, with no toast. A task scheduled for a future day then lands in the
+  Upcoming strip, which is collapsed by default, so it disappears from view the
+  instant it is created and the add reads as a failure. Found in real use on
+  18 Aug. Fix is a `ToastStore` message naming the day it landed on, with undo;
+  auto-expanding the strip was considered and rejected because it moves the
+  page under the cursor mid-typing.
 
 ### Phase 4, history
 
@@ -503,6 +512,23 @@ module. Component styles can still be scss.
 
 **Named Daybook**, chosen over Cairn, Tide and Carryover.
 
+**Todoist is the UX reference, captured in `docs/reference/todoist/`.** Screens
+and recordings are committed so every agent surface can see them, annotated in
+that folder's `NOTES.md`. Nothing in there is a decision: a capture becomes one
+only by landing in §5 as a feature or in §9 here. Each capture is sorted Steal
+(capture and motion ideas), Adapt (right idea, wrong shape for a day-book) or
+Reject (project-management structure). Todoist's IA is projects → sections →
+tasks → subtasks with priorities, labels and saved filters, which pulls
+directly against §10; anything from that pile needs an explicit reversal
+recorded here rather than a quiet implementation.
+
+**The one-day push button is labelled with the day it lands on.** It was
+labelled "Tomorrow" unconditionally while the action is
+`addDays(task.scheduled_date, 1)`, so on a task three days out it said Tomorrow
+and moved the task to the day after that one. The row does not show its own
+date — the Upcoming strip's day header already carries it, and repeating it per
+row is noise — so the only date on the row is the button's target.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -538,8 +564,11 @@ Not core. Revisit once the main app is solid.
   Edge Function, Phase 5.
 - **Web Push needs VAPID keys** and a real subscription flow. Phase 5.
 - **No hosting, no CI, not deployed anywhere.**
-- **The task loop is unverified by a person.** Sign-in and first-login seeding
-  are confirmed; adding, completing and carrying over a real task are not.
+- **The task loop is half verified by a person.** Sign-in, first-login seeding
+  and adding a dated, tagged task through the capture box are confirmed as of
+  18 Aug. Completing a task and watching a real overnight rollover are not.
+- **Adding a task gives no feedback.** See §4. Known-broken in real use, not
+  yet fixed.
 
 ---
 

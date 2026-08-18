@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { Category, Task } from '../../core/models';
-import { friendlyTime } from '../../core/dates';
+import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/dates';
 
 @Component({
   selector: 'app-task-row',
@@ -74,10 +74,11 @@ import { friendlyTime } from '../../core/dates';
       @if (!done()) {
         <button
           type="button"
-          class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 opacity-0 transition hover:bg-ink-50 hover:text-ink-600 focus:opacity-100 group-hover:opacity-100"
+          class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 opacity-60 transition hover:bg-ink-50 hover:text-ink-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
+          [attr.aria-label]="'Move to ' + pushTargetDate()"
           (click)="pushed.emit()"
         >
-          Tomorrow
+          <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
         </button>
       }
     </div>
@@ -94,6 +95,22 @@ export class TaskRow {
   protected readonly category = computed(() => {
     const id = this.task().category_id;
     return id ? (this.categories().get(id) ?? null) : null;
+  });
+
+  /**
+   * The push button moves a task on by one day from its own scheduled date,
+   * not from today. On the Today list that is tomorrow; in the Next 7 days
+   * strip it is not, so the button has to name the day it actually lands on.
+   */
+  protected readonly pushTargetDate = computed(() =>
+    friendlyDate(addDays(this.task().scheduled_date, 1)),
+  );
+
+  /** "Tomorrow" for a today task, otherwise "Sat" — "Sat 22 Aug" is too wide. */
+  protected readonly pushLabel = computed(() => {
+    const target = addDays(this.task().scheduled_date, 1);
+    const friendly = friendlyDate(target);
+    return friendly === 'Tomorrow' ? friendly : shortWeekday(target);
   });
 
   protected time = friendlyTime;

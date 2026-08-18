@@ -49,6 +49,11 @@ export function friendlyDate(date: string): string {
   });
 }
 
+/** "Sat" — short weekday name, for places too narrow for a full date. */
+export function shortWeekday(date: string): string {
+  return fromLocalDate(date).toLocaleDateString(undefined, { weekday: 'short' });
+}
+
 /** "9:15 AM" from a timestamptz string. */
 export function friendlyTime(ts: string): string {
   return new Date(ts).toLocaleTimeString(undefined, {

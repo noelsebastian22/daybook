@@ -69,7 +69,7 @@ import type { Task } from '../../core/models';
             [task]="task"
             [categories]="tasks.categoryById()"
             (toggled)="tasks.toggleComplete(task)"
-            (pushed)="pushToTomorrow(task)"
+            (pushed)="pushOneDay(task)"
           />
         } @empty {
           <div class="rounded-2xl border-2 border-dashed border-ink-200 px-6 py-12 text-center">
@@ -121,7 +121,7 @@ import type { Task } from '../../core/models';
                         [task]="task"
                         [categories]="tasks.categoryById()"
                         (toggled)="tasks.toggleComplete(task)"
-                        (pushed)="pushToTomorrow(task)"
+                        (pushed)="pushOneDay(task)"
                       />
                     }
                   </div>
@@ -160,7 +160,7 @@ export class Today implements OnInit {
     void this.tasks.addFromCapture(input);
   }
 
-  protected pushToTomorrow(task: Task): void {
+  protected pushOneDay(task: Task): void {
     void this.tasks.reschedule(task, addDays(task.scheduled_date, 1));
   }
 }
