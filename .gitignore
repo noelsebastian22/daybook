@@ -2,6 +2,9 @@
 /dist
 /.angular
 /coverage
+# Supabase CLI scratch state: link target, pooler URLs. Machine-local, and a
+# place secrets can land. Never tracked.
+/supabase/.temp
 .DS_Store
 *.log
 /_to_delete

@@ -11,6 +11,82 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · phases 3–5 clicked through
+
+**Did**
+- **Clicked through all seven pages signed in, against live data.** The sign-in wall that
+  blocked the last session was not there — the dev server was already up on 4200 with a
+  live session. Everything below was seen on screen, not read out of the code.
+- **The carried badge renders** — `carried ×3` / `carried ×2`, the numbers §3 predicted.
+  Closes the oldest open thread in this log.
+- **Completing a task works and was watched.** Green check, animated strike, `done 20:11`,
+  header `2 to go` → `1 to go` + `1 done today` → `All clear / 2 done today`.
+- **The View Transition re-sort is real**: the completed row visibly moved from position 1
+  to below the incomplete row. Un-completing restores the badge and clears `completed_at`.
+- Also seen working: toast+Undo on add/delete/complete; `/today/:id` stats and
+  `toCaptureText` seeding; Save round-trip with no duplicate category; Delete; composer
+  token highlighting; Upcoming; Calendar's hairline/green/red-dot distinction;
+  `/calendar/:date` resolving `now on Today · carried ×3`; Reporting's `—` vs `0` table.
+- **Fixed the `settings.ts` timezone select**, which rendered `America/Los_Angeles` while
+  `user_settings.timezone` held `Australia/Sydney`.
+- **Wired the VAPID public key** into both `environment*.ts`. Noel generated the pair in a
+  separate terminal and set all three secrets. Settings moved `unconfigured` →
+  `no-service-worker`, as expected in a dev build.
+- `/supabase/.temp` added to `.gitignore`. `ng build` 517.28 kB initial / 127.67 kB
+  transferred. `ng test` **31** passing.
+- Every test mutation reverted: both tasks incomplete at carried 3 and 2, scratch task
+  deleted, `digest_enabled` back to false, no stray categories.
+
+**Decided**
+- **The selection is bound on the `<option>` via `[selected]`, never as `[value]` on the
+  `<select>`.** A `[value]` binding on a select runs before `@for` has rendered the
+  children, matches nothing, and silently falls back to `selectedIndex 0` — which, because
+  `zones()` is sorted, was `America/Los_Angeles`. Applies to every future select here.
+- **VAPID keys are Noel's to generate and hold, never an agent's.** Generated outside this
+  session so the private half never entered a transcript. It now exists only in Noel's
+  password manager and in Supabase secrets, and the latter is write-only — it cannot be
+  read back, so losing the former means regenerating and killing every subscription.
+
+**Didn't work**
+- **`find` / `read_page` do not surface `role="status"` live regions.** Burned two calls
+  concluding the toast was absent from the a11y tree. The markup is correct
+  (`role="status"`, `aria-live="polite"`). Check overlay a11y by walking the DOM instead.
+- **Screenshot coordinates are not stable between calls.** The capture viewport oscillates
+  between 1568×680 and 1502×652 and clicks land ~35px off. Use element refs from `find`.
+- **The dark vertical bar down the right of every screenshot is a capture artifact**, not a
+  layout bug — `main` measures full width and nothing scrolls. Do not chase it again.
+- **Content centring is correct** (container centre 863 = content-area centre 863). Another
+  misread of scaled screenshots. Three of the four "bugs" this session spotted by eye were
+  artifacts; all three died on one DOM measurement. **Measure before reporting.**
+
+**Open**
+- **Noel wants Web Push and VAPID explained properly.** The explanation given was accepted
+  but not fully absorbed. Agreed to hold it as a **discovery step at the end of the build**
+  rather than expand on it now.
+- **`ensure_user_setup` fires twice on every load**, consistently 2:1 against
+  `rollover_and_snapshot`. Idempotent, so no data harm, but four wasted round trips per
+  open against the sub-100ms bar in `AGENTS.md`. Cause not investigated.
+- **Seen once, never reproduced:** `rollover failed` plus `InvalidStateError: Transition
+  was aborted` on the genuinely cold first load, then clean across four reloads. Related
+  and worse: `task.store.ts:253` logs and silently `return`s, so a real rollover failure
+  shows the user nothing at all.
+- **A row's carried badge is dropped the instant it completes** (the category chip is
+  kept), so the count disappears exactly when it means most. Noel's call.
+- Toasts and the composer use `fixed inset-x-0`, centring on the viewport ~112px left of
+  the content column on desktop.
+- **Push wire format still unproven** — no device has received one. Needs a built PWA over
+  HTTPS installed to a home screen.
+- **Still needed from Noel:** Resend account, then `supabase/cron/schedule-notify.sql`.
+  Neither `pg_cron` nor `pg_net` is installed — confirmed against `pg_extension`.
+- Swipe thresholds still guesses; still want the Todoist **iOS** captures.
+
+**Next**
+Resend: create the account, set `RESEND_API_KEY` and `DIGEST_FROM` as Supabase secrets,
+flip `digest_enabled` on in Settings, then invoke the `notify` function by hand and read
+what it reports back before scheduling any cron.
+
+**Touched** — `src/app/features/settings/settings.ts`, `src/environments/environment.ts`, `src/environments/environment.prod.ts`, `.gitignore`
+
 ## 2026-08-21 · claude-code · phases 3, 4 and 5 built
 
 **Did**

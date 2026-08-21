@@ -93,14 +93,20 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
             {{ detectedZone }}.
           </p>
 
+          <!--
+            The selection lives on the <option>, not as [value] on the <select>.
+            A [value] binding on the select runs before @for has rendered the
+            options, so the assignment finds no matching child and the element
+            falls back to selectedIndex 0 — which, because zones() is sorted,
+            is America/Los_Angeles. It renders a zone the user never chose.
+          -->
           <select
             class="mt-3 w-full rounded-lg bg-ink-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
             aria-label="Timezone"
-            [value]="s.timezone"
             (change)="setTimezone($event)"
           >
             @for (zone of zones(); track zone) {
-              <option [value]="zone">{{ zone }}</option>
+              <option [value]="zone" [selected]="zone === s.timezone">{{ zone }}</option>
             }
           </select>
 

@@ -7,5 +7,5 @@ export const environment = {
   // see. Generate the pair with `node scripts/generate-vapid.mjs` and put the
   // private half in the Supabase secret VAPID_PRIVATE_KEY, never in here.
   // Empty disables the push toggle in Settings rather than failing at it.
-  vapidPublicKey: '',
+  vapidPublicKey: 'BA1sDpAUHprlhwwJrb6kzGaRXkHuYfmzFK0eFnk47Y4mujPW21iebWNVSItOIEPcl5pLCaG4_El_v-U2xWZJ0PQ',
 };

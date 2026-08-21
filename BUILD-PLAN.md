@@ -99,9 +99,9 @@ silently rejects anything not on the list.
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
-| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **built, unverified by a human** — 7 of 7 |
-| 4 | Calendar, history drill-in, category filter, offline queue | **built, unverified by a human** |
-| 5 | Settings, email digest, weekly review, Web Push reminders | **built; digest and push need Noel's credentials to switch on** |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
+| 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
+| 5 | Settings, email digest, weekly review, Web Push reminders | **built; VAPID configured. Digest still needs Resend; nothing sends until the cron is scheduled** |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
@@ -133,35 +133,49 @@ both 19 and 20 Aug, and `call physio` and `call doctor` landed on 21 Aug with
 by one. That is `daybook_carry_count_by_days_not_opens` proven against a real
 gap. Nobody watched this one either.
 
-**Phases 3, 4 and 5 were built in one sitting on 21 Aug and none of it has been
-used by a person.** Everything below is marked from the code, not from use.
-The whole of it builds and the suite passes, and that is all that is known.
-The sign-in wall meant the agent that wrote it could not open a single one of
-these pages — see §12.
+**Phases 3, 4 and 5 have now been clicked through, signed in, against live
+data.** All seven pages were opened in order on 21 Aug with the console open.
+The sign-in wall that blocked the agent that wrote them was not there on the
+second attempt — the dev server was already running with a live session.
+
+**The task loop is closed.** Completing a task was watched happening: green
+check, animated strike, `done 20:11`, and the header moving `2 to go` →
+`1 to go` + `1 done today` → `All clear`. The completed row visibly re-sorted
+below the incomplete one, which is the View Transition in §9 working as
+designed. Un-completing restores the row and clears `completed_at`. **The
+carried badge renders** — `carried ×3` and `carried ×2`, the exact numbers
+predicted above. Nothing in the loop is unseen any more.
+
+One real bug came out of the pass and is fixed: the Settings timezone select
+rendered `America/Los_Angeles` while the stored zone was `Australia/Sydney`.
+See §9. Two smaller things are open rather than fixed — a duplicated
+`ensure_user_setup` call on every load, and a rollover failure seen once and
+never reproduced. Both are in §12.
+
+What is still unverified by a person: **swipe** (no touch device in the pass),
+the **offline queue**, and **Web Push**, which no device has ever received.
 
 ---
 
 ## 4. Remaining work, in the order it should be done
 
-### 0. Verify the task loop by hand
+### 0. Verify the task loop by hand — **done, 21 Aug**
 
-Sign-in is done. **Capture is done too**, confirmed by hand on 18 Aug: a task
-with a date and a `#tag` parsed correctly, the category chip rendered and it
-landed on the right day under the right header in the Upcoming strip.
+Every step of the loop has now been seen working:
 
-**Rollover is done too**, in the sense that matters: it ran unattended on
-19 Aug and wrote correct data. See §3.
+- **Sign-in** — 17 Aug.
+- **Capture** — 18 Aug. A task with a date and a `#tag` parsed, chipped and
+  landed on the right day. Re-confirmed 21 Aug through the floating composer,
+  with live token highlighting.
+- **Rollover** — ran unattended on 19 Aug, and across a two-day gap by 21 Aug,
+  both writing correct data. Still never *watched* happening, because it fires
+  before the first paint. Reading it out of `day_snapshots` is the only
+  practical check and it has passed twice.
+- **Completion** — watched, 21 Aug. Timestamp, strike, header count, and the
+  re-sort below the incomplete rows.
+- **The carried badge** — seen on screen, 21 Aug, at ×3 and ×2.
 
-What is left: complete something and check the timestamp, and watch a rollover
-happen rather than reading it out of the table afterwards.
-
-**The multi-day gap has now run and was correct** — see §3 for the numbers. It
-was spent unwatched, as the single-day one was.
-
-What is still unseen by a person: completing a task, and the carried badge on
-screen. Both are one session away and neither is blocking.
-
-Everything below assumes the loop works.
+Everything below assumes the loop works, and it now does.
 
 ### Phase 3, the differentiator
 
@@ -258,8 +272,9 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   because `web-push` will not run on Deno. **`webpush.test.mjs` round-trips the
   encryption and verifies the VAPID signature, 13 checks passing**, so the
   crypto is proven; the wire format is not, because no real subscription
-  existed. **Needs Noel to run `scripts/generate-vapid.mjs`** and set both
-  halves.
+  existed. **Keys are done as of 21 Aug** — pair generated, public half in both
+  `environment*.ts`, all three secrets set. What remains is the cron and a real
+  device: an installed PWA over HTTPS is the only way to prove the wire format.
 - **Weekly review.** **Built**, `features/reporting/reporting.ts`. Done this
   week against last, open count, a 14-day completion bar chart, and the two
   lists that answer "what do I keep avoiding" — carried over most, pushed most,
@@ -306,11 +321,13 @@ tracked.
    finished and what was carried off, from two different sources — see §4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
-7. **Optional reminder times.** State: **built end to end, never yet fired.**
-   `reminder_at` is set by the parser or the picker; `due_reminders()` finds
-   them, the `notify` function encrypts and posts them. Nothing has actually
-   been delivered because the VAPID keys are not generated and the cron is not
-   scheduled. Both are Noel's to do — §4.
+7. **Optional reminder times.** State: **built end to end, keyed, never yet
+   fired.** `reminder_at` is set by the parser or the picker; `due_reminders()`
+   finds them, the `notify` function encrypts and posts them. The VAPID pair
+   was generated on 21 Aug and all three secrets are set, so Settings now
+   reports "Reminders need the installed app" rather than "not configured".
+   Nothing has been delivered yet: the cron is still unscheduled, and a real
+   delivery needs a built PWA over HTTPS installed to a home screen.
 8. **Energy tag per task, Quick or Deep**, so the list can be filtered by how
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
@@ -827,6 +844,34 @@ reason that column exists.
 in its command text. It lives in `supabase/cron/schedule-notify.sql` to be run
 by hand, and is the one piece of Phase 5 deliberately left unapplied.
 
+### The clickthrough, 21 Aug
+
+**A `<select>` binds its selection on the `<option>`, never as `[value]` on the
+select.** The Settings timezone select carried `[value]="s.timezone"` and
+rendered `America/Los_Angeles` while the stored zone was `Australia/Sydney`.
+A `[value]` binding on a select is applied before `@for` has rendered the
+option children, so the assignment matches nothing and the element falls back
+to `selectedIndex 0` — which, because `zones()` is sorted alphabetically, is
+Los Angeles. It never corrupted data, because `settings.update()` patches a
+single field, but it hid the "Use Australia/Sydney" reconcile button (correctly
+— the *stored* value already matched) and so could not be noticed from the UI.
+Use `[selected]="zone === s.timezone"` on the option. Applies to every select
+added from here.
+
+**VAPID keys are Noel's to generate and hold, and no agent's to see.** The pair
+is generated in a terminal outside the session so the private half never enters
+a transcript. Only the public half is pasted back, and it ships in
+`environment*.ts` by design. The private half lives in Noel's password manager
+and in Supabase secrets — **and Supabase secrets are write-only, so the
+password manager is the only copy that can be read back.** Losing it means
+regenerating, which silently invalidates every existing subscription.
+
+**Three of the four visual "bugs" spotted by eye in the clickthrough were
+artifacts of the screenshot tool**, and all three died on a single DOM
+measurement. Content centring, the dark bar down the right of every capture,
+and the toast's supposed absence from the a11y tree were all wrong. Measure the
+DOM before recording a visual defect.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -872,28 +917,40 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **Nothing in Phases 3 to 5 has been opened by a person.** It was all written
-  in one sitting on 21 Aug by an agent that could not get past the sign-in
-  screen. It builds, 31 tests pass, and the Edge Function returns 200 — none of
-  which is the same as the pages being right. **This is the largest gap in the
-  project.**
+- **`ensure_user_setup` fires twice on every page load**, consistently two calls
+  for every one `rollover_and_snapshot`. It is idempotent so no data is harmed,
+  but it is four wasted round trips on every app open, against the sub-100ms
+  bar in `AGENTS.md`. Cause not investigated.
+- **A rollover failure is invisible to the user.** `task.store.ts:253` logs to
+  the console and silently `return`s. Related, and unexplained: `rollover
+  failed` plus `InvalidStateError: Transition was aborted` were seen once on a
+  genuinely cold first load on 21 Aug and never reproduced across four reloads.
+- **A row's carried badge is dropped the instant it completes**, while the
+  category chip survives. The count disappears at the exact moment it carries
+  the most meaning. Deliberate or not, it is unreviewed. Noel's call.
+- **Toasts and the composer centre on the viewport, not the content column.**
+  Both use `fixed inset-x-0`, which spans under the 240px sidebar, putting them
+  ~112px left of the column they belong to on desktop. Invisible on mobile.
 - **Email digest is built but switched off.** `notify` is deployed; it needs
   `RESEND_API_KEY` and `DIGEST_FROM` set as Supabase secrets, and a Resend
   account behind them.
-- **Web Push is built but has no keys.** Run `node scripts/generate-vapid.mjs`,
-  put the public half in both `src/environments/environment*.ts` and both
-  halves plus `VAPID_SUBJECT` in Supabase secrets. Until then Settings shows
-  "Push is not configured on this build yet" instead of a toggle.
+- **Web Push has keys but has never sent anything.** The VAPID pair was
+  generated on 21 Aug, the public half is in both `environment*.ts` and all
+  three secrets are set. Settings now reports "Reminders need the installed
+  app" rather than "not configured". The **wire format is still unproven** — no
+  device has received a push. Testing it needs a built PWA over HTTPS,
+  installed to a home screen.
+- **Web Push and VAPID need explaining to Noel properly.** Agreed on 21 Aug to
+  hold this as a discovery step at the end of the build rather than expand on
+  it mid-flight.
 - **The cron is not scheduled**, so neither digests nor reminders ever fire.
   `supabase/cron/schedule-notify.sql`, by hand, with the service role key.
 - **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
   That is a remote, not a deployment.
-- **The task loop is nearly verified by a person.** Sign-in, first-login
-  seeding, adding a dated tagged task, and — as of 19 Aug — an unattended
-  overnight rollover that wrote correct `day_snapshots` are all confirmed.
-  Completing a task is not, and no one has yet watched a rollover land or seen
-  the carried badge on screen.
+- **Swipe and the offline queue are the last unverified features.** The 21 Aug
+  clickthrough was done on a desktop browser, so neither was exercised. Every
+  other page and interaction in Phases 3 to 5 has now been seen working.
 - **Swipe thresholds are guesses.** The four constants in `shared/swipe.ts`
   were reasoned, not measured, because the Todoist iOS captures the plan
   called for were never taken. The gesture works; whether it *feels* right is
