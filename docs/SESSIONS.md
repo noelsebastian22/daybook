@@ -11,6 +11,70 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · cron live, Daybook runs itself
+
+**Did**
+- **Scheduled the cron. Daybook now runs unattended** — the last thing in Phase 5 that
+  was waiting on a human. `daybook-notify`, job 1, `*/5 * * * *`, active.
+- First clean tick 12:05 UTC: `{"digests":{"sent":0,"failed":0},"reminders":{"sent":0,
+  "failed":0}}`. `sent: 0` is correct — `digest_last_sent_on` is already today. First
+  unprompted digest is 22 Aug after 07:00 Sydney.
+- **The service-role positive path is now proven**, which the previous entry listed as
+  untestable without putting the key in a transcript. The cron proved it instead: 401s
+  became a 200 the moment the real key went in, so `isServiceRole` accepts service role
+  and rejects anon, both confirmed against the live endpoint.
+- **Hardened the guard before it could bite.** A modern `sb_secret_…` key is opaque, not
+  a JWT, so claim-reading alone would have 403'd the cron forever. `auth.ts` now also
+  matches the token against `SUPABASE_SERVICE_ROLE_KEY` in constant time. 12 checks
+  passing, up from 9.
+- Recorded five pg_cron/pg_net gotchas in `BUILD-PLAN.md` §13 — see Didn't work.
+
+**Decided**
+- **Accept two token shapes in `isServiceRole`**: an exact match against
+  `SUPABASE_SERVICE_ROLE_KEY` (the only way to recognise an opaque `sb_secret_…` key)
+  or a JWT with `role = service_role`. Check 1 is a secret comparison and so survives
+  `verify_jwt` being turned off; check 2 does not. Both documented in the function.
+
+**Didn't work**
+- **`cron.job_run_details.status` said `succeeded` for five consecutive ticks while every
+  HTTP call was returning 401.** It reports whether the SQL ran, and `net.http_post` only
+  *queues* a request — so it returns "1 row" and succeeds while the endpoint rejects
+  everything. **`net._http_response` is the only honest source.** This is the single most
+  misleading thing in the stack; it is now §13.
+- **A 200 in `net._http_response` is still not success.** The 12:00 tick was a 200 whose
+  body was `{"digests":{"error":"due_digests: JWT issued at future"}}`. `notify` catches
+  its own failures by design so a broken digest cannot take reminders down, which means
+  the status code cannot tell you the job worked. Read `content`.
+- **Burned ~15 minutes on "JWT issued at future" before spotting it was upstream.** At the
+  *same millisecond*, one client and one token: `due_digests` 401, `due_reminders` 200.
+  That split is impossible for a bad key or a bad guard and points straight at Supabase's
+  own validators disagreeing about the clock. Noel's key was ~2 minutes old; its `iat` was
+  ahead of one validator. Cleared on the next tick, untouched. **A key under a few minutes
+  old is not worth debugging.**
+- First run of `schedule-notify.sql` went in with `YOUR_SERVICE_ROLE_KEY` still in it.
+  Harmless — five 401s, function never ran, nothing written. Fixed by re-running the file:
+  `cron.schedule` upserts on job name, so there is no duplicate and no `unschedule` step.
+
+**Open**
+- **The digest's "Yesterday you finished" branch has still never rendered.** The 22 Aug
+  07:00 digest should exercise it with `call doctor`. Worth actually reading that email —
+  it is the last unproven branch of the template.
+- **Push has still never been delivered to a device.** Unchanged: needs a built PWA over
+  HTTPS installed to a home screen. The reminders half of the cron is running and finding
+  nothing, because `push_subscription` is null.
+- **`DIGEST_FROM` is `onboarding@resend.dev`**, which Resend delivers only to the account
+  owner. Fine for one user, blocks the second.
+- Everything else from the previous two entries stands: duplicated `ensure_user_setup`,
+  silent rollover failure at `task.store.ts:253`, carried badge dropped on completion,
+  `fixed inset-x-0` centring, swipe and offline queue unverified, swipe thresholds guessed.
+
+**Next**
+Read the 22 Aug 07:00 digest and confirm the "Yesterday you finished" section renders with
+`call doctor`. That closes the digest completely. After that the only Phase 5 thread left
+is the push wire format, which needs a real device — or start Phase 6.
+
+**Touched** — `supabase/functions/notify/auth.ts`, `supabase/functions/notify/auth.test.mjs`, `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-08-21 · claude-code · digest delivered, notify locked down
 
 **Did**

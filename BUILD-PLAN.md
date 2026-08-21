@@ -101,7 +101,7 @@ silently rejects anything not on the list.
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
 | 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
-| 5 | Settings, email digest, weekly review, Web Push reminders | **digest proven end to end into a real inbox, 21 Aug. Push still unproven; cron still unscheduled** |
+| 5 | Settings, email digest, weekly review, Web Push reminders | **done and running unattended, 21 Aug** — cron scheduled, digest delivered to a real inbox. Push wire format still unproven |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
@@ -354,8 +354,9 @@ tracked.
     shared `onboarding@resend.dev`, which **only delivers to the Resend account
     owner**, so a verified domain is needed before a second user exists; and
     the "Yesterday you finished" branch of the template has still never
-    rendered, because nothing scheduled on 20 Aug was completed. Only the cron
-    is left before it arrives unprompted.
+    rendered, because nothing scheduled on 20 Aug was completed. **The cron is
+    live as of 21 Aug**, so the first unprompted digest is 22 Aug after 07:00
+    Sydney and nothing further is needed to make it arrive.
 13. **Weekly review**: tasks carried over or rescheduled most often, plus a
     completion trend. State: **done**, at `/reporting`.
 14. **Simple visual stats**, e.g. a glanceable weekly bar chart of tasks
@@ -983,10 +984,10 @@ Not core. Revisit once the main app is solid.
 - **Web Push and VAPID need explaining to Noel properly.** Agreed on 21 Aug to
   hold this as a discovery step at the end of the build rather than expand on
   it mid-flight.
-- **The cron is not scheduled**, so nothing fires unprompted. `pg_cron` and
-  `pg_net` are now enabled (migration `0004`), so all that remains is running
-  `supabase/cron/schedule-notify.sql` by hand with the service role key pasted
-  in. It must be the service role key: `notify` 403s anything else.
+- ~~The cron is not scheduled.~~ **Closed 21 Aug.** `daybook-notify` is job 1,
+  `*/5 * * * *`, active, calling `notify` with the service role key. First
+  clean tick 12:05 UTC: `{"digests":{"sent":0,"failed":0},"reminders":
+  {"sent":0,"failed":0}}`. Nothing is left waiting on a human for the digest.
 - **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
   That is a remote, not a deployment.
@@ -1007,6 +1008,31 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 13. Platform constraints and gotchas
+
+### pg_cron and pg_net
+
+- **`cron.job_run_details.status` says `succeeded` even when the HTTP call
+  failed.** It reports whether the *SQL statement* ran, and `net.http_post`
+  only queues a request — so it returns `1 row` and "succeeds" while the
+  endpoint is returning 401. Five ticks were reported as succeeded on 21 Aug
+  while every call was rejected. **Always read `net._http_response`**:
+  `select status_code, content, created from net._http_response order by
+  created desc limit 5;`
+- **A 200 there is still not success.** `notify` catches its own failures and
+  reports them in the body, by design, so a broken digest cannot take the
+  reminders down. Read `content`, not just `status_code`.
+- **`cron.schedule` upserts on the job name.** Re-running
+  `schedule-notify.sql` replaces the existing job rather than adding a second,
+  so a botched run is fixed by running it again. No `unschedule` needed.
+- **`cron.job.command` contains the service role key in plain text**, since it
+  is baked into the job definition. Never `select *` from that table into
+  somewhere the key should not be. Select the columns you need, or test with
+  `command like '%…%'`.
+- **A newly created API key can be rejected as "JWT issued at future"** for the
+  first minute or two, while its `iat` is ahead of some validators' clocks. Seen
+  on 21 Aug: at the same millisecond, `due_digests` got a 401 and
+  `due_reminders` a 200, on one client with one token. It cleared on the next
+  tick with no intervention. Do not debug a fresh key for a couple of minutes.
 
 ### iOS PWA
 
