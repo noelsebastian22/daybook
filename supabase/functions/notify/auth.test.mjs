@@ -11,6 +11,11 @@ const b64url = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (payload) => `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.sig`;
 const req = (auth) => new Request('https://x', { headers: auth ? { Authorization: auth } : {} });
 
+// Stands in for Deno.env. Not the real key — the point is that an opaque
+// sb_secret_… token is recognised by matching it, since it carries no claims.
+const SECRET = 'sb_secret_fake_value_for_this_test_only';
+const env = { get: (name) => (name === 'SUPABASE_SERVICE_ROLE_KEY' ? SECRET : undefined) };
+
 // The project's real anon key. It is public by design — it ships in the
 // browser bundle — and this is the exact token that reached the function
 // and sent a live digest on 21 Aug, before the guard existed.
@@ -27,11 +32,14 @@ const cases = [
   ['garbage', req('Bearer not.a.jwt'), false],
   ['no role claim', req(`Bearer ${jwt({ iss: 'supabase' })}`), false],
   ['role nested, not top level', req(`Bearer ${jwt({ app_metadata: { role: 'service_role' } })}`), false],
+  ['sb_secret_ key, exact match', req(`Bearer ${SECRET}`), true],
+  ['sb_secret_ key, wrong value', req('Bearer sb_secret_something_else_entirely'), false],
+  ['sb_secret_ prefix but shorter', req('Bearer sb_secret_'), false],
 ];
 
 let failed = 0;
 for (const [name, request, expected] of cases) {
-  const actual = isServiceRole(request);
+  const actual = isServiceRole(request, env);
   const ok = actual === expected;
   if (!ok) failed++;
   console.log(`${ok ? 'pass' : 'FAIL'}  ${name.padEnd(26)} expected ${expected}, got ${actual}`);
