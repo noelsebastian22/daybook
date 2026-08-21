@@ -11,6 +11,32 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · rollover happened on its own
+
+**Did**
+- **No code.** Same session as the entry below, left open across three days; the working tree has not moved from `9fdbdf1`. `ng test` 20 passing and `ng build` 491.03 kB initial / 122.73 kB transferred re-run on 21 Aug, unchanged.
+- **Read the live tables and found a real overnight rollover had already run**, unattended, on 19 Aug. `day_snapshots` has a row for 18 Aug — `completed_count` 0, `carried_count` 1, `carried_task_ids` = the `call physio` id. That task moved 18 → 19 Aug with `carried_over_count` 0 → 1.
+- This closes the oldest open thread in this log. It had been "not done by a person" for four sessions; it turns out it did not need a person.
+- `BUILD-PLAN.md`: §3's "Phase 2 is half verified" rewritten to "nearly verified" with the snapshot evidence, §4 item 0 rewritten, §5 feature 6 and §12's task-loop gap updated.
+- `call physio` also carries `reschedule_count` 1 — the row's `→ Tomorrow` button, pressed by Noel at some point after 18 Aug. Not from this session; nothing here clicks it.
+
+**Decided**
+- Nothing decided. This session only read.
+
+**Didn't work**
+- Nothing was abandoned. One correction to method, though: the 18 Aug entry below reports the task loop as unverified on the strength of nobody having *watched* it. The evidence was sitting in `day_snapshots` and cost one query. **Check the tables before writing "unverified by a person" again** — the app records its own behaviour and the log had been repeating a stale claim for three entries.
+
+**Open**
+- **A live multi-day rollover is queued and untouched.** The app has not been opened since 19 Aug. `call physio` and `call doctor` both still sit on 19 Aug, and there are no snapshots for 19 or 20. The next open must snapshot both missed days and move both tasks to the day it is opened, incrementing `carried_over_count` by the days skipped, not by one — `call physio` 1 → 3, `call doctor` 0 → 2. That is the path migration `daybook_carry_count_by_days_not_opens` exists for and it has never run against a real gap. **Opening the app spends it.** Deliberately not triggered here; it is Noel's to watch.
+- **Completing a task is now the only part of the loop with no evidence at all.** The single `completed_at` in the table is from 17 Aug and predates the current UI.
+- Nobody has seen the carried badge render. The data is right; the pixel is unproven.
+- Unchanged: Undo is still the only delete and lasts six seconds; Phase 3 items 6 and 7 blocked on Todoist **iOS** captures; Settings-as-modal and the Today strip's fate after Upcoming still Noel's call.
+
+**Next**
+Open the app and watch the queued rollover land, then check the two tasks against the numbers predicted above before doing anything else — it is one page load and it cannot be re-run. Then Phase 3 item 3, `/today/:id` plus inline edit, as the entry below sets out.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-08-18 · claude-code · add toast, task loop closed
 
 **Did**

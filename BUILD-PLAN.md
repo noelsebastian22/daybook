@@ -112,13 +112,19 @@ is useful without a history view. Phase 4 sits where it does because a calendar
 needs a few weeks of real data before it is worth looking at. Phase 5's three
 items are built together because they share one cron plus Edge Function.
 
-**Phase 2 is half verified.** Google sign-in works end to end and
+**Phase 2 is nearly verified.** Google sign-in works end to end and
 `ensure_user_setup` seeds the four default categories on first login, both
 confirmed by hand on 17 Aug. Every rollover path was proven against the live
-database with a seeded auth user and forged JWT claims. What has **not** been
-done by a person: adding a task through the capture box, completing one, and
-watching a real overnight rollover. Until that happens, treat the task loop as
-unverified.
+database with a seeded auth user and forged JWT claims. Adding a task through
+the capture box was confirmed on 18 Aug.
+
+**A real overnight rollover has now happened in normal use.** On 19 Aug the app
+was opened for the first time since the previous day and rolled itself over
+unattended: `day_snapshots` holds a row for 18 Aug (`completed_count` 0,
+`carried_count` 1, `carried_task_ids` naming `call physio`), and that task moved
+to 19 Aug with `carried_over_count` 1. Nobody was watching the screen, so the
+carried badge itself is still unseen. What is left: completing a task, and
+watching one rollover happen.
 
 ---
 
@@ -130,10 +136,21 @@ Sign-in is done. **Capture is done too**, confirmed by hand on 18 Aug: a task
 with a date and a `#tag` parsed correctly, the category chip rendered and it
 landed on the right day under the right header in the Upcoming strip.
 
-What is left: complete something and check the timestamp, then leave an
-incomplete task overnight and confirm it carries over with the badge showing.
+**Rollover is done too**, in the sense that matters: it ran unattended on
+19 Aug and wrote correct data. See §3.
 
-One evening plus one morning. Everything below assumes the loop works.
+What is left: complete something and check the timestamp, and watch a rollover
+happen rather than reading it out of the table afterwards.
+
+**There is a live one waiting.** As of 21 Aug the app has not been opened since
+19 Aug, so nothing has rolled — `call physio` and `call doctor` both still sit
+on 19 Aug with no snapshots for 19 or 20. The next open exercises the multi-day
+gap, which is the path migration `daybook_carry_count_by_days_not_opens` exists
+for. It should snapshot both missed days and land both tasks on the day it is
+opened, with `carried_over_count` incremented by the number of days skipped, not
+by one. Opening the app spends this; check the badge on the way past.
+
+Everything below assumes the loop works.
 
 ### Phase 3, the differentiator
 
@@ -236,7 +253,7 @@ tracked.
    later. State: **data only.** `day_snapshots` accumulate correctly; there is
    no UI to read them. Phase 4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
-   done.
+   done, and confirmed in normal use by an unattended rollover on 19 Aug.
 7. **Optional reminder times.** State: **visible and editable, never fires.**
    `reminder_at` is set by the capture parser or the date picker's time field,
    and shows as its own chip beside the date. Nothing sends it. Phase 5.
@@ -737,9 +754,11 @@ Not core. Revisit once the main app is solid.
 - **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
   That is a remote, not a deployment.
-- **The task loop is half verified by a person.** Sign-in, first-login seeding
-  and adding a dated, tagged task through the capture box are confirmed as of
-  18 Aug. Completing a task and watching a real overnight rollover are not.
+- **The task loop is nearly verified by a person.** Sign-in, first-login
+  seeding, adding a dated tagged task, and — as of 19 Aug — an unattended
+  overnight rollover that wrote correct `day_snapshots` are all confirmed.
+  Completing a task is not, and no one has yet watched a rollover land or seen
+  the carried badge on screen.
 - **No edit or delete UI.** The add toast's Undo is the only caller of
   `TaskStore.remove()`, and it lasts six seconds. After that a task cannot be
   deleted or corrected from the app at all. §4 item 3.
