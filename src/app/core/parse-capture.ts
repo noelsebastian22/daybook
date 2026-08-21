@@ -24,6 +24,27 @@ export interface ParsedCapture {
   tokens: CaptureToken[];
 }
 
+/**
+ * The inverse of `parseCapture`, as far as it usefully goes: a task's text
+ * with its category and energy spelled back out as tokens, so an edit box
+ * renders the same chips the capture box would have and both are edited the
+ * same way.
+ *
+ * The date is deliberately left out. It rides in the picker instead, where an
+ * edit can move it without re-typing a word — and round-tripping it through
+ * the text would mean re-parsing "thursday" against a new today and silently
+ * moving the task a week.
+ */
+export function toCaptureText(
+  text: string,
+  categorySlug: string | null,
+  energy: Energy | null,
+): string {
+  return [text, categorySlug && `#${categorySlug}`, energy && `!${energy}`]
+    .filter(Boolean)
+    .join(' ');
+}
+
 const CATEGORY_RE = /#([\p{L}\p{N}_-]+)/gu;
 const ENERGY_RE = /!(quick|deep)\b/giu;
 

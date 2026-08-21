@@ -99,9 +99,9 @@ silently rejects anything not on the list.
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
-| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **in progress** — items 1 and 2 of 7 done |
-| 4 | Calendar, history drill-in, category filter, offline queue | not started |
-| 5 | Settings, email digest, weekly review, Web Push reminders | not started |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **built, unverified by a human** — 7 of 7 |
+| 4 | Calendar, history drill-in, category filter, offline queue | **built, unverified by a human** |
+| 5 | Settings, email digest, weekly review, Web Push reminders | **built; digest and push need Noel's credentials to switch on** |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
@@ -126,6 +126,19 @@ to 19 Aug with `carried_over_count` 1. Nobody was watching the screen, so the
 carried badge itself is still unseen. What is left: completing a task, and
 watching one rollover happen.
 
+**The multi-day gap has since run too, and it was correct.** By 21 Aug the app
+had been opened again after two missed days: `day_snapshots` gained rows for
+both 19 and 20 Aug, and `call physio` and `call doctor` landed on 21 Aug with
+`carried_over_count` 3 and 2 — incremented by the number of days skipped, not
+by one. That is `daybook_carry_count_by_days_not_opens` proven against a real
+gap. Nobody watched this one either.
+
+**Phases 3, 4 and 5 were built in one sitting on 21 Aug and none of it has been
+used by a person.** Everything below is marked from the code, not from use.
+The whole of it builds and the suite passes, and that is all that is known.
+The sign-in wall meant the agent that wrote it could not open a single one of
+these pages — see §12.
+
 ---
 
 ## 4. Remaining work, in the order it should be done
@@ -142,13 +155,11 @@ landed on the right day under the right header in the Upcoming strip.
 What is left: complete something and check the timestamp, and watch a rollover
 happen rather than reading it out of the table afterwards.
 
-**There is a live one waiting.** As of 21 Aug the app has not been opened since
-19 Aug, so nothing has rolled — `call physio` and `call doctor` both still sit
-on 19 Aug with no snapshots for 19 or 20. The next open exercises the multi-day
-gap, which is the path migration `daybook_carry_count_by_days_not_opens` exists
-for. It should snapshot both missed days and land both tasks on the day it is
-opened, with `carried_over_count` incremented by the number of days skipped, not
-by one. Opening the app spends this; check the badge on the way past.
+**The multi-day gap has now run and was correct** — see §3 for the numbers. It
+was spent unwatched, as the single-day one was.
+
+What is still unseen by a person: completing a task, and the carried badge on
+screen. Both are one session away and neither is blocking.
 
 Everything below assumes the loop works.
 
@@ -173,48 +184,88 @@ than not, and the order was set on 18 Aug against the Todoist captures.
    "No Date", no "Repeat" — see §9. Built before the edit UI on purpose,
    because one picker then serves capture, edit and reschedule-from-a-row; the
    latter two are wired up in item 3. **Not yet used by a person.**
-3. **Task-as-object and inline edit.** A `/today/:id` route,
-   `view-transition-name: task-{id}` per row, list **unmounted** while the card
-   shows. Edit is the `Capture` component rendered in the row's slot, not a
-   second form. `TaskStore.remove()` exists with no UI, and there is currently
-   no way to fix a typo at all. Not in the original spec; needed the first day
-   of real use.
-4. **Floating composer.** Capture moves from the always-visible box at
-   `today.ts:45` to a floating input invoked by an `Add task` button, with
-   explicit cancel and commit. Replaces the Magic Plus FAB, which is now out of
-   scope — see §10.
-5. **Nav shell.** Drawer on desktop, hamburger sheet on mobile, one nav model
-   on both: Today / Upcoming / Reporting. Reporting is the home for §5's weekly
-   review and §6's completion chart and will be empty until there is real data.
-   **Opens from the button only, never a left-edge swipe** — see §9.
-6. **Completion choreography.** Checkbox fills, text strikes and dims, row
-   leaves, list closes the gap. Currently only a scale keyframe exists.
-7. **Swipe gestures.** Right to complete, left to reschedule, mobile only.
+3. **Task-as-object and inline edit.** **Built, 21 Aug**, in
+   `features/today/task-detail.ts` at `/today/:id`. A sibling route, not a
+   child, so the list unmounts and `view-transition-name: task-{id}` stays
+   unique. Edit is the same `Capture` component, seeded by `toCaptureText`
+   with the task's `#tag` and `!energy` spelled back out and its day held in
+   the picker. Delete lives here, with an Undo that reinserts under the same
+   id. Row text is now a link.
+4. **Floating composer.** **Built, 21 Aug**, `features/today/composer.ts`.
+   Anchored to the bottom of the viewport at every width, opened by `Add task`,
+   with explicit Cancel and Add. Its `day` input presets the date chip, which
+   is what Upcoming's per-day add rows use. Replaced the Magic Plus FAB — §10.
+5. **Nav shell.** **Built, 21 Aug**, `shared/shell.ts`, as a layout route so
+   the drawer mounts once. Four destinations, not three: Today / Upcoming /
+   Calendar / Reporting, with Settings and Sign out pinned below. Calendar was
+   promoted to top level — see §9. Button only, no edge swipe.
+6. **Completion choreography.** **Built, 21 Aug.** The row-leave is not
+   hand-animated: every row already carries a `view-transition-name`, so
+   `core/view-transition.ts` runs the state change inside
+   `document.startViewTransition()` and the browser FLIPs every row that moved,
+   closing the gap for free. The strike is an animated background line, because
+   `text-decoration` cannot be animated from nothing to full width.
+7. **Swipe gestures.** **Built, 21 Aug**, `shared/swipe.ts`. Right completes,
+   left reschedules, touch pointers only. Fires on release, not on crossing the
+   threshold, so a gesture can be backed out of. **The four timing constants at
+   the top of that file are reasoned, not measured** — the captures below never
+   happened, so they remain the one thing here still owed.
 
-**6 and 7 are blocked on captures.** Both are judged on touch timing and every
-Todoist capture taken so far is the web app driven by a mouse. They need the
-Todoist **iOS app** recorded before the work starts. See
-`docs/reference/todoist/NOTES.md`.
+**6 and 7 were unblocked rather than waited on.** The plan held both for
+Todoist **iOS** captures that were never taken. 6 turned out not to need them:
+View Transitions decide the motion, not a chosen duration. 7 does still want
+them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
 
-### Phase 4, history
+### Phase 4, history — **built 21 Aug**
 
-- **Bidirectional calendar** reading `day_snapshots`: past cells as a
-  completion heat map, future cells as a count of scheduled tasks, today the
-  boundary. Tap any cell for that day's list.
-- **Filter Today by category.** Only energy filters exist today.
-- **Offline write queue.** Foreground replay in `TaskStore`. A write made with
-  no connection is currently lost on reload, and iOS has no Background Sync API
-  to lean on.
+- **Bidirectional calendar.** `features/calendar/calendar.ts`. Past cells are a
+  four-step green heat map from `day_snapshots.completed_count`, future cells
+  carry a scheduled count, today is ringed. A red dot marks a day something was
+  carried off; a hairline marks a day with **no snapshot row at all**, which is
+  a day the app was never opened and is not the same as a day with nothing
+  done. Cells link to `/calendar/:date`.
+- **History drill-in.** `features/calendar/day-detail.ts`. A past day shows two
+  lists from two sources: what was finished (tasks still dated that day, since
+  completing pins `scheduled_date`) and what was carried off (resolved from
+  `day_snapshots.carried_task_ids`, each naming the day it landed on).
+- **Filter Today by category.** Chips on a second row under the energy filter,
+  ANDed with it, listing only categories present today.
+- **Offline write queue.** `core/offline-queue.ts`, persisted to
+  `localStorage`. A dropped connection is told apart from a server rejection by
+  `isOffline()` — the first queues and keeps the optimistic state, the second
+  rolls back. Replays on `online`, on `visibilitychange`, and once at startup
+  **before** rollover. `applyWrites` layers the queue back over a fresh load so
+  opening offline does not look like the last session vanished.
 
-### Phase 5, the loop that runs without you
+### Phase 5, the loop that runs without you — **built 21 Aug**
 
-- **Settings page.** Digest preferences, timezone, manage categories. Nothing
-  currently reads `user_settings.timezone`.
-- **Resend account and a digest Edge Function.** Supabase does not send mail.
+- **Settings page.** `features/settings/settings.ts` and
+  `core/settings.store.ts`. Digest on/off and send time, timezone, category
+  rename/recolour/delete, push toggle. `user_settings.timezone` finally has a
+  reader.
+- **Digest Edge Function.** `supabase/functions/notify`, deployed and live.
+  Both halves report why they are idle rather than throwing when a secret is
+  missing. **Needs `RESEND_API_KEY` and `DIGEST_FROM` from Noel to send.**
 - **`pg_cron` schedule** driving digest and reminders off the same function.
-- **VAPID keys and a real Web Push subscription flow** into
-  `user_settings.push_subscription`. Installed PWA only, iOS 16.4 or later.
-- **Weekly review.** Most carried over, most rescheduled, completion trend.
+  Written as `supabase/cron/schedule-notify.sql`, **not applied** — it carries
+  the service role key in its command text and must be run by hand.
+- **Web Push subscription flow** into `user_settings.push_subscription`.
+  `core/push.ts` subscribes through `SwPush`; it refuses to offer the toggle
+  and says why when the app is not installed, when the service worker is off
+  (every dev build), or when no VAPID key is configured — an installed PWA on
+  iOS 16.4+ is the only case that works. Sending is
+  `supabase/functions/notify/webpush.ts`, RFC 8291 + 8292 written on Web Crypto
+  because `web-push` will not run on Deno. **`webpush.test.mjs` round-trips the
+  encryption and verifies the VAPID signature, 13 checks passing**, so the
+  crypto is proven; the wire format is not, because no real subscription
+  existed. **Needs Noel to run `scripts/generate-vapid.mjs`** and set both
+  halves.
+- **Weekly review.** **Built**, `features/reporting/reporting.ts`. Done this
+  week against last, open count, a 14-day completion bar chart, and the two
+  lists that answer "what do I keep avoiding" — carried over most, pushed most,
+  from the two separate counts §5 feature 10 exists for. One series, so no
+  legend; green because it is completions, the one chart entitled to it. Days
+  with no snapshot draw a hairline rather than a zero bar.
 
 ### Phase 6, polish
 
@@ -250,33 +301,41 @@ tracked.
 4. **Complete with a timestamp**, not just a checkbox, so history and the email
    digest can show "completed at 9:15 AM". State: done.
 5. **Daily history.** Each day's list preserved with date and details, viewable
-   later. State: **data only.** `day_snapshots` accumulate correctly; there is
-   no UI to read them. Phase 4.
+   later. State: **done.** `day_snapshots` accumulate correctly and the
+   calendar plus `/calendar/:date` read them. A past day shows what was
+   finished and what was carried off, from two different sources — see §4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
-7. **Optional reminder times.** State: **visible and editable, never fires.**
-   `reminder_at` is set by the capture parser or the date picker's time field,
-   and shows as its own chip beside the date. Nothing sends it. Phase 5.
+7. **Optional reminder times.** State: **built end to end, never yet fired.**
+   `reminder_at` is set by the parser or the picker; `due_reminders()` finds
+   them, the `notify` function encrypts and posts them. Nothing has actually
+   been delivered because the VAPID keys are not generated and the cron is not
+   scheduled. Both are Noel's to do — §4.
 8. **Energy tag per task, Quick or Deep**, so the list can be filtered by how
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
-   `#tag`) for filtering. State: **half done.** Tagging, auto-creation and
-   display work. There is no filter by category. Phase 4.
+   `#tag`) for filtering. State: **done.** Tagging, auto-creation, display, the
+   Today filter chips, and rename/recolour/delete in Settings. Deleting a
+   category leaves its tasks untagged, never deleted.
 10. **Carried-over count**, incremented automatically on rollover, and a
     separate **reschedule count** for manual pushes. Together they answer "what
-    do I keep avoiding". State: data and the row badge are done. The insight
-    view is Phase 5.
+    do I keep avoiding". State: **done.** Data, the row badge, both counts on
+    the task card, and the two Reporting lists. Editing a task's date later
+    counts as a push; pulling it earlier does not — §9.
 11. **Upcoming strip** on Today, collapsed by default, showing the next 7 days.
     State: done.
 12. **Daily email digest**: completed versus incomplete, plus a preview of
-    tomorrow. State: not started. Phase 5.
+    tomorrow. State: **built, not switched on.** `notify` renders and sends it
+    via Resend; `due_digests()` decides who is due using their own timezone.
+    Waiting on `RESEND_API_KEY`, `DIGEST_FROM` and the cron.
 13. **Weekly review**: tasks carried over or rescheduled most often, plus a
-    completion trend. State: not started. Phase 5.
+    completion trend. State: **done**, at `/reporting`.
 14. **Simple visual stats**, e.g. a glanceable weekly bar chart of tasks
-    completed per day. Kept minimal, not an analytics dashboard. State: not
-    started. Phase 6.
+    completed per day. Kept minimal, not an analytics dashboard. State:
+    **done early**, as the fortnight chart in Reporting. It arrived with the
+    weekly review rather than in Phase 6 because the review needed it.
 15. **Calendar view**: heat map of past days and scheduled counts for future
-    days, in one bidirectional view. State: not started. Phase 4.
+    days, in one bidirectional view. State: **done**, at `/calendar`.
 16. **Empty state illustrations**, AI-generated, e.g. "all clear for today".
     State: **placeholders.** Text and a glyph are in place, no artwork. Phase 6.
 
@@ -288,12 +347,13 @@ Treated as core, not polish.
 - **Floating composer** (borrowed from Todoist). An `Add task` button opens a
   floating input over the list, with the date chip live from the moment it
   opens and explicit cancel and commit. Replaced the Magic Plus draggable FAB
-  on 18 Aug; see §9 and §10. State: not started, Phase 3.
+  on 18 Aug; see §9 and §10. State: **done**, `features/today/composer.ts`.
 - **Task as object.** Tapping a task expands it into a card while the rest of
   the list fades back, using the View Transitions API with
   `view-transition-name: task-{id}` per row. Implemented as a route so
   deep-linking and the back button work, via Angular's `withViewTransitions()`.
-  State: **router configured, nothing uses it.**
+  State: **done**, `/today/:id`. The same machinery also drives completion —
+  re-sorting the list inside a View Transition FLIPs every row that moved.
 - **Natural language capture** (borrowed from Todoist). The primary input path.
   Rendered as a transparent textarea over a styled mirror div, not
   contenteditable. State: done.
@@ -304,9 +364,10 @@ Treated as core, not polish.
   after, roll back and toast on error. No spinners. State: done.
 - **Undo toast instead of confirmation dialogs.** State: done.
 - **Completion animates.** Checkbox fills, text strikes and dims, row leaves
-  and the list closes the gap. State: **keyframe only**, no row-leave.
-- **Swipe right to complete, swipe left to reschedule**, on mobile. State: not
-  started.
+  and the list closes the gap. State: **done**, via View Transitions rather
+  than keyframes.
+- **Swipe right to complete, swipe left to reschedule**, on mobile. State:
+  **done**, `shared/swipe.ts`, touch pointers only. Thresholds unmeasured.
 - **Sub-100ms perceived latency on every interaction.** This is what makes it
   feel native, and it is an architecture decision (optimistic local writes),
   not a CSS one.
@@ -317,14 +378,16 @@ Treated as core, not polish.
 |---|---|---|
 | **Login** | Google OAuth, magic-link fallback | done |
 | **Dashboard / Today** | Add and complete tasks, filter Quick/Deep, collapsed Upcoming strip | done |
-| **Upcoming** | The next 7 days as a list grouped by day header, with a per-day `+ Add task` row that schedules by position, and a week strip that pages forward. Not the calendar — that is a grid, and it is the row below | not started, Phase 3 |
-| **Calendar** | Bidirectional. Past cells show completion density as a heat map, future cells show a count of scheduled tasks, today is the boundary. Tap a cell for that day's list | not started |
-| **Weekly Review** | Most carried over, most rescheduled, completion trend | not started |
-| **Settings** | Email digest preferences, timezone, manage categories | not started |
+| **Upcoming** | The next 7 days as a list grouped by day header, with a per-day `+ Add task` row that schedules by position, and a week strip that pages forward. Not the calendar — that is a grid, and it is the row below | done, `/upcoming`, paging capped at 3 weeks |
+| **Calendar** | Bidirectional. Past cells show completion density as a heat map, future cells show a count of scheduled tasks, today is the boundary. Tap a cell for that day's list | done, `/calendar` |
+| **Day detail** | One day drilled into from a calendar cell: what was finished, and what was carried off it | done, `/calendar/:date` |
+| **Reporting** | Most carried over, most rescheduled, completion trend | done, `/reporting` |
+| **Settings** | Email digest preferences, timezone, manage categories, push | done, `/settings` |
 
 Navigation is a drawer on desktop and a hamburger sheet on mobile, the same
-model at both widths: Today / Upcoming / Reporting. Reporting is where Weekly
-Review and the §6 chart live. State: not started, Phase 3.
+model at both widths: Today / Upcoming / Calendar / Reporting, with Settings
+and Sign out below a rule. Reporting is where the weekly review and the §6
+chart live. State: **done**, `shared/shell.ts`, as a layout route.
 
 ### 5.4 UI direction
 
@@ -703,6 +766,69 @@ went is. `sentenceDate` exists for this: `friendlyDate` returns "Today" and
 
 ---
 
+### Phases 3 to 5, 21 Aug
+
+**Completion motion is delegated to the browser, not authored.** Every row
+already carried `view-transition-name: task-{id}` for the task-as-object morph.
+Running a state change inside `document.startViewTransition()` therefore makes
+the browser FLIP every row that moved, so "the row leaves and the list closes
+the gap" needs no keyframes and no measured duration. `core/view-transition.ts`
+holds the one wrinkle: the app is zoneless, so an explicit `appRef.tick()`
+inside the callback is load-bearing — without it both snapshots are identical
+and nothing animates.
+
+**The edit box is seeded with the task's tokens spelled back out, but never its
+date.** `toCaptureText` writes `call physio #physio !quick`; the day rides in
+the picker instead. Round-tripping the date through the text would mean
+re-parsing "thursday" against a new today, which silently moves the task a week.
+
+**Editing a task's date later counts as a manual push; pulling it earlier does
+not.** `reschedule_count` answers "what do I keep avoiding", and dragging work
+forward is not avoidance. Counting both directions would poison the only number
+that question has.
+
+**Calendar is a top-level destination, not a tab inside Reporting.** The plan
+said three nav items. It is four. A calendar is a way of *finding* a day;
+Reporting is statistics *about* days. Filing one under the other makes the
+calendar hard to reach for its actual use.
+
+**A past day with no `day_snapshots` row renders differently from a day with
+nothing done.** The first is a day the app was never opened and draws a
+hairline; the second draws an empty cell. Collapsing them would make a holiday
+look like a failure, in both the calendar and the Reporting chart.
+
+**Offline queues on a dropped connection and rolls back on a rejection.**
+`isOffline()` in `core/offline-queue.ts` tells them apart. Queueing an RLS
+rejection would retry it forever and block every write behind it; rolling back
+a network blip would lose work that was only ever going to succeed later.
+
+**Task inserts now carry a client-generated id** rather than stripping it and
+letting Postgres allocate one. It makes the optimistic row and the stored row
+the same row, which is what lets an offline edit of an offline-created task
+queue against an id still valid when both replay.
+
+**Swipe fires on release, not on crossing the threshold.** An action that
+commits mid-drag cannot be backed out of. Its four timing constants are
+reasoned rather than measured and are gathered at the top of `shared/swipe.ts`
+so replacing them is a one-place edit when the iOS captures exist.
+
+**Web Push is implemented rather than depended on.** `web-push` assumes Node's
+crypto and will not run on Deno Deploy, so RFC 8291 and 8292 are written out on
+Web Crypto in `supabase/functions/notify/webpush.ts`. That is ~80 lines against
+a dependency that does not work. `webpush.test.mjs` proves the crypto by
+round-trip; the wire format is still unproven.
+
+**The digest's "who is due" logic lives in SQL, not in the function.** The cron
+runs in UTC and cannot know when 7am is for anybody. `due_digests()` resolves it
+with one `at time zone` against `user_settings.timezone`, which is the whole
+reason that column exists.
+
+**The cron schedule is not a migration.** It has to carry the service role key
+in its command text. It lives in `supabase/cron/schedule-notify.sql` to be run
+by hand, and is the one piece of Phase 5 deliberately left unapplied.
+
+---
+
 ## 10. Explicitly out of scope
 
 **Kanban / board view with configurable statuses.** Considered and rejected. It
@@ -746,11 +872,20 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **Offline writes are not queued.** Optimistic updates cover an in-session
-  drop, but a write made with no connection is lost on reload. Phase 4.
-- **Email digest has no provider.** Supabase does not send mail. Resend plus an
-  Edge Function, Phase 5.
-- **Web Push needs VAPID keys** and a real subscription flow. Phase 5.
+- **Nothing in Phases 3 to 5 has been opened by a person.** It was all written
+  in one sitting on 21 Aug by an agent that could not get past the sign-in
+  screen. It builds, 31 tests pass, and the Edge Function returns 200 — none of
+  which is the same as the pages being right. **This is the largest gap in the
+  project.**
+- **Email digest is built but switched off.** `notify` is deployed; it needs
+  `RESEND_API_KEY` and `DIGEST_FROM` set as Supabase secrets, and a Resend
+  account behind them.
+- **Web Push is built but has no keys.** Run `node scripts/generate-vapid.mjs`,
+  put the public half in both `src/environments/environment*.ts` and both
+  halves plus `VAPID_SUBJECT` in Supabase secrets. Until then Settings shows
+  "Push is not configured on this build yet" instead of a toggle.
+- **The cron is not scheduled**, so neither digests nor reminders ever fire.
+  `supabase/cron/schedule-notify.sql`, by hand, with the service role key.
 - **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
   That is a remote, not a deployment.
@@ -759,15 +894,16 @@ Not core. Revisit once the main app is solid.
   overnight rollover that wrote correct `day_snapshots` are all confirmed.
   Completing a task is not, and no one has yet watched a rollover land or seen
   the carried badge on screen.
-- **No edit or delete UI.** The add toast's Undo is the only caller of
-  `TaskStore.remove()`, and it lasts six seconds. After that a task cannot be
-  deleted or corrected from the app at all. §4 item 3.
-- **The reminder is set but never sent.** The chip and the picker's time field
-  landed on 18 Aug, so a time is now visible and correctable. Nothing delivers
-  it. Phase 5.
-- **Completion and swipe motion are blocked on captures from the wrong
-  device.** Every Todoist reference so far is the web app driven by a mouse.
-  See `docs/reference/todoist/NOTES.md`.
+- **Swipe thresholds are guesses.** The four constants in `shared/swipe.ts`
+  were reasoned, not measured, because the Todoist iOS captures the plan
+  called for were never taken. The gesture works; whether it *feels* right is
+  untested on a real thumb.
+- **The initial bundle budget was raised from 500 kB to 560 kB** to take the
+  router features and five new pages. Actual initial total is 517 kB. Every
+  page lazy-loads; the growth is in the shared vendor chunk.
+- **The Todoist captures are still the wrong device.** Every reference is the
+  web app driven by a mouse. Completion motion no longer needs them; swipe
+  still does. See `docs/reference/todoist/NOTES.md`.
 
 ---
 

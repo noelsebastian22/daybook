@@ -1,8 +1,11 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   ElementRef,
+  input,
+  linkedSignal,
   output,
   signal,
   viewChild,
@@ -15,6 +18,16 @@ import type { Scheduling } from '../../core/models';
 export interface CaptureSubmit {
   text: string;
   /** Set only when the picker was used. Null means the text speaks for itself. */
+  scheduling: Scheduling | null;
+}
+
+/**
+ * Opening state for an edit. The text is the task's own text with its `#tag`
+ * and `!energy` spelled back out, so the chips render and the tokens stay
+ * editable in the one place the user is already looking.
+ */
+export interface CaptureSeed {
+  text: string;
   scheduling: Scheduling | null;
 }
 
@@ -131,7 +144,25 @@ export interface CaptureSubmit {
           </span>
         }
 
-        @if (value().trim()) {
+        @if (actions()) {
+          <div class="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1.5 font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+              (click)="cancelled.emit()"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-brand-600 px-3 py-1.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-40"
+              [disabled]="!value().trim()"
+              (click)="commit()"
+            >
+              {{ commitLabel() }}
+            </button>
+          </div>
+        } @else if (value().trim()) {
           <span class="ml-auto text-ink-400">Enter to add</span>
         }
       </div>
@@ -139,16 +170,39 @@ export interface CaptureSubmit {
   `,
 })
 export class Capture {
+  /** Seeds an edit. Null, the default, is a blank add box. */
+  readonly seed = input<CaptureSeed | null>(null);
+  /** Renders explicit Cancel and commit buttons, for the composer and edit card. */
+  readonly actions = input(false);
+  readonly commitLabel = input('Add');
+  /** Takes the caret on mount, when the box was opened by a deliberate act. */
+  readonly autoFocus = input(false);
+
   readonly submitted = output<CaptureSubmit>();
+  /** Escape, or the Cancel button. The parent decides what dismissing means. */
+  readonly cancelled = output<void>();
 
   private readonly inputEl = viewChild.required<ElementRef<HTMLTextAreaElement>>('input');
   private readonly dateChip = viewChild.required<ElementRef<HTMLButtonElement>>('dateChip');
 
-  protected readonly value = signal('');
+  protected readonly value = linkedSignal(() => this.seed()?.text ?? '');
   protected readonly pickerOpen = signal(false);
 
-  /** What the picker chose, if it was used. Null means the text decides. */
-  private readonly picked = signal<PickedDate | null>(null);
+  /**
+   * What the picker chose, if it was used. Null means the text decides.
+   *
+   * An edit seeds it, because the task already has a day and that day did not
+   * come from the words in the box — leaving it null would let the parser
+   * re-date the task to today the moment anything was typed.
+   */
+  private readonly picked = linkedSignal<PickedDate | null>(() => {
+    const scheduling = this.seed()?.scheduling;
+    if (!scheduling) return null;
+    return {
+      date: scheduling.scheduled_date,
+      time: scheduling.reminder_at ? timeOfDay(scheduling.reminder_at) : null,
+    };
+  });
 
   protected readonly parsed = computed(() => parseCapture(this.value()));
   protected readonly parts = computed(() => segments(this.value(), this.parsed().tokens));
@@ -168,6 +222,17 @@ export class Capture {
   protected readonly when = computed(() => friendlyDate(this.scheduledDate()));
 
   protected clock = friendlyClock;
+
+  constructor() {
+    afterNextRender(() => {
+      if (!this.autoFocus()) return;
+      const el = this.inputEl().nativeElement;
+      el.focus();
+      // An edit opens with the caret after the existing text, not selecting
+      // it — the common case is appending a word, not replacing the lot.
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }
 
   protected onInput(event: Event): void {
     const el = event.target as HTMLTextAreaElement;
@@ -200,9 +265,22 @@ export class Capture {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
+    // Escape backs out. The picker is a layer above the box, so it eats the
+    // first press and the box only closes on the second.
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (this.pickerOpen()) this.closePicker();
+      else this.cancelled.emit();
+      return;
+    }
+
     // Shift+Enter is a newline. Plain Enter submits.
     if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
+    this.commit();
+  }
+
+  protected commit(): void {
     const text = this.value().trim();
     if (!text) return;
 
@@ -219,6 +297,9 @@ export class Capture {
         : null,
     });
 
+    // An edit box is unmounted by its parent on commit; blanking it here would
+    // flash an empty field on the way out.
+    if (this.seed()) return;
     this.value.set('');
     this.inputEl().nativeElement.value = '';
     this.picked.set(null);

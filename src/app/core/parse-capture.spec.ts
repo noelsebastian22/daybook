@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCapture } from './parse-capture';
+import { parseCapture, toCaptureText } from './parse-capture';
 import { today } from './dates';
 
 // Fixed reference so "thursday" is deterministic.
@@ -61,5 +61,33 @@ describe('parseCapture', () => {
   it('collapses the whitespace left behind by stripped tokens', () => {
     const r = parseCapture('pay   the  #bills   rent', REF);
     expect(r.text).toBe('pay the rent');
+  });
+});
+
+describe('toCaptureText', () => {
+  it('spells the tokens back out for an edit box', () => {
+    expect(toCaptureText('call physio', 'physio', 'quick')).toBe('call physio #physio !quick');
+  });
+
+  it('omits what the task does not have', () => {
+    expect(toCaptureText('call physio', null, null)).toBe('call physio');
+    expect(toCaptureText('call physio', 'physio', null)).toBe('call physio #physio');
+    expect(toCaptureText('call physio', null, 'deep')).toBe('call physio !deep');
+  });
+
+  it('round-trips through the parser without moving the task', () => {
+    // The property that matters: opening an edit box and saving it again
+    // unchanged must not alter the task.
+    const round = parseCapture(toCaptureText('call physio', 'physio', 'quick'), REF);
+
+    expect(round.text).toBe('call physio');
+    expect(round.categorySlug).toBe('physio');
+    expect(round.energy).toBe('quick');
+  });
+
+  it('leaves the date out, so a re-save cannot re-read it against a new today', () => {
+    expect(toCaptureText('call physio thursday', null, null)).toBe('call physio thursday');
+    // "thursday" is only there because it is part of the stored text; the
+    // seeded picker is what actually carries the day.
   });
 });

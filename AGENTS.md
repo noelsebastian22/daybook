@@ -42,18 +42,25 @@ that symlink is load-bearing. Edit the `.agents/` copy.
 
 ## State
 
-Three stores, all `providedIn: 'root'`:
+Four stores and one service, all `providedIn: 'root'`:
 
 | Store | File | Owns |
 |---|---|---|
 | `SessionStore` | `core/session.store.ts` | Supabase session, user, auth actions |
-| `TaskStore` | `core/task.store.ts` | tasks, categories, filter, rollover |
+| `TaskStore` | `core/task.store.ts` | tasks, categories, filters, snapshots, rollover |
+| `SettingsStore` | `core/settings.store.ts` | the `user_settings` row |
 | `ToastStore` | `core/toast.store.ts` | transient messages and undo |
+| `OfflineQueue` | `core/offline-queue.ts` | writes made with no connection |
 
 Rules:
 
 - **Every mutation is optimistic.** Patch the store first, call Supabase
   after, roll the patch back and toast on failure. No spinners on writes.
+- **A dropped connection is not a failure.** Route write errors through
+  `isOffline()`: queue and keep the optimistic state, or roll back and toast.
+  Never queue a rejection the server will keep making.
+- **Every page calls `ensureLoaded()`, not `init()`.** Any page can be the
+  first one mounted, including a deep link.
 - **Undo toasts, never confirmation dialogs.**
 - Components read from stores and call store methods. Components do not talk
   to Supabase directly.
@@ -71,8 +78,14 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 - Migrations live in `supabase/migrations/`, numbered, never edited once
   applied. Add a new file instead.
 - **RLS on every table, always.** Owner-only via `auth.uid() = user_id`.
-- `SECURITY DEFINER` functions must `raise exception` on a null `auth.uid()`
-  and be revoked from `anon` and `public`.
+- `SECURITY DEFINER` functions called by a signed-in user must
+  `raise exception` on a null `auth.uid()` and be revoked from `anon` and
+  `public`.
+- **Functions called by the cron instead of a person are the exception**, and
+  are locked down the other way: `auth.uid()` is null by definition there, so
+  they revoke execute from `anon`, `authenticated` **and** `public`, and grant
+  it to `service_role` only. See `0003_digest_and_reminders.sql`. Do not add
+  an `auth.uid()` guard to one of these — it would only break it.
 - **There is no `status` column and there will not be one.** See
   `BUILD-PLAN.md`.
 
@@ -87,6 +100,15 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 Green and red are reserved. Green means completed, red means overdue or
 badly avoided. Nothing else may use them, or they stop carrying meaning.
 Everything else comes from the `ink` and `brand` scales in `src/styles.css`.
+
+## Motion
+
+- **Anything that reorders or removes a row goes through
+  `withViewTransition()`** in `core/view-transition.ts`, not a keyframe. Rows
+  carry `view-transition-name: task-{id}`, so the browser animates whatever
+  moved. It handles the zoneless `tick()` and the reduced-motion opt-out.
+- That name must be **unique across the live DOM**. A list showing the same
+  task twice, or hidden rather than unmounted, silently kills the transition.
 
 ## Performance bar
 

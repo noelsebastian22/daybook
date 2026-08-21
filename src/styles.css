@@ -56,22 +56,56 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Completion animation. Phase 3 replaces this with the full row-leave
-   choreography, but the strike and dim are worth having now. */
-@keyframes task-complete {
-  0% {
-    transform: scale(1);
+/* ------------------------------------------------------------------
+   Completion choreography.
+
+   Four things happen on one 240ms beat: the box fills, the tick pops in,
+   the strike draws across the text, and the row slides to the bottom of
+   the list while the gap it left closes.
+
+   The last of those is not written here. Every row carries
+   `view-transition-name: task-{id}`, so re-sorting the list inside a
+   View Transition (see core/view-transition.ts) makes the browser FLIP
+   every row that moved. ::view-transition-group below only sets the
+   timing; the movement is free.
+   ------------------------------------------------------------------ */
+
+::view-transition-group(*) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The strike is a background line rather than text-decoration, because
+   text-decoration cannot be animated from nothing to full width. */
+.task-text {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 58%;
+  background-size: 0% 1px;
+  transition:
+    background-size 240ms cubic-bezier(0.2, 0, 0, 1),
+    color 240ms ease-out;
+}
+
+.task-text.is-done {
+  background-size: 100% 1px;
+}
+
+/* The tick lands slightly after the box fills, so the fill reads as the
+   cause and the tick as the result. */
+@keyframes tick-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
   }
-  40% {
-    transform: scale(0.985);
-  }
-  100% {
+  to {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
-.task-completing {
-  animation: task-complete 220ms ease-out;
+.tick {
+  animation: tick-in 200ms cubic-bezier(0.2, 0, 0, 1) 40ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {

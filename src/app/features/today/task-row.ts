@@ -1,20 +1,54 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Swipe, type SwipeDirection } from '../../shared/swipe';
 import type { Category, Task } from '../../core/models';
 import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/dates';
 
 @Component({
   selector: 'app-task-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, Swipe],
   host: {
     // Phase 3 uses this for the task-as-object expansion. It must be unique
     // across the live DOM, so the list has to unmount, not hide.
     '[style.view-transition-name]': '"task-" + task().id',
   },
   template: `
-    <div
-      class="group flex items-start gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
-      [class.opacity-60]="done()"
-    >
+    <div class="relative overflow-hidden rounded-xl">
+      <!--
+        The action revealed under the row. Which side shows follows the
+        direction of travel: a row moving right uncovers its left edge.
+        Green is the reserved completion colour and this completes. The
+        reschedule side is brand, not red — pushing a task on purpose is not
+        the same as one going badly, and red would say it was.
+      -->
+      <div
+        class="pointer-events-none absolute inset-0 flex items-center justify-between px-4 text-sm font-medium"
+        aria-hidden="true"
+      >
+        <span
+          class="flex items-center gap-1.5 transition-opacity"
+          [class]="swipe.armed() ? 'text-done-700' : 'text-done-500/60'"
+          [class.opacity-0]="swipe.offset() <= 0"
+        >
+          <span aria-hidden="true">&check;</span> {{ done() ? 'Not done' : 'Done' }}
+        </span>
+        <span
+          class="flex items-center gap-1.5 transition-opacity"
+          [class]="swipe.armed() ? 'text-brand-700' : 'text-brand-500/60'"
+          [class.opacity-0]="swipe.offset() >= 0"
+        >
+          {{ pushLabel() }} <span aria-hidden="true">&rarr;</span>
+        </span>
+      </div>
+
+      <div
+        appSwipe
+        #swipe="appSwipe"
+        (swiped)="onSwipe($event)"
+        class="group relative flex items-start gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
+        [class.opacity-60]="done()"
+      >
       <button
         type="button"
         class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition"
@@ -24,7 +58,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         (click)="toggled.emit()"
       >
         @if (done()) {
-          <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="tick h-3.5 w-3.5">
             <path
               fill-rule="evenodd"
               d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
@@ -35,9 +69,24 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
       </button>
 
       <div class="min-w-0 flex-1">
-        <p class="text-[15px] leading-snug" [class]="done() ? 'text-ink-400 line-through' : 'text-ink-900'">
-          {{ task().text }}
-        </p>
+        <!--
+          The text is the link, not the whole row: the row already holds two
+          buttons, and nesting those inside an anchor is invalid and makes the
+          hit targets fight each other.
+        -->
+        <a
+          [routerLink]="['/today', task().id]"
+          class="block text-[15px] leading-snug outline-none focus-visible:underline"
+        >
+          <span
+            class="task-text"
+            [class.is-done]="done()"
+            [class.text-ink-400]="done()"
+            [class.text-ink-900]="!done()"
+          >
+            {{ task().text }}
+          </span>
+        </a>
 
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
           @if (category(); as c) {
@@ -81,6 +130,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
           <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
         </button>
       }
+      </div>
     </div>
   `,
 })
@@ -114,4 +164,14 @@ export class TaskRow {
   });
 
   protected time = friendlyTime;
+
+  /**
+   * Both gestures land on outputs the row already had, so a swipe and the
+   * button beside it go through exactly the same store call — including the
+   * same undo toast.
+   */
+  protected onSwipe(direction: SwipeDirection): void {
+    if (direction === 'right') this.toggled.emit();
+    else if (!this.done()) this.pushed.emit();
+  }
 }

@@ -11,6 +11,52 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · phases 3, 4 and 5 built
+
+**Did**
+- **Built all of Phases 3, 4 and 5 in one sitting**, on Noel's instruction to take it to the end of Phase 5. 13 new files, ~2,900 lines. **None of it has been opened by a person** — see Open.
+- **The multi-day rollover in the entry below had already run.** Snapshots exist for 19 and 20 Aug; `call physio` and `call doctor` are on 21 Aug at `carried_over_count` 3 and 2 — exactly the numbers that entry predicted. Spent unwatched, again.
+- Phase 3.3: `features/today/task-detail.ts` at `/today/:id`, a **sibling** route so the list unmounts. Edit reuses `Capture`, seeded by new `toCaptureText()`. Delete + Undo that reinserts under the same id.
+- Phase 3.4: `features/today/composer.ts`. Bottom-anchored, `day` input presets the chip. Today's always-visible box is gone.
+- Phase 3.5: `shared/shell.ts` as a **layout route**. Four items, not three — Calendar promoted to top level.
+- Phase 3.6: `core/view-transition.ts`. Completion re-sorts inside `document.startViewTransition()`; the browser FLIPs the rows. Strike is an animated `background-size`, since `text-decoration` cannot animate.
+- Phase 3.7: `shared/swipe.ts`, touch pointers only, fires on release.
+- Phase 4: `features/calendar/{calendar,day-detail}.ts`, category filter chips, and `core/offline-queue.ts` (localStorage, replays on `online`/`visibilitychange`/startup-before-rollover).
+- Phase 5: `core/settings.store.ts`, `features/settings/settings.ts`, `features/reporting/reporting.ts`, `core/push.ts`, migration `0003_digest_and_reminders.sql` (**applied**), Edge Function `notify` (**deployed, live, returns 200**), `scripts/generate-vapid.mjs`, `supabase/cron/schedule-notify.sql` (**deliberately not applied**).
+- `toggleComplete` and `reschedule` were refactored onto the new `update()`, so offline handling exists in exactly one place.
+- `ng build` 517.19 kB initial / 127.56 kB transferred, every page lazy. **Initial budget raised 500 → 560 kB.** `ng test` 20 → **31**. `webpush.test.mjs` 13/13.
+- `BUILD-PLAN.md` §3, §4, §5, §5.1–5.3, §9 (new "Phases 3 to 5, 21 Aug" block, twelve decisions) and §12 all rewritten. `AGENTS.md` gained a Motion section, the service-role `SECURITY DEFINER` exception, and the two new stores.
+
+**Decided**
+- **Completion motion is delegated to the browser.** Rows already had `view-transition-name`; re-sorting inside a View Transition gives the row-leave and the gap-close for nothing. The zoneless `appRef.tick()` inside the callback is load-bearing.
+- **The edit box never round-trips the date through the text.** `toCaptureText` writes `#tag` and `!energy` only; the day rides in the picker. Re-parsing "thursday" against a new today would move the task a week.
+- **Editing a date later counts as a push; earlier does not.** Dragging work forward is not avoidance, and counting it would poison `reschedule_count`.
+- **Calendar is top-level nav, breaking the plan's three-item model.** Finding a day is not a statistic about days.
+- **A past day with no snapshot row renders differently from a day with nothing done** — hairline vs empty cell, in both calendar and chart. Collapsing them makes a holiday look like a failure.
+- **Offline queues on a dropped connection, rolls back on a rejection** (`isOffline()`). Queueing an RLS error retries forever and blocks everything behind it.
+- **Task inserts now carry a client-generated id** instead of stripping it, so offline edits can queue against an id that survives replay.
+- **Cron functions are the documented exception to the `auth.uid()` rule** in `AGENTS.md` — service_role only, guard would break them.
+- All twelve in `BUILD-PLAN.md` §9.
+
+**Didn't work**
+- **`interface X extends Document { startViewTransition?: ... }` does not compile.** The DOM lib already types it as non-optional, so a widening override is an error. Use `document.startViewTransition?.bind(document)` — optional call as a *runtime* guard, not a type one.
+- **`class="task-text"` + `[class.is-done]` + `[class]="..."` on one element is a trap.** The `[class]` string binding fights the static class and the per-class bindings. Split into `[class.x]` bindings only.
+- **`esbuild --loader=ts` only applies to stdin**; pass the `.ts` path directly. Then it turned out not to be needed at all — Node 24 strips types on import, so `webpush.test.mjs` imports `webpush.ts` unchanged.
+- **`npm:web-push` is not usable on Deno Deploy** (assumes Node crypto). RFC 8291 + 8292 written out on Web Crypto instead, ~80 lines. Do not try the package again.
+- **The agent could not verify any of this in a browser.** Chrome redirected straight to `/login`, and signing in is Google OAuth — off-limits. Two hours of work, zero pixels seen. **If a future session needs visual verification, that has to be arranged up front, not discovered at the end.**
+
+**Open**
+- **Nothing in Phases 3–5 has been used by a person.** This is the single biggest risk in the repo now. It builds and the tests pass; that is not the same as the pages being right. Expect real bugs on first open.
+- **Three things need Noel and cannot be done by an agent:** a Resend account + `RESEND_API_KEY`/`DIGEST_FROM`; `node scripts/generate-vapid.mjs` with both halves into secrets and the public half into both `environment*.ts`; and running `supabase/cron/schedule-notify.sql` with the service role key. Until all three, nothing sends. **Do not use the VAPID pair printed in this session's transcript — regenerate it.**
+- **Web Push wire format is unproven.** The crypto round-trips and the JWT verifies, but no real subscription has ever received one. First live send is the test.
+- **Swipe thresholds are guesses**, gathered at the top of `shared/swipe.ts`. Still want the Todoist **iOS** captures.
+- Unchanged: completing a task and the carried badge are still unseen by a person; no hosting, no CI.
+
+**Next**
+Sign in and click through all seven pages in order — Today, `/today/:id` (edit + delete), Upcoming, Calendar, `/calendar/:date`, Reporting, Settings — with the console open, and write down what breaks. Nothing else should be built until that list exists.
+
+**Touched** — `src/app/core/{task.store,parse-capture,view-transition,offline-queue,settings.store,push}.ts`, `src/app/features/today/{today,capture,task-row,task-detail,composer}.ts`, `src/app/features/{upcoming,calendar,reporting,settings}/`, `src/app/shared/{shell,swipe}.ts`, `src/app/app.{routes,config}.ts`, `src/styles.css`, `supabase/migrations/0003_digest_and_reminders.sql`, `supabase/functions/notify/`, `supabase/cron/schedule-notify.sql`, `scripts/generate-vapid.mjs`, `BUILD-PLAN.md`, `AGENTS.md`, `angular.json`
+
 ## 2026-08-21 · claude-code · rollover happened on its own
 
 **Did**
