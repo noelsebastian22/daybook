@@ -11,6 +11,84 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · digest delivered, notify locked down
+
+**Did**
+- **The digest works end to end.** Noel created the Resend account and set
+  `RESEND_API_KEY` and `DIGEST_FROM` as Edge Function secrets. A hand invocation of
+  `notify` sent a real email; confirmed **in the Gmail inbox, not spam**: "Daybook — 1 on
+  today", from `onboarding@resend.dev`, 21:17 Sydney, body `Carried over / call physio ×3 /
+  On today / call physio`. `digest_last_sent_on` went to `2026-08-21`, which only
+  `mark_digest_sent` writes and only after a 200 from Resend.
+- **Found and closed a real hole: `notify` was callable with the anon key.** Not theory —
+  the live digest above was triggered with the anon key from the public browser bundle.
+  `verify_jwt: true` only proves a token was signed by this project; it accepts anon. Every
+  RPC inside runs with the service role, so `0003`'s `service_role`-only grants were
+  bypassed entirely by the HTTP endpoint.
+- Added `supabase/functions/notify/auth.ts` — `isServiceRole()` decodes the bearer token
+  and requires `role === 'service_role'`, else 403. Wired into `index.ts`, deployed (v6).
+  Verified live: anon → **403**, no header → **401** at the gateway.
+- `auth.test.mjs` beside it, importing the real `auth.ts` — **9 checks passing**, including
+  the project's actual anon key and a `role` nested under `app_metadata` rather than top
+  level.
+- **`pg_cron` and `pg_net` enabled** as migration `0004_cron_extensions`, applied live.
+- `ng build` 517.28 kB initial / 127.67 kB transferred. `ng test` **31** passing, 3 files.
+  Both unchanged — nothing in `src/` was touched.
+
+**Decided**
+- **Authenticate on the JWT `role` claim, not on `verify_jwt` alone.** Chosen over a shared
+  secret because the cron already had to carry the service role key, so it adds nothing for
+  Noel to generate, store or rotate. The guard does **not** re-verify the signature — the
+  gateway already did — so **`verify_jwt` must stay true** or it becomes forgeable. Said in
+  the code comment and in §9, because it is the kind of thing a future deploy quietly
+  breaks.
+- **Extensions are a migration, the schedule is not.** Enabling `pg_cron`/`pg_net` carries
+  no secret, so it is tracked like any schema change. `schedule-notify.sql` still carries
+  the service role key in its command text and stays a by-hand run.
+- **`DIGEST_FROM` is `onboarding@resend.dev` for now** — no DNS, so the digest could be
+  tested that night instead of waiting on domain verification. Resend only delivers it to
+  the Resend account owner, so a verified domain is required before a second user exists.
+
+**Didn't work**
+- **The "pre-flight that sends nothing" was wrong.** Read `digest_enabled` as `false` at
+  21:11, told Noel the invoke would be inert, and it sent a live email — he had flipped it
+  in Settings in between. No harm, but **re-read mutable state immediately before acting on
+  it**, not five minutes earlier.
+- **The service-role *positive* path is still unproven end to end.** There is no way to test
+  it without the service role key entering the transcript, so it is covered by the unit test
+  only. If the guard is wrong, the cron 403s silently forever — see Open for how to check.
+- Extracting `isServiceRole` into `auth.ts` was a second pass. The first version lived in
+  `index.ts`, which cannot be imported from Node (`Deno.serve` at module load), so the test
+  duplicated the implementation and tested a copy. Same split as `webpush.ts`.
+
+**Open**
+- **The cron is still unscheduled** — the last thing standing between Daybook and running
+  unattended. Noel runs `supabase/cron/schedule-notify.sql` in the SQL editor with the
+  service role key pasted in.
+- **Verify the first tick rather than assuming it.** `net.http_post` is fire-and-forget:
+  `select * from net._http_response order by created desc limit 5;` shows the status, and
+  `select * from cron.job_run_details order by start_time desc limit 20;` shows the job. A
+  **403 there means the guard rejected the cron** and the key is wrong or the claim shape is
+  not what the test assumed.
+- **The digest's "Yesterday you finished" branch has never rendered.** `completed_yesterday`
+  keys off `scheduled_date = yesterday`; nothing scheduled on 20 Aug was completed.
+  `call doctor` is scheduled 21 Aug and completed, so the 22 Aug digest should exercise it.
+  Worth actually reading that email.
+- **The previous entry is wrong on one point.** It says every test mutation was reverted and
+  both tasks left incomplete; `call doctor` is completed at `2026-08-21 10:51Z` (20:51
+  Sydney). That is why the digest listed one task, not two — correct behaviour, wrong log.
+- Everything else from the previous entry still stands: duplicated `ensure_user_setup`,
+  the silent rollover failure at `task.store.ts:253`, the carried badge dropping on
+  completion, `fixed inset-x-0` centring, unproven push wire format, swipe and offline queue
+  unverified, swipe thresholds still guesses.
+
+**Next**
+Run `supabase/cron/schedule-notify.sql` with the service role key, wait one five-minute
+tick, then read `net._http_response` for the status. A 200 closes Phase 5's digest half
+completely; a 403 means the guard is wrong and `auth.ts` needs the real claim shape.
+
+**Touched** — `supabase/functions/notify/auth.ts`, `supabase/functions/notify/auth.test.mjs`, `supabase/functions/notify/index.ts`, `supabase/migrations/0004_cron_extensions.sql`, `supabase/cron/schedule-notify.sql`, `BUILD-PLAN.md`
+
 ## 2026-08-21 · claude-code · phases 3–5 clicked through
 
 **Did**

@@ -2,16 +2,20 @@
 -- Schedules the `notify` Edge Function.
 --
 -- NOT a migration. Run this once by hand in the Supabase SQL editor,
--- replacing the two placeholders. It carries the service role key in the
+-- replacing the one placeholder. It carries the service role key in the
 -- job's command text, which is why it must never be committed filled in.
 --
--- Prerequisites, in order:
---   1. `supabase secrets set RESEND_API_KEY=...`
---   2. `node scripts/generate-vapid.mjs`, then
---      `supabase secrets set VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:you@example.com`
---      and paste the public half into both src/environments/environment*.ts
+-- The key is not optional and not interchangeable with the anon key:
+-- `notify` rejects anything whose JWT `role` claim is not `service_role`
+-- with a 403. See `isServiceRole` in the function.
+--
+-- Prerequisites, all done as of 21 Aug 2026 except this file:
+--   1. RESEND_API_KEY and DIGEST_FROM set as Edge Function secrets.
+--   2. VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT likewise,
+--      with the public half also in both src/environments/environment*.ts
 --   3. `supabase functions deploy notify`
---   4. this file
+--   4. pg_cron and pg_net enabled — now migration 0004, not this file.
+--   5. this file
 --
 -- To check on it later:
 --   select * from cron.job;
@@ -19,9 +23,6 @@
 -- To stop it:
 --   select cron.unschedule('daybook-notify');
 -- ============================================================
-
-create extension if not exists pg_cron;
-create extension if not exists pg_net;
 
 -- Every five minutes. The digest only fires once a local day regardless, and
 -- reminders carry a 15-minute grace window, so a missed tick is survivable.

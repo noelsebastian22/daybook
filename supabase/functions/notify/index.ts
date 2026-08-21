@@ -12,8 +12,11 @@
  * Secrets: RESEND_API_KEY, DIGEST_FROM, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
  * VAPID_SUBJECT. A missing secret disables that half and is reported in the
  * response rather than throwing — a broken digest should not stop reminders.
+ *
+ * Callable by the service role only. See `isServiceRole`.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isServiceRole } from './auth.ts';
 import { sendPush, type PushSubscription, type VapidKeys } from './webpush.ts';
 
 interface DigestRow {
@@ -221,7 +224,14 @@ async function runReminders(): Promise<{ sent: number; failed: number; skipped?:
   return { sent, failed };
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (!isServiceRole(req)) {
+    return new Response(JSON.stringify({ error: 'service role required' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Settled, not all: a thrown digest must not take the reminders down with
   // it. They are independent jobs sharing a schedule, nothing more.
   const [digests, reminders] = await Promise.allSettled([runDigests(), runReminders()]);

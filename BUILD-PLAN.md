@@ -101,7 +101,7 @@ silently rejects anything not on the list.
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
 | 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
-| 5 | Settings, email digest, weekly review, Web Push reminders | **built; VAPID configured. Digest still needs Resend; nothing sends until the cron is scheduled** |
+| 5 | Settings, email digest, weekly review, Web Push reminders | **digest proven end to end into a real inbox, 21 Aug. Push still unproven; cron still unscheduled** |
 | 6 | Hero, empty-state illustrations, charts, visual polish | not started |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
@@ -259,10 +259,15 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   reader.
 - **Digest Edge Function.** `supabase/functions/notify`, deployed and live.
   Both halves report why they are idle rather than throwing when a secret is
-  missing. **Needs `RESEND_API_KEY` and `DIGEST_FROM` from Noel to send.**
+  missing. **Proven end to end on 21 Aug**: Resend account created,
+  `RESEND_API_KEY` and `DIGEST_FROM` set as secrets, and a hand invocation
+  delivered a correct digest to Noel's Gmail inbox — not spam. Callable by the
+  service role only, see §9.
 - **`pg_cron` schedule** driving digest and reminders off the same function.
-  Written as `supabase/cron/schedule-notify.sql`, **not applied** — it carries
-  the service role key in its command text and must be run by hand.
+  `pg_cron` and `pg_net` are enabled as of migration `0004_cron_extensions`.
+  The schedule itself, `supabase/cron/schedule-notify.sql`, is **still not
+  applied** — it carries the service role key in its command text and must be
+  run by hand.
 - **Web Push subscription flow** into `user_settings.push_subscription`.
   `core/push.ts` subscribes through `SwPush`; it refuses to offer the toggle
   and says why when the app is not installed, when the service worker is off
@@ -342,9 +347,15 @@ tracked.
 11. **Upcoming strip** on Today, collapsed by default, showing the next 7 days.
     State: done.
 12. **Daily email digest**: completed versus incomplete, plus a preview of
-    tomorrow. State: **built, not switched on.** `notify` renders and sends it
-    via Resend; `due_digests()` decides who is due using their own timezone.
-    Waiting on `RESEND_API_KEY`, `DIGEST_FROM` and the cron.
+    tomorrow. State: **done and delivered.** `notify` renders and sends it via
+    Resend; `due_digests()` decides who is due using their own timezone. On
+    21 Aug a hand invocation landed "Daybook — 1 on today" in Noel's inbox
+    with the carried section correct. Two caveats: it is sent from Resend's
+    shared `onboarding@resend.dev`, which **only delivers to the Resend account
+    owner**, so a verified domain is needed before a second user exists; and
+    the "Yesterday you finished" branch of the template has still never
+    rendered, because nothing scheduled on 20 Aug was completed. Only the cron
+    is left before it arrives unprompted.
 13. **Weekly review**: tasks carried over or rescheduled most often, plus a
     completion trend. State: **done**, at `/reporting`.
 14. **Simple visual stats**, e.g. a glanceable weekly bar chart of tasks
@@ -842,7 +853,30 @@ reason that column exists.
 
 **The cron schedule is not a migration.** It has to carry the service role key
 in its command text. It lives in `supabase/cron/schedule-notify.sql` to be run
-by hand, and is the one piece of Phase 5 deliberately left unapplied.
+by hand, and is the one piece of Phase 5 deliberately left unapplied. The two
+extensions it needs are a migration, though — `0004_cron_extensions` — because
+enabling them carries no secret and should be tracked like any schema change.
+
+### Resend and the digest, 21 Aug
+
+**`notify` authenticates on the JWT `role` claim, not on `verify_jwt` alone.**
+`verify_jwt: true` only proves a token was signed by this project, and the anon
+key is such a token — it ships in the public browser bundle. Proven, not
+theorised: the function was invoked successfully with the anon key and sent a
+real email. Since every RPC inside runs with the service role, the
+`service_role`-only grants in `0003` were bypassed entirely by the HTTP
+endpoint. `isServiceRole()` now decodes the bearer token and requires
+`role === 'service_role'`, returning 403 otherwise. It does **not** re-verify
+the signature, because the gateway already did — which means **`verify_jwt`
+must stay true**, or the guard becomes forgeable. This was chosen over a shared
+secret because the cron already had to carry the service role key, so it adds
+nothing for Noel to generate, store or rotate.
+
+**`DIGEST_FROM` is Resend's shared sender for now.** `onboarding@resend.dev`
+needs no DNS and was the difference between testing the digest that night and
+waiting on domain verification. Its limit is real and will bite the moment
+Daybook has a second user: Resend only delivers it to the address that owns the
+Resend account.
 
 ### The clickthrough, 21 Aug
 
@@ -931,9 +965,15 @@ Not core. Revisit once the main app is solid.
 - **Toasts and the composer centre on the viewport, not the content column.**
   Both use `fixed inset-x-0`, which spans under the 240px sidebar, putting them
   ~112px left of the column they belong to on desktop. Invisible on mobile.
-- **Email digest is built but switched off.** `notify` is deployed; it needs
-  `RESEND_API_KEY` and `DIGEST_FROM` set as Supabase secrets, and a Resend
-  account behind them.
+- **The digest sends from a shared Resend address.** `DIGEST_FROM` is
+  `onboarding@resend.dev`, which Resend only delivers to the account owner. It
+  works for Noel and for nobody else. A verified domain is the fix, and it is
+  not urgent while Daybook has one user.
+- **The digest's "Yesterday you finished" section has never rendered.**
+  `completed_yesterday` keys off `scheduled_date = yesterday`, and nothing
+  scheduled on 20 Aug was completed. `call doctor` is scheduled 21 Aug and
+  completed, so the 22 Aug digest should exercise it — worth actually reading
+  that email rather than assuming.
 - **Web Push has keys but has never sent anything.** The VAPID pair was
   generated on 21 Aug, the public half is in both `environment*.ts` and all
   three secrets are set. Settings now reports "Reminders need the installed
@@ -943,8 +983,10 @@ Not core. Revisit once the main app is solid.
 - **Web Push and VAPID need explaining to Noel properly.** Agreed on 21 Aug to
   hold this as a discovery step at the end of the build rather than expand on
   it mid-flight.
-- **The cron is not scheduled**, so neither digests nor reminders ever fire.
-  `supabase/cron/schedule-notify.sql`, by hand, with the service role key.
+- **The cron is not scheduled**, so nothing fires unprompted. `pg_cron` and
+  `pg_net` are now enabled (migration `0004`), so all that remains is running
+  `supabase/cron/schedule-notify.sql` by hand with the service role key pasted
+  in. It must be the service role key: `notify` 403s anything else.
 - **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
   That is a remote, not a deployment.
