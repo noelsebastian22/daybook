@@ -16,11 +16,13 @@ const req = (auth) => new Request('https://x', { headers: auth ? { Authorization
 const SECRET = 'sb_secret_fake_value_for_this_test_only';
 const env = { get: (name) => (name === 'SUPABASE_SERVICE_ROLE_KEY' ? SECRET : undefined) };
 
-// The project's real anon key. It is public by design — it ships in the
-// browser bundle — and this is the exact token that reached the function
-// and sent a live digest on 21 Aug, before the guard existed.
-const anonKey =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6YWNzd2ZvbmdtenBuaGNqaXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MTkwNzYsImV4cCI6MjEwMjQ5NTA3Nn0.P92v6h8WvuglHY-p1kw5H5RA1s_53den5aiOIVtQVYE';
+// An anon key in the legacy JWT shape. Deliberately fabricated — the project
+// ref is not real. A token of exactly this shape reached the function and sent
+// a live digest on 21 Aug, before the guard existed, which is what this case
+// exists to prevent recurring. The guard only reads the `role` claim, so a
+// synthetic token exercises it identically, and the real one committed here
+// until 22 Aug did nothing but trip GitHub secret scanning forever.
+const anonKey = jwt({ iss: 'supabase', ref: 'notarealprojectref', role: 'anon' });
 
 const cases = [
   ['service_role token', req(`Bearer ${jwt({ role: 'service_role' })}`), true],

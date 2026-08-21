@@ -34,11 +34,20 @@ dashboard only:
 
 - Authentication → URL Configuration → set **Site URL** to the production URL
 - Add `https://<production-domain>/**` to the **Redirect URLs** allow list
+- Add `https://daybook-*.vercel.app/**` too, so preview deployments can sign in
 
 The `/**` wildcard is required. `login.ts` passes
 `redirectTo: location.origin + '/today'`, and Supabase silently rejects any
 `redirectTo` not on the allow list, bouncing you back to the login screen with
 no error shown.
+
+## Hosting
+
+Vercel, with DNS on Cloudflare. `vercel.json` sets the build command, the
+output directory (`dist/daybook/browser`, not `dist/daybook`), the SPA rewrite
+and the cache headers — `ngsw.json` and `ngsw-worker.js` must stay uncached or
+the installed PWA will never take an update. Point Cloudflare at Vercel
+**DNS-only, grey cloud**; do not proxy.
 
 ## Capture syntax
 

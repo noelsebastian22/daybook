@@ -42,8 +42,8 @@ getting deeper into Angular Signals and NgRx SignalStore.
 | Auth | Google OAuth (live), with an email magic link as fallback and recovery path |
 | Delivery | Installable PWA via `@angular/pwa`. No native codebase |
 | Date parsing | `chrono-node` |
-| Hosting | Netlify (not set up yet) |
-| Email | Resend (not set up yet) |
+| Hosting | Vercel, DNS on Cloudflare (not deployed yet) — see §9 |
+| Email | Resend (live, digest delivered 21 and 22 Aug) |
 
 Supabase project `daybook`, ref `zzacswfongmzpnhcjiqp`, region ap-southeast-2
 (Sydney), free tier.
@@ -308,9 +308,13 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
 
 ### Not phased, needed before daily use
 
-- **Hosting on Netlify.** When it goes up, the only auth change needed is
-  adding the production URL to the Supabase redirect allow list and updating
-  Site URL. No Google console change.
+- **Hosting on Vercel.** `vercel.json` is written: build `npm run build`,
+  output `dist/daybook/browser`, SPA rewrite, and the cache headers the service
+  worker needs (§9). The only auth change is adding the production URL **and
+  the preview wildcard** to the Supabase redirect allow list and updating Site
+  URL. No Google console change. **This is the blocker for every remaining
+  test** — push, swipe and the offline queue all need an installed PWA over
+  HTTPS, which a LAN address cannot provide.
 - **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt, and an
   uninstalled PWA can have its cached storage evicted after roughly 7 days.
 
@@ -1000,6 +1004,62 @@ and `aria-pressed` on the energy filters, which the category chips already had.
 focus treatment with `outline-none` plus a ring; a utility has to be able to
 win against the global rule or they would each get two rings.
 
+**Hosting is Vercel, not Netlify.** Netlify was a placeholder written before
+Noel had said what he actually uses. The output is entirely static — every
+piece of server-side work already lives in Supabase, so there is no SSR, no API
+route and no edge compute to weigh. All three hosts serve it identically, which
+makes the tiebreaker the workflow already in place: projects on Vercel, DNS on
+Cloudflare. Cloudflare Pages would put hosting and DNS in one account, but
+would also put this one project somewhere different from everything else Noel
+owns, for no technical gain.
+
+**Cloudflare stays DNS-only in front of Vercel — grey cloud, not orange.**
+Proxying Cloudflare in front of Vercel stacks two CDNs and causes certificate
+and cache-invalidation trouble; Vercel terminates TLS itself. Cloudflare
+remains registrar and DNS, which is all it is wanted for here.
+
+**`vercel.json` no-caches the service worker control files.** `ngsw.json` and
+`ngsw-worker.js` are **not** content-hashed, so if either is cached the
+installed PWA never learns a new build exists and silently serves whatever was
+live the day it was installed. That failure is near-impossible to diagnose from
+a phone, and it would have poisoned the push testing specifically. The
+hash-named `chunk-*`, `main-*` and `styles-*` files take `immutable` instead.
+Vercel checks the filesystem before rewrites, so the catch-all SPA rewrite does
+not shadow any of these real files.
+
+**Public keys stay in `environment*.ts`; they are not moved to host env vars.**
+GitHub secret scanning flagged the repo on 22 Aug. The finding was the real
+legacy **anon** key, committed as a fixture in `auth.test.mjs`. Nothing
+privileged had leaked — a scan of every commit in history found no service role
+key, no `RESEND_API_KEY` and no VAPID private half, and `schedule-notify.sql`
+still holds its placeholder. Moving `supabaseUrl`, the `sb_publishable_` key or
+the VAPID public key into Vercel environment variables would buy **nothing**:
+Angular inlines them at build time, so they ship in the bundle and are readable
+from devtools either way. It would hide them from GitHub while still serving
+them to every visitor — the same exposure plus a false sense of having fixed
+it. **RLS is the control**, and the security advisors report no missing-policy
+errors. The two `SECURITY DEFINER` warnings are `ensure_user_setup` and
+`rollover_and_snapshot`, both intended: each derives `v_uid := auth.uid()`,
+bails on null, and revokes `anon` in `0002`.
+
+**The fix was to fabricate the fixture and revoke the legacy keys, not to
+rewrite history.** `auth.test.mjs` now builds its anon token with a fake
+project ref; the guard only reads the `role` claim, so all 12 checks are
+unchanged. The real key remains in git history, and rewriting `master` for a
+public-by-design value is disproportionate — instead the legacy JWT API keys
+are disabled in Supabase, which kills the exposed token outright. Nothing in
+the stack used them, checked rather than assumed: the client is on
+`sb_publishable_…`, `notify` is on `sb_secret_…`, and the live `daybook-notify`
+cron job's command text was confirmed to carry an `sb_secret_` key and no
+legacy JWT — the one place a hand-pasted legacy key could have hidden and
+broken the digest silently on revocation.
+
+**The Supabase redirect allow list carries a preview wildcard.** Every Vercel
+push mints a new preview URL, and Supabase silently rejects a `redirectTo` that
+is not on the list — the symptom is a bounce back to login with no error. For a
+single-user app the wildcard costs nothing and removes a confusing failure mode
+while the device testing is in progress.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -1063,11 +1123,12 @@ Not core. Revisit once the main app is solid.
   `onboarding@resend.dev`, which Resend only delivers to the account owner. It
   works for Noel and for nobody else. A verified domain is the fix, and it is
   not urgent while Daybook has one user.
-- **The digest's "Yesterday you finished" section has never rendered.**
-  `completed_yesterday` keys off `scheduled_date = yesterday`, and nothing
-  scheduled on 20 Aug was completed. `call doctor` is scheduled 21 Aug and
-  completed, so the 22 Aug digest should exercise it — worth actually reading
-  that email rather than assuming.
+- ~~The digest's "Yesterday you finished" section has never rendered.~~
+  **Closed 22 Aug.** The 07:00 digest arrived with subject `Daybook — 2 on
+  today, 1 done yesterday` and rendered `Yesterday you finished 1 · call
+  doctor` above the two tasks on today. Both branches of the digest template
+  are now proven against a real inbox, and `completed_yesterday` keying off
+  `scheduled_date = yesterday` is confirmed correct.
 - **Web Push has keys but has never sent anything.** The VAPID pair was
   generated on 21 Aug, the public half is in both `environment*.ts` and all
   three secrets are set. Settings now reports "Reminders need the installed
@@ -1081,9 +1142,10 @@ Not core. Revisit once the main app is solid.
   `*/5 * * * *`, active, calling `notify` with the service role key. First
   clean tick 12:05 UTC: `{"digests":{"sent":0,"failed":0},"reminders":
   {"sent":0,"failed":0}}`. Nothing is left waiting on a human for the digest.
-- **No hosting, no CI, not deployed anywhere.** The code now lives on GitHub at
+- **No hosting, no CI, not deployed anywhere.** The code lives on GitHub at
   `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
-  That is a remote, not a deployment.
+  That is a remote, not a deployment. **Vercel is the chosen target and
+  `vercel.json` is committed**, but nothing has been pushed to it yet.
 - **Swipe and the offline queue are the last unverified features.** The 21 Aug
   clickthrough was done on a desktop browser, so neither was exercised. Every
   other page and interaction in Phases 3 to 5 has now been seen working.
