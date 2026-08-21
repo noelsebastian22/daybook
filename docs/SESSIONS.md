@@ -11,6 +11,36 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · session close-out, cron verified stable
+
+Close-out only. The session's substance is in the two entries below, written as the work
+landed; this records verification done after them and nothing new was built.
+
+**Did**
+- **Cron confirmed stable across three consecutive ticks** — 12:00, 12:05, 12:10. The
+  `JWT issued at future` error at 12:00 has not recurred, which settles it as the
+  transient key-age skew diagnosed below rather than anything in this repo. 8 ticks
+  total; the 5 before 12:00 are the placeholder 401s.
+- Full suite run, not quoted from memory: `ng build` **517.32 kB** initial / **127.64 kB**
+  transferred; `ng test` **31** passing in 3 files; `auth.test.mjs` **12**;
+  `webpush.test.mjs` **13**.
+- `list_migrations` confirms `daybook_cron_extensions` (`20260821112225`) applied live.
+  Folder holds 4 files against 6 live versions, as before — 0002 folds three of them.
+- Tree clean, 3 commits this session: `337a2ec`, `7b5899c`, `19a2198`.
+
+**Open**
+- Unchanged from the entry below: the 22 Aug 07:00 digest still has to be read to prove
+  the "Yesterday you finished" branch; push still undelivered to any device; `DIGEST_FROM`
+  still the shared Resend sender; and the older Phase 3/4 threads all still stand.
+- **`BUILD-PLAN.md` needed no edit in this close-out** — §3, §5, §12 and §13 were brought
+  current in the two commits below.
+
+**Next**
+Read the 22 Aug 07:00 digest, confirm `call doctor` appears under "Yesterday you finished".
+If it does, the digest is fully proven and Phase 6 is the next real work.
+
+**Touched** — `docs/SESSIONS.md`
+
 ## 2026-08-21 · claude-code · cron live, Daybook runs itself
 
 **Did**
