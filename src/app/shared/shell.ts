@@ -31,6 +31,19 @@ interface NavItem {
     '(document:keydown.escape)': 'menuOpen.set(false)',
   },
   template: `
+    <!--
+      Five links stand in front of the content at every width, so a keyboard
+      user tabs through the whole drawer before reaching the page. This jumps
+      them past it. Off-screen until focused; see .skip-link in styles.css.
+    -->
+    <a
+      href="#content"
+      class="skip-link rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-medium text-white"
+      (click)="focusContent($event)"
+    >
+      Skip to content
+    </a>
+
     <!-- mobile bar -->
     <div
       class="safe-top sticky top-0 z-30 flex items-center gap-2 bg-ink-50/80 px-2 py-2 backdrop-blur lg:hidden"
@@ -157,7 +170,12 @@ interface NavItem {
       </div>
     </nav>
 
-    <main class="lg:pl-60">
+    <!--
+      tabindex="-1" so the skip link can put focus here. Without it the
+      browser scrolls to the anchor but leaves focus on the link, and the
+      next Tab goes straight back into the drawer.
+    -->
+    <main id="content" tabindex="-1" class="outline-none lg:pl-60">
       <router-outlet />
     </main>
   `,
@@ -168,6 +186,16 @@ export class Shell {
   private readonly router = inject(Router);
 
   protected readonly menuOpen = signal(false);
+
+  /**
+   * An href jump alone moves the viewport but not focus. Doing it by hand
+   * also avoids pushing a `#content` entry into history, which on a PWA with
+   * no browser chrome would cost the user a back press to undo.
+   */
+  protected focusContent(event: Event): void {
+    event.preventDefault();
+    document.getElementById('content')?.focus();
+  }
 
   protected readonly items: NavItem[] = [
     { path: '/today', label: 'Today', icon: 'M5 5h14v14H5zM5 9h14M9 13h6' },

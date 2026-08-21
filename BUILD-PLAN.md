@@ -102,7 +102,7 @@ silently rejects anything not on the list.
 | 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and running unattended, 21 Aug** — cron scheduled, digest delivered to a real inbox. Push wire format still unproven |
-| 6 | Hero, empty-state illustrations, charts, visual polish | not started |
+| 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -287,13 +287,24 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   legend; green because it is completions, the one chart entitled to it. Days
   with no snapshot draw a hairline rather than a zero bar.
 
-### Phase 6, polish
+### Phase 6, polish — **built 21 Aug**
 
-- **Real app icons.** Currently the Angular schematic defaults, a purple shield.
-- Hero and marketing view.
-- AI-generated empty-state illustrations.
-- Weekly bar chart of tasks completed per day.
-- **Accessibility pass.** Nothing has been audited.
+- ~~**Real app icons.**~~ **Done.** `public/icon.svg` is the master: yesterday's
+  page behind today's, with a tick. `tools/build-icons.mjs` rasterises it to
+  the eight manifest sizes, `favicon.ico` and the apple-touch-icon, using
+  headless Chrome — there is no rsvg/ImageMagick/sharp on the machine and
+  eight one-off PNGs did not justify a native dependency. Re-run it whenever
+  `icon.svg` changes.
+- ~~Hero and marketing view.~~ **Done**, `/welcome`. The hero performs the
+  carry-over rather than describing it. `authGuard` now sends signed-out
+  visitors here instead of straight to `/login`; see §9.
+- ~~AI-generated empty-state illustrations.~~ **Done as hand-drawn SVG**,
+  `shared/empty-state.ts`, four scenes. See §9 for why not raster.
+- ~~Weekly bar chart of tasks completed per day.~~ **Was already done** — it
+  shipped early as the Reporting fortnight chart (§5 feature 14), because the
+  weekly review needed it. Nothing was built for this line.
+- ~~**Accessibility pass.**~~ **Done**, and it found four real defects rather
+  than nits. All four are recorded in §9.
 
 ### Not phased, needed before daily use
 
@@ -365,8 +376,14 @@ tracked.
     weekly review rather than in Phase 6 because the review needed it.
 15. **Calendar view**: heat map of past days and scheduled counts for future
     days, in one bidirectional view. State: **done**, at `/calendar`.
-16. **Empty state illustrations**, AI-generated, e.g. "all clear for today".
-    State: **placeholders.** Text and a glyph are in place, no artwork. Phase 6.
+16. **Empty state illustrations**, e.g. "all clear for today". State: **done**,
+    `shared/empty-state.ts`. Four scenes — `clear`, `blank`, `filtered`,
+    `quiet` — drawn as inline SVG rather than generated raster art (§9). Today
+    picks between three of them, because a filter hiding work, a finished day
+    and a fresh day are three different emptinesses; the day detail page uses
+    `quiet` for both a past day with no record and an unplanned future one.
+    Reporting's two empty lists stay as plain sentences: they sit inside a
+    card beside other content, and artwork there would be noise.
 
 ### 5.1 Signature interactions
 
@@ -907,6 +924,82 @@ measurement. Content centring, the dark bar down the right of every capture,
 and the toast's supposed absence from the a11y tree were all wrong. Measure the
 DOM before recording a visual defect.
 
+### Phase 6, 21 Aug
+
+**The empty-state and hero illustrations are hand-drawn SVG, not AI-generated
+raster art.** The plan called for AI-generated images; there is no
+image-generation tool in the build environment, and on inspection a line
+drawing wins on every axis this app cares about anyway. It scales to any
+screen, weighs a few hundred bytes inside a bundle the service worker already
+caches, needs no network on a cold offline load, and cannot drift out of step
+with the palette the way a baked-in PNG would. If Noel wants generated artwork
+later it drops into the same component behind the same `scene` input.
+
+**`authGuard` sends signed-out visitors to `/welcome`, not `/login`.** A
+stranger who lands on the app should be told what it does before being asked to
+sign in to it. `/welcome` carries `guestGuard`, so the two guards test
+complementary conditions and cannot bounce a request between them. The cost is
+one extra click for a returning user whose session expired, which is the right
+trade for the only page that ever explains the product.
+
+**The hero performs the carry-over instead of describing it.** A task row lifts
+off yesterday's page, lands on today's, and its badge ticks ×1 → ×2. That
+mechanic is the only thing about Daybook no other list app does, so it is the
+one thing the page spends its attention on. The row is absolutely positioned in
+the stack rather than sitting in either card's flow — it has to be over both
+mid-flight, and a card that clipped it would cut it in half. **That makes the
+116px travel a hard-coded number derived from the two slot positions**; change
+any card padding or row height in that component and the keyframe changes with
+it.
+
+**No webfont anywhere, including the marketing page.** Inter is already the
+app's face, and a landing page that blocks on a font request is a landing page
+nobody waits for. The type personality comes from the scale — a very tight
+display size against very wide-tracked micro labels.
+
+#### What the accessibility pass actually found
+
+Four real defects, not nits. The per-component work was already careful —
+`aria-pressed` on the checkbox, `aria-label` on every icon button, the capture
+mirror `aria-hidden`, the calendar cells labelled, the toast a live region.
+Everything below is cross-cutting, which is exactly the kind nobody adds by
+default.
+
+- **`text-ink-500` and `text-ink-700` were dead classes.** Neither token
+  existed in `@theme`, so Tailwind emitted no rule for them at all and the
+  eleven elements using them — across the shell, calendar, upcoming and task
+  detail — silently inherited their parent's colour with hover states that did
+  nothing. Both are now defined. **A colour class that names a shade not in
+  `@theme` fails silently; it does not error.**
+- **`ink-400` failed WCAG AA.** At `#8a90ab` it was 3.15:1 on white, and it is
+  the app's helper-text colour, used on nearly every page. Darkened to
+  `#676d8b` — 4.74:1 on ink-50, 5.08:1 on white. It is used for text and
+  nothing else, so no borders or fills moved. The old value survives as
+  `ink-300` for decorative tints.
+- **A completed row was faded with `opacity-60`, which took the whole row down
+  with it** — text to 2.38:1, the done timestamp to 3.75:1, the energy badge to
+  3.24:1. No colour choice inside the row could recover it, because the wrapper
+  was washing out the badge backgrounds too. **The fade was never one of the
+  four beats of the completion choreography** (`styles.css`: box fills, tick
+  pops, strike draws, row re-sorts), so it was removed rather than tuned. A
+  struck-through line in ink-400 on white is 5.08:1 and still plainly reads as
+  finished.
+- **A router navigation announced nothing and every page shared one title.**
+  `core/page-title.ts` is a `TitleStrategy` that does both jobs: it sets
+  `<page> · Daybook`, and it writes the page name into a signal that `App`
+  renders in a visually hidden `aria-live="polite"` region. That region lives
+  outside the router outlet on purpose — **a live region that unmounts and
+  remounts is not announced at all.**
+
+Also added: one global `:focus-visible` ring in `@layer base` (brand-500 clears
+3:1 on both surfaces the app uses — 4.45:1 on white, 4.01:1 on ink-900), a skip
+link past the drawer's five links, `<main>` on the two pages outside the shell,
+and `aria-pressed` on the energy filters, which the category chips already had.
+
+**The focus ring is in `base`, deliberately.** Three elements draw their own
+focus treatment with `outline-none` plus a ring; a utility has to be able to
+win against the global rule or they would each get two rings.
+
 ---
 
 ## 10. Explicitly out of scope
@@ -999,8 +1092,19 @@ Not core. Revisit once the main app is solid.
   called for were never taken. The gesture works; whether it *feels* right is
   untested on a real thumb.
 - **The initial bundle budget was raised from 500 kB to 560 kB** to take the
-  router features and five new pages. Actual initial total is 517 kB. Every
-  page lazy-loads; the growth is in the shared vendor chunk.
+  router features and five new pages. Actual initial total is 527 kB after
+  Phase 6. Every page lazy-loads; the growth is in the shared vendor chunk.
+- **The accessibility pass was verified on `/welcome` and `/login` only.** Both
+  come back with zero contrast failures, measured by compositing every text
+  node against its real background stack in a canvas. The signed-in pages were
+  not swept the same way, because the browser profile driving the audit has no
+  Supabase session. Their colours all come from the same tokens and every
+  foreground/background pair the app uses was checked in isolation and passes,
+  but **no signed-in page has been run through the audit in situ** — the skip
+  link and the four empty states have never been seen on a real page.
+- **The `ink-300` token is declared but unused.** It holds the old `ink-400`
+  value for decorative tints. Nothing needs it yet; it exists so the next
+  person reaching for a light grey does not reach for the text colour.
 - **The Todoist captures are still the wrong device.** Every reference is the
   web app driven by a mouse. Completion motion no longer needs them; swipe
   still does. See `docs/reference/todoist/NOTES.md`.

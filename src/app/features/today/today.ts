@@ -10,6 +10,7 @@ import { TaskStore, type EnergyFilter } from '../../core/task.store';
 import { Composer } from './composer';
 import { type CaptureSubmit } from './capture';
 import { TaskRow } from './task-row';
+import { EmptyState } from '../../shared/empty-state';
 import { withViewTransition } from '../../core/view-transition';
 import { addDays, friendlyDate, today } from '../../core/dates';
 import type { Task } from '../../core/models';
@@ -17,7 +18,7 @@ import type { Task } from '../../core/models';
 @Component({
   selector: 'app-today',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Composer, TaskRow],
+  imports: [Composer, TaskRow, EmptyState],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
       <header class="safe-top flex items-start justify-between gap-4 py-6">
@@ -35,9 +36,7 @@ import type { Task } from '../../core/models';
             }
           </h1>
           @if (tasks.completedCount() > 0) {
-            <p class="mt-1 text-sm text-done-700">
-              {{ tasks.completedCount() }} done today
-            </p>
+            <p class="mt-1 text-sm text-done-700">{{ tasks.completedCount() }} done today</p>
           }
         </div>
 
@@ -61,6 +60,7 @@ import type { Task } from '../../core/models';
                 ? 'bg-ink-900 text-white'
                 : 'bg-white text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50'
             "
+            [attr.aria-pressed]="tasks.filter() === f.value"
             (click)="tasks.setFilter(f.value)"
           >
             {{ f.label }}
@@ -104,27 +104,27 @@ import type { Task } from '../../core/models';
             (pushed)="pushOneDay(task)"
           />
         } @empty {
-          <div class="rounded-2xl border-2 border-dashed border-ink-200 px-6 py-12 text-center">
-            <p class="text-4xl" aria-hidden="true">&#9748;</p>
-            <p class="mt-3 font-medium text-ink-600">
-              @if (tasks.filtered()) {
-                Nothing matches that filter today.
-              } @else if (tasks.completedCount() > 0) {
-                All clear for today.
-              } @else {
-                Write the first thing down.
-              }
-            </p>
-            @if (tasks.filtered()) {
+          <!--
+            Three different emptinesses, and they do not mean the same thing:
+            a filter is hiding work, a finished day is an achievement, and a
+            fresh day is an invitation. Each gets its own drawing and its own
+            sentence.
+          -->
+          @if (tasks.filtered()) {
+            <app-empty-state scene="filtered" title="Nothing matches that filter today.">
               <button
                 type="button"
-                class="mt-3 text-sm font-medium text-brand-700 transition hover:text-brand-600"
+                class="rounded-lg text-sm font-medium text-brand-700 transition hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                 (click)="tasks.clearFilters()"
               >
                 Clear filters
               </button>
-            }
-          </div>
+            </app-empty-state>
+          } @else if (tasks.completedCount() > 0) {
+            <app-empty-state scene="clear" title="All clear for today." />
+          } @else {
+            <app-empty-state scene="blank" title="Write the first thing down." />
+          }
         }
       </div>
 

@@ -4,6 +4,18 @@ import { Swipe, type SwipeDirection } from '../../shared/swipe';
 import type { Category, Task } from '../../core/models';
 import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/dates';
 
+/**
+ * A completed row is **not** faded with `opacity`. It used to carry
+ * `opacity-60`, which took the whole row down with it: the text fell to
+ * 2.38:1, the done timestamp to 3.75:1 and the energy badge to 3.24:1, all
+ * under WCAG AA, and no colour choice inside the row could recover it because
+ * the wrapper was washing out the badge backgrounds too.
+ *
+ * The fade was never one of the four beats of the completion choreography
+ * anyway (`styles.css`): the box fills, the tick pops, the strike draws and
+ * the row re-sorts. Those still do all the work — a struck-through line in
+ * ink-400 on a white card is 5.08:1 and still plainly reads as finished.
+ */
 @Component({
   selector: 'app-task-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,89 +59,98 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         #swipe="appSwipe"
         (swiped)="onSwipe($event)"
         class="group relative flex items-start gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
-        [class.opacity-60]="done()"
       >
-      <button
-        type="button"
-        class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition"
-        [class]="done() ? 'border-done-500 bg-done-500 text-white' : 'border-ink-200 hover:border-brand-500'"
-        [attr.aria-pressed]="done()"
-        [attr.aria-label]="done() ? 'Mark as not done' : 'Mark as done'"
-        (click)="toggled.emit()"
-      >
-        @if (done()) {
-          <svg viewBox="0 0 20 20" fill="currentColor" class="tick h-3.5 w-3.5">
-            <path
-              fill-rule="evenodd"
-              d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        }
-      </button>
+        <button
+          type="button"
+          class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition"
+          [class]="
+            done()
+              ? 'border-done-500 bg-done-500 text-white'
+              : 'border-ink-200 hover:border-brand-500'
+          "
+          [attr.aria-pressed]="done()"
+          [attr.aria-label]="done() ? 'Mark as not done' : 'Mark as done'"
+          (click)="toggled.emit()"
+        >
+          @if (done()) {
+            <svg viewBox="0 0 20 20" fill="currentColor" class="tick h-3.5 w-3.5">
+              <path
+                fill-rule="evenodd"
+                d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          }
+        </button>
 
-      <div class="min-w-0 flex-1">
-        <!--
+        <div class="min-w-0 flex-1">
+          <!--
           The text is the link, not the whole row: the row already holds two
           buttons, and nesting those inside an anchor is invalid and makes the
           hit targets fight each other.
         -->
-        <a
-          [routerLink]="['/today', task().id]"
-          class="block text-[15px] leading-snug outline-none focus-visible:underline"
-        >
-          <span
-            class="task-text"
-            [class.is-done]="done()"
-            [class.text-ink-400]="done()"
-            [class.text-ink-900]="!done()"
+          <a
+            [routerLink]="['/today', task().id]"
+            class="block text-[15px] leading-snug outline-none focus-visible:underline"
           >
-            {{ task().text }}
-          </span>
-        </a>
+            <span
+              class="task-text"
+              [class.is-done]="done()"
+              [class.text-ink-400]="done()"
+              [class.text-ink-900]="!done()"
+            >
+              {{ task().text }}
+            </span>
+          </a>
 
-        <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-          @if (category(); as c) {
-            <span
-              class="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5 font-medium text-ink-600"
-            >
-              <span class="h-1.5 w-1.5 rounded-full" [style.background]="c.colour"></span>
-              {{ c.name }}
-            </span>
-          }
-          @if (task().energy; as e) {
-            <span
-              class="rounded-full px-2 py-0.5 font-medium"
-              [class]="e === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'"
-            >
-              {{ e }}
-            </span>
-          }
-          @if (task().carried_over_count > 0 && !done()) {
-            <span
-              class="rounded-full px-2 py-0.5 font-medium"
-              [class]="task().carried_over_count >= 3 ? 'bg-late-100 text-late-700' : 'bg-ink-100 text-ink-600'"
-              [title]="'Rolled over ' + task().carried_over_count + ' times'"
-            >
-              carried &times;{{ task().carried_over_count }}
-            </span>
-          }
-          @if (task().completed_at; as at) {
-            <span class="font-medium text-done-700">done {{ time(at) }}</span>
-          }
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+            @if (category(); as c) {
+              <span
+                class="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5 font-medium text-ink-600"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" [style.background]="c.colour"></span>
+                {{ c.name }}
+              </span>
+            }
+            @if (task().energy; as e) {
+              <span
+                class="rounded-full px-2 py-0.5 font-medium"
+                [class]="
+                  e === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'
+                "
+              >
+                {{ e }}
+              </span>
+            }
+            @if (task().carried_over_count > 0 && !done()) {
+              <span
+                class="rounded-full px-2 py-0.5 font-medium"
+                [class]="
+                  task().carried_over_count >= 3
+                    ? 'bg-late-100 text-late-700'
+                    : 'bg-ink-100 text-ink-600'
+                "
+                [title]="'Rolled over ' + task().carried_over_count + ' times'"
+              >
+                carried &times;{{ task().carried_over_count }}
+              </span>
+            }
+            @if (task().completed_at; as at) {
+              <span class="font-medium text-done-700">done {{ time(at) }}</span>
+            }
+          </div>
         </div>
-      </div>
 
-      @if (!done()) {
-        <button
-          type="button"
-          class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 opacity-60 transition hover:bg-ink-50 hover:text-ink-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
-          [attr.aria-label]="'Move to ' + pushTargetDate()"
-          (click)="pushed.emit()"
-        >
-          <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
-        </button>
-      }
+        @if (!done()) {
+          <button
+            type="button"
+            class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 opacity-60 transition hover:bg-ink-50 hover:text-ink-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
+            [attr.aria-label]="'Move to ' + pushTargetDate()"
+            (click)="pushed.emit()"
+          >
+            <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
+          </button>
+        }
       </div>
     </div>
   `,

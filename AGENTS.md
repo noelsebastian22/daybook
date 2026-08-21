@@ -101,6 +101,28 @@ Green and red are reserved. Green means completed, red means overdue or
 badly avoided. Nothing else may use them, or they stop carrying meaning.
 Everything else comes from the `ink` and `brand` scales in `src/styles.css`.
 
+- **Only shades declared in `@theme` exist.** Writing `text-ink-800` emits no
+  CSS and fails silently — the element just inherits. Eleven elements were
+  doing exactly that before Phase 6. Check the scale before using a shade.
+- **`ink-400` is the lightest colour allowed on text.** It is tuned to clear
+  WCAG AA against `ink-50` (4.74:1), which is the harder of the two page
+  backgrounds. `ink-300` is lighter and is for decoration only.
+- **Never fade a whole element with `opacity` to mean "de-emphasised".** It
+  takes the element's children down with it, including badge backgrounds, and
+  no colour choice inside can recover the contrast. Change the text colour.
+
+## Accessibility
+
+- **One global `:focus-visible` ring**, in `@layer base` in `src/styles.css`.
+  Do not add per-element focus rings. An element that genuinely needs its own
+  uses `outline-none` plus its own ring, and being in `base` lets that win.
+- Icon-only controls carry `aria-label`. Toggles carry `aria-pressed`.
+- Anything decorative — a glyph, an illustration, a mirror div — is
+  `aria-hidden`. An illustration that carries an argument gets `role="img"`
+  and one `aria-label` that states the argument, not a label per shape.
+- **Route changes are announced by `core/page-title.ts`**, which also sets the
+  document title. New routes need a `title` in `app.routes.ts`; nothing else.
+
 ## Motion
 
 - **Anything that reorders or removes a row goes through
@@ -109,6 +131,9 @@ Everything else comes from the `ink` and `brand` scales in `src/styles.css`.
   moved. It handles the zoneless `tick()` and the reduced-motion opt-out.
 - That name must be **unique across the live DOM**. A list showing the same
   task twice, or hidden rather than unmounted, silently kills the transition.
+- The completion choreography is four beats and no more: the box fills, the
+  tick pops, the strike draws, the row re-sorts. A completed row is **not**
+  faded — see Colour.
 
 ## Performance bar
 

@@ -11,6 +11,99 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · phase 6 built, a11y pass
+
+**Did**
+- **Phase 6 complete, all five items.** Icons, hero, empty states, a11y pass;
+  the chart line was already satisfied by the Reporting fortnight chart and
+  needed nothing built.
+- **Real app icons.** `public/icon.svg` is the master — yesterday's page behind
+  today's, with a tick. `tools/build-icons.mjs` rasterises it to the eight
+  manifest sizes, `favicon.ico` and a new apple-touch-icon via **headless
+  Chrome**; there is no rsvg/ImageMagick/sharp on this machine. Re-run it when
+  `icon.svg` changes.
+- **`/welcome`**, the marketing view. Hero performs the carry-over rather than
+  describing it: a row lifts off Tue 19, lands on Wed 20, badge ticks ×1 → ×2.
+  `authGuard` now redirects signed-out visitors here instead of `/login`.
+- **`shared/empty-state.ts`**, four SVG scenes. Today picks between three;
+  day-detail uses `quiet` for both its cases.
+- **`shared/mark.ts`** — the logo, now on `/welcome` and `/login`. Login moved
+  onto the same ink field as the hero and lost its stale "Google sign-in stays
+  inactive" line, which had been false since 17 Aug.
+- **Accessibility pass found four real defects.** All four fixed and written up
+  in `BUILD-PLAN.md` §9. Verified by compositing every text node against its
+  real background stack in a canvas — `/welcome` and `/login` both return zero
+  contrast failures, and all fourteen colour pairs the app uses pass AA.
+- Build **526.96 kB** initial / **127.46 kB** transferred, up from 517.32 kB and
+  still under the 560 kB budget. `ng test` **31** passing in 3 files.
+
+**Decided**
+- **Illustrations are hand-drawn SVG, not AI-generated raster.** No
+  image-generation tool exists here, and a line drawing wins anyway for a PWA:
+  scales, few hundred bytes, no network on a cold offline load, cannot drift
+  from the palette. Generated art can drop into the same `scene` input later.
+- **`authGuard` → `/welcome`, not `/login`.** A stranger should be told what
+  the app does before being asked to sign in. `/welcome` carries `guestGuard`,
+  so the conditions are complementary and cannot loop.
+- **A completed row is no longer faded with `opacity`.** The fade was never one
+  of the four documented beats of the completion choreography, and it dragged
+  the whole row under AA. Recorded in `AGENTS.md` as a general rule.
+- **`ink-400` is now the lightest colour allowed on text**, tuned against
+  ink-50. `ink-300` holds the old value for decoration. In `AGENTS.md`.
+
+**Didn't work**
+- **Backticks inside a component's `template`/`styles` template literal end the
+  string.** Cost three failed builds with errors pointing at the wrong line —
+  `TS2554: Expected 1 arguments, but got 3` on the `styles:` key, not on the
+  backtick. If a component suddenly will not parse, grep it for `` ` ``.
+- **Headless Chrome clamps its window to ~500px wide**, so a `--window-size=390`
+  screenshot renders the layout at 500 and crops it to 390. Spent a detour
+  chasing a mobile overflow bug that did not exist — the giveaway was the hero
+  card starting at x≈90, exactly where a 500px layout centres it. **Measure
+  `document.scrollWidth` before believing a narrow screenshot.**
+- **`--headless=new` hangs and never exits** in this environment; it had to be
+  `pkill`ed twice and left a profile lock that broke the next two runs. Use the
+  old `--headless`.
+- **Programmatically calling `.focus()` does not reliably match
+  `:focus-visible`**, so an audit that focuses elements in a loop reports every
+  one as having no focus ring. Send a real `Tab` and screenshot instead.
+- **A naive contrast script that regex-parses `getComputedStyle().color` is
+  wrong** — Tailwind alpha utilities compute to `oklab(... / a)`, and grabbing
+  the first three numbers produced five false failures. Resolve and composite
+  the colour in a canvas; the browser is the only correct parser.
+- **A blanket `prettier --write src/app/**/*.ts` reformatted twelve files this
+  session never touched.** Reverted them. The repo is not prettier-clean;
+  format only the files you actually changed.
+
+**Open**
+- **No signed-in page has been through the audit in situ.** The browser profile
+  driving it has no Supabase session, so `/welcome` and `/login` are the only
+  pages swept end to end. The tokens are global and every pair was checked in
+  isolation, but **the skip link and all four empty states have never been seen
+  rendered on a real page.** First thing worth doing next session.
+- The 22 Aug 07:00 digest still has to be read to prove the "Yesterday you
+  finished" branch — unchanged from the entry below, and still not yet due at
+  the time of writing (it is 22:4x Sydney on the 21st).
+- Push still undelivered to any device; `DIGEST_FROM` still the shared Resend
+  sender; swipe and the offline queue still unverified. All unchanged.
+
+**Next**
+Sign in on a desktop browser and walk `/today`, `/upcoming`, `/calendar/:date`
+and `/reporting` with the contrast audit in `BUILD-PLAN.md` §9 re-run in the
+console, to confirm in situ what was only confirmed by token. While there,
+Tab from the top of `/today` to check the skip link lands focus on `<main>`,
+and empty the list to see the three Today scenes.
+
+**Touched** — `public/icon.svg`, `tools/build-icons.mjs`,
+`src/app/features/welcome/welcome.ts`, `src/app/shared/empty-state.ts`,
+`src/app/shared/mark.ts`, `src/app/core/page-title.ts`,
+`src/app/core/auth.guard.ts`, `src/app/app.ts`, `src/app/app.config.ts`,
+`src/app/app.routes.ts`, `src/app/shared/shell.ts`,
+`src/app/features/today/task-row.ts`, `src/app/features/today/today.ts`,
+`src/app/features/login/login.ts`, `src/app/features/calendar/day-detail.ts`,
+`src/styles.css`, `src/index.html`, `public/manifest.webmanifest`,
+`AGENTS.md`, `BUILD-PLAN.md`
+
 ## 2026-08-21 · claude-code · session close-out, cron verified stable
 
 Close-out only. The session's substance is in the two entries below, written as the work

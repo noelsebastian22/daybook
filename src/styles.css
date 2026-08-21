@@ -7,11 +7,30 @@
    is allowed to use them, or they stop meaning anything.
    ------------------------------------------------------------------ */
 @theme {
+  /*
+     The ink scale had holes in it: `text-ink-500` and `text-ink-700` were
+     being used in eleven places across the shell, calendar, upcoming and task
+     detail, and because neither token existed Tailwind emitted no rule at all
+     for them. Those elements silently inherited whatever their parent was and
+     their hover states did nothing. 300, 500 and 700 are defined here so the
+     classes already in the templates mean something.
+
+     ink-400 was #8a90ab, which is 3.15:1 on white and fails WCAG AA for body
+     text. It is used for text and nothing else — no borders, no fills — so it
+     has been darkened rather than replaced at each call site. The value is set
+     against ink-50 (#f6f7fb) and not white, because that is the page
+     background almost everywhere it appears and it is the harder of the two:
+     4.74:1 on ink-50, 5.08:1 on white. The old value lives on as ink-300 for
+     genuinely decorative tints.
+   */
   --color-ink-50: #f6f7fb;
   --color-ink-100: #eceef6;
   --color-ink-200: #d6dae9;
-  --color-ink-400: #8a90ab;
+  --color-ink-300: #8a90ab;
+  --color-ink-400: #676d8b;
+  --color-ink-500: #5c6280;
   --color-ink-600: #4a5070;
+  --color-ink-700: #363b55;
   --color-ink-900: #171a2b;
 
   --color-brand-50: #eef2ff;
@@ -46,6 +65,47 @@ body {
   font-family: var(--font-sans);
   /* iOS: stop the whole page rubber-banding behind the app shell. */
   overscroll-behavior-y: none;
+}
+
+/* ------------------------------------------------------------------
+   Focus.
+
+   One ring for the whole app. Before this, keyboard focus fell back to
+   whatever each browser drew by default, which on a filled dark button
+   or a coloured chip was close to invisible.
+
+   brand-500 clears 3:1 against both surfaces the app uses — 4.45:1 on
+   white, 4.01:1 on ink-900 — so one colour covers the light pages and
+   the ink field on /welcome and /login without a second ring behind it.
+
+   In `base`, deliberately: the three elements that already draw their
+   own focus treatment do it with `outline-none` plus a ring, and a
+   utility has to be able to win against this or they would get two
+   rings each. :focus-visible only, so clicking a button does not light
+   it up.
+   ------------------------------------------------------------------ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}
+
+/*
+  Skip link. Off-screen until focused, then pinned to the top-left — the
+  drawer puts five links in front of the content at every width.
+*/
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  transition: transform 150ms ease-out;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 /* Respect the notch on an installed iOS PWA. */

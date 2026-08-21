@@ -15,7 +15,11 @@ export const authGuard: CanActivateFn = () => {
   return toObservable(session.isResolved).pipe(
     filter(Boolean),
     take(1),
-    map(() => session.isAuthenticated() || router.createUrlTree(['/login'])),
+    // To /welcome, not /login: a stranger who lands on the app should be told
+    // what it does before being asked to sign in to it. The welcome page's own
+    // guard sends them on to /today the moment they have a session, so the
+    // two guards cannot bounce a request between them.
+    map(() => session.isAuthenticated() || router.createUrlTree(['/welcome'])),
   );
 };
 

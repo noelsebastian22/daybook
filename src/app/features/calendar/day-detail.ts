@@ -13,6 +13,7 @@ import { TaskStore } from '../../core/task.store';
 import { TaskRow } from '../today/task-row';
 import { Composer } from '../today/composer';
 import { type CaptureSubmit } from '../today/capture';
+import { EmptyState } from '../../shared/empty-state';
 import { withViewTransition } from '../../core/view-transition';
 import { addDays, friendlyDate, fromLocalDate, today } from '../../core/dates';
 import type { Task } from '../../core/models';
@@ -30,7 +31,7 @@ import type { Task } from '../../core/models';
 @Component({
   selector: 'app-day-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TaskRow, Composer],
+  imports: [RouterLink, TaskRow, Composer, EmptyState],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
       <header class="safe-top py-6">
@@ -110,15 +111,10 @@ import type { Task } from '../../core/models';
       }
 
       @if (onDay().length === 0 && carried().length === 0) {
-        <div class="rounded-2xl border-2 border-dashed border-ink-200 px-6 py-12 text-center">
-          <p class="font-medium text-ink-600">
-            @if (past()) {
-              Nothing recorded for this day.
-            } @else {
-              Nothing scheduled yet.
-            }
-          </p>
-        </div>
+        <app-empty-state
+          scene="quiet"
+          [title]="past() ? 'Nothing recorded for this day.' : 'Nothing scheduled yet.'"
+        />
       }
 
       @if (!past()) {
@@ -133,7 +129,11 @@ import type { Task } from '../../core/models';
     </div>
 
     @if (composerOpen()) {
-      <app-composer [day]="date()" (submitted)="add($event)" (cancelled)="composerOpen.set(false)" />
+      <app-composer
+        [day]="date()"
+        (submitted)="add($event)"
+        (cancelled)="composerOpen.set(false)"
+      />
     }
   `,
 })
@@ -157,7 +157,9 @@ export class DayDetail {
     }),
   );
 
-  protected readonly snapshot = computed(() => this.tasks.snapshotByDate().get(this.date()) ?? null);
+  protected readonly snapshot = computed(
+    () => this.tasks.snapshotByDate().get(this.date()) ?? null,
+  );
 
   /**
    * Still dated this day. On a past day that means completed on it, because
