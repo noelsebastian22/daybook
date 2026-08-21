@@ -11,6 +11,104 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-22 · claude-code · deployed, push proven
+
+**Did**
+- **Deployed to Vercel.** Live at `https://daybook-bay.vercel.app` — Vercel
+  appended `-bay` because `daybook.vercel.app` was taken. `vercel.json` sets
+  build, `outputDirectory: dist/daybook/browser`, the SPA rewrite and cache
+  headers. Verified against the running site, not assumed: `/today` → 200 HTML,
+  `ngsw.json` and `ngsw-worker.js` → `no-cache`, hashed bundles → `immutable`,
+  served from `syd1`.
+- **Web Push proven end to end, the last unverified thing in Phase 5.**
+  Installed to an iPhone home screen, subscribed, Apple endpoint stored.
+  `call the doctor` set for 09:12 Sydney, sent 09:20:02, notification rendered,
+  and **tapping it opened `/today/<id>`** — so `onActionClick` is proven, not
+  just the encryption.
+- **Digest's "Yesterday you finished" branch rendered** in the 22 Aug 07:00
+  email (`call doctor`). Both digest branches now proven against a real inbox.
+- **GitHub secret scanning finding resolved.** The flagged value was the real
+  legacy **anon** key, used as a fixture at `auth.test.mjs:23`. Scanned every
+  commit in history: no service role key, no `RESEND_API_KEY`, no VAPID private
+  half, `schedule-notify.sql` placeholder intact. Fixture now built with a fake
+  project ref; all 12 checks unchanged.
+- **Advisors run**: zero missing-RLS errors. The two `SECURITY DEFINER` warnings
+  are `ensure_user_setup` and `rollover_and_snapshot`, both intended — each
+  derives `v_uid := auth.uid()`, bails on null, revokes `anon` in `0002`.
+- Build **527.22 kB** initial / **127.47 kB** transferred. `ng test` **31** in 3
+  files; `auth.test.mjs` 12/12; `webpush.test.mjs` 13/13. **No schema change**,
+  so migrations are untouched: 4 local files against 6 live versions, as before.
+
+**Decided**
+- **Vercel, not Netlify.** Output is entirely static — all server work is in
+  Supabase — so every host serves it identically and the tiebreaker is Noel's
+  existing workflow: projects on Vercel, DNS on Cloudflare. Cloudflare stays
+  **DNS-only, grey cloud**; proxying in front of Vercel stacks two CDNs.
+- **Public keys stay in `environment*.ts`; they are NOT moved to host env vars.**
+  Angular inlines them at build time, so they ship in the bundle regardless.
+  Moving them would hide them from GitHub while still serving them to every
+  visitor — same exposure, false sense of a fix. RLS is the control.
+- **Fix a leaked public-by-design key by revoking it, not by rewriting history.**
+  Rewriting `master` for an anon key is disproportionate.
+- **Capture gets manual controls, and they rewrite the text.** `value()` stays
+  the single source of truth; chips remain a pure render of `parsed()`. No dual
+  state, no per-field conflict rule, `toCaptureText()` round-trips unchanged —
+  and the user sees the token appear, which teaches the typed syntax.
+- **Chips only, no parallel manual form.** A second labelled-field UI would be
+  two UIs to maintain and would undercut the app's premise.
+
+**Didn't work**
+- **Assumed the deploy would be `daybook.vercel.app`.** It is `daybook-bay`.
+  Had that gone into the Supabase allow list, sign-in would have bounced to
+  login **with no error shown** — the documented silent failure. Read the URL
+  off the deployment; do not predict it.
+- **Told Noel to install via Safari and warned Chrome might not give a real
+  PWA. Wrong.** Chrome on iOS produced a genuine standalone install with a
+  working `web.push.apple.com` subscription. Every iOS browser is WebKit; the
+  Safari-only advice was folklore.
+- **Nearly debugged a transient as a code bug.** The 09:15 tick returned
+  `401 JWT issued at future` on `due_reminders` and I went reading `index.ts`,
+  `webpush.ts` and the migration looking for a JWT defect. There is none — it
+  was clock skew, and the 09:20 tick sent fine. **Look at the next tick before
+  reading the code.** `pg_cron`'s `status = 'succeeded'` means only that the
+  SQL ran; `net._http_response.content` holds the function's actual reply and
+  is where this was visible immediately.
+- **`node --test` with no path finds only 2 tests.** The suites are under
+  `supabase/functions/notify/`. Earlier entries citing "12 checks" and "13
+  checks" meant **assertions inside one `test()` each**, not test counts — the
+  runner reports `tests 1` per file. Not a regression.
+
+**Open**
+- **Unconfirmed whether the legacy JWT API keys were actually revoked** in
+  Supabase. Advised and verified safe — the client uses `sb_publishable_`,
+  `notify` uses `sb_secret_`, and the live cron's command text carries an
+  `sb_secret_` key — but Noel never confirmed doing it. Until then the anon key
+  in git history is live, and the GitHub alert is still open.
+- **Swipe and the offline queue are still untested.** Noel had the phone in
+  hand and these were not exercised. They are now the only unverified features.
+- **A transient 401 abandons the whole reminders batch** — `index.ts:169`
+  throws rather than skipping one row. Invisible at one user. §12.
+- **No signed-in page has been through the a11y audit in situ.** Unchanged from
+  21 Aug, and now easier: there is a real HTTPS deployment to point a browser at.
+- `DIGEST_FROM` is still `onboarding@resend.dev`; Web Push and VAPID still need
+  explaining to Noel properly.
+- Local `master` is **1 commit ahead of origin** — this entry. `90d1f64` was
+  pushed during the session to trigger the Vercel build, so pushing this one
+  will also redeploy (docs only, no bundle change).
+
+**Next**
+Build the capture chip controls in `features/today/capture.ts`: make all four
+chips always-visible buttons with placeholders (`Today` · `Add time` ·
+`#Category` · `Energy`), add a category popover fed by the user's categories
+and a quick/deep energy selector, each writing its token into `value()` while
+preserving cursor position. The date chip at line 96 already works this way —
+extend that pattern, do not invent a second one. Two details still to settle:
+whether picking a category **replaces** an existing `#tag` or appends a second,
+and whether tokens insert at the cursor or append at the end.
+
+**Touched** — `vercel.json`, `BUILD-PLAN.md`, `README.md`,
+`supabase/functions/notify/auth.test.mjs`, `docs/SESSIONS.md`
+
 ## 2026-08-21 · claude-code · phase 6 close-out
 
 Close-out only. The session's substance is in the entry below, written as the work

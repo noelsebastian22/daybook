@@ -101,7 +101,7 @@ silently rejects anything not on the list.
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
 | 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
-| 5 | Settings, email digest, weekly review, Web Push reminders | **done and running unattended, 21 Aug** — cron scheduled, digest delivered to a real inbox. Push wire format still unproven |
+| 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
@@ -308,15 +308,24 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
 
 ### Not phased, needed before daily use
 
-- **Hosting on Vercel.** `vercel.json` is written: build `npm run build`,
-  output `dist/daybook/browser`, SPA rewrite, and the cache headers the service
-  worker needs (§9). The only auth change is adding the production URL **and
-  the preview wildcard** to the Supabase redirect allow list and updating Site
-  URL. No Google console change. **This is the blocker for every remaining
-  test** — push, swipe and the offline queue all need an installed PWA over
-  HTTPS, which a LAN address cannot provide.
-- **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt, and an
-  uninstalled PWA can have its cached storage evicted after roughly 7 days.
+- ~~**Hosting on Vercel.**~~ **Done 22 Aug**, `https://daybook-bay.vercel.app`.
+  `vercel.json` carries the build command, `dist/daybook/browser`, the SPA
+  rewrite and the service-worker cache headers (§9). Every check was made
+  against the running site; see §12.
+- **Manual controls in capture — the next piece of work.** Category and energy
+  can only be set by typing `#tag` and `!energy`, and their chips are invisible
+  until the text parses one, so neither feature is discoverable. Make all four
+  chips always-visible buttons with placeholders (`Today` · `Add time` ·
+  `#Category` · `Energy`); add a category popover fed by the user's categories
+  and a quick/deep selector. Each control **writes its token into the
+  textarea** — see §9 for why that, and not parallel state. The date chip at
+  `capture.ts:96` is the pattern to extend. Two open details: whether picking a
+  category replaces an existing `#tag` or appends a second, and whether tokens
+  insert at the cursor or append at the end.
+- **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt — Noel
+  could not find the option on 22 Aug and it had to be talked through, which is
+  exactly the failure this hint prevents. An uninstalled PWA can also have its
+  cached storage evicted after roughly 7 days.
 
 ---
 
@@ -332,7 +341,12 @@ tracked.
    does not say. State: done.
 3. **Natural language capture.** Typing `call physio thursday 2pm #physio
    !quick` parses into date, time, category and energy, with tokens rendering
-   as inline chips as you type. State: done.
+   as inline chips as you type. State: **done as the typed path; the manual
+   path is half built.** Date and time have a full picker behind the date chip.
+   **Category and energy have no manual control at all**, and their chips do
+   not render until the text parses a token, so neither is discoverable by a
+   new user. Decided 22 Aug to fix this with always-visible chip buttons that
+   write tokens back into the text — §4 and §9.
 4. **Complete with a timestamp**, not just a checkbox, so history and the email
    digest can show "completed at 9:15 AM". State: done.
 5. **Daily history.** Each day's list preserved with date and details, viewable
@@ -341,13 +355,12 @@ tracked.
    finished and what was carried off, from two different sources — see §4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
-7. **Optional reminder times.** State: **built end to end, keyed, never yet
-   fired.** `reminder_at` is set by the parser or the picker; `due_reminders()`
-   finds them, the `notify` function encrypts and posts them. The VAPID pair
-   was generated on 21 Aug and all three secrets are set, so Settings now
-   reports "Reminders need the installed app" rather than "not configured".
-   Nothing has been delivered yet: the cron is still unscheduled, and a real
-   delivery needs a built PWA over HTTPS installed to a home screen.
+7. **Optional reminder times.** State: **done, delivered to a real device
+   22 Aug.** `reminder_at` is set by the parser or the picker; `due_reminders()`
+   finds them, the `notify` function encrypts and posts them. First real
+   delivery: `call the doctor`, set for 09:12 Sydney, sent 09:20:02 by the cron
+   to an installed iPhone PWA. See §12 for the transient 401 on the 09:15 tick
+   and how the grace window absorbed it.
 8. **Energy tag per task, Quick or Deep**, so the list can be filtered by how
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
@@ -1054,6 +1067,25 @@ cron job's command text was confirmed to carry an `sb_secret_` key and no
 legacy JWT — the one place a hand-pasted legacy key could have hidden and
 broken the digest silently on revocation.
 
+**Capture gets manual controls, and they rewrite the text rather than holding
+their own state.** Decided 22 Aug. Typing is a fast path for people who already
+know the syntax; it cannot be the *only* path. But the fix is not a parallel
+form. Every control writes its token into the textarea, so `value()` stays the
+single source of truth and the chips remain a pure render of `parsed()`. That
+avoids two states per field and a conflict rule for each — the date picker
+already needed one, at `capture.ts:243`, "a date typed after the picker was
+used is the newer intent, so it wins" — and it leaves `toCaptureText()`
+round-tripping unchanged for the edit flow. It also teaches: the user watches
+`#physio` appear in the box and learns the typed form for next time.
+
+**The real defect is discoverability, not the absence of controls.** The date
+chip is always visible and already opens a full picker. The category and energy
+chips are `<span>`s that render *only once the text has parsed a token* — so a
+new user cannot discover that categories or energy exist at all. Four chips,
+one idiom, all always visible with placeholders when unset. **Chips only, no
+second labelled-field form**: two parallel input UIs would be two things to
+maintain and would undercut the premise of the app.
+
 **The Supabase redirect allow list carries a preview wildcard.** Every Vercel
 push mints a new preview URL, and Supabase silently rejects a `redirectTo` that
 is not on the list — the symptom is a bounce back to login with no error. For a
@@ -1129,12 +1161,30 @@ Not core. Revisit once the main app is solid.
   doctor` above the two tasks on today. Both branches of the digest template
   are now proven against a real inbox, and `completed_yesterday` keying off
   `scheduled_date = yesterday` is confirmed correct.
-- **Web Push has keys but has never sent anything.** The VAPID pair was
-  generated on 21 Aug, the public half is in both `environment*.ts` and all
-  three secrets are set. Settings now reports "Reminders need the installed
-  app" rather than "not configured". The **wire format is still unproven** — no
-  device has received a push. Testing it needs a built PWA over HTTPS,
-  installed to a home screen.
+- ~~Web Push has keys but has never sent anything.~~ **Closed 22 Aug. The wire
+  format is proven.** Daybook was installed to an iPhone home screen from the
+  Vercel deployment, the Settings toggle subscribed, and
+  `user_settings.push_subscription` took an Apple endpoint
+  (`web.push.apple.com`, `p256dh` 87 chars = a 65-byte P-256 point, `auth` 22
+  chars = 16 bytes — both correct). A reminder on `call the doctor` set for
+  09:12 Sydney was delivered by the 09:20 tick: `{"reminders":{"sent":1,
+  "failed":0}}`, `reminder_sent_at` 09:20:02. **RFC 8291 encryption and RFC
+  8292 VAPID signing, hand-written on Web Crypto, were accepted by Apple on the
+  first real attempt.** The notification rendered on the lock screen and
+  tapping it opened `/today/<id>`, so the `onActionClick` /
+  `navigateLastFocusedOrOpen` payload is proven too — the one part that would
+  have failed silently even after a successful send. Installed via Chrome on
+  iOS, which produces a genuine standalone PWA — Safari is not required.
+- **A transient auth failure abandons the whole reminders batch.**
+  `index.ts:169` does `throw new Error(\`due_reminders: ${error.message}\`)`, so
+  one bad RPC kills every reminder that tick, not just one row. Seen live: the
+  09:15 tick on 22 Aug returned `401 JWT issued at future` — clock skew between
+  the token issuer and PostgREST — while 09:05, 09:10 and 09:20 all returned
+  200. **It self-healed**, because `due_reminders`' 15-minute grace window is
+  wider than the 5-minute tick, so the next tick still found the row; the
+  window was written for a missed tick and caught this for free. With one user
+  that is invisible. With fifty, one transient 401 delays everybody. A per-row
+  try/catch, or a retry on the RPC, is the fix.
 - **Web Push and VAPID need explaining to Noel properly.** Agreed on 21 Aug to
   hold this as a discovery step at the end of the build rather than expand on
   it mid-flight.
@@ -1142,10 +1192,14 @@ Not core. Revisit once the main app is solid.
   `*/5 * * * *`, active, calling `notify` with the service role key. First
   clean tick 12:05 UTC: `{"digests":{"sent":0,"failed":0},"reminders":
   {"sent":0,"failed":0}}`. Nothing is left waiting on a human for the digest.
-- **No hosting, no CI, not deployed anywhere.** The code lives on GitHub at
-  `noelsebastian22/daybook`, `master` tracking `origin/master` since 18 Aug.
-  That is a remote, not a deployment. **Vercel is the chosen target and
-  `vercel.json` is committed**, but nothing has been pushed to it yet.
+- ~~No hosting, no CI, not deployed anywhere.~~ **Closed 22 Aug. Daybook is
+  live at `https://daybook-bay.vercel.app`** — Vercel appended `-bay` because
+  `daybook.vercel.app` was taken. Verified against the running deployment, not
+  assumed: `/today` returns 200 HTML so the SPA rewrite applies, `ngsw.json`
+  and `ngsw-worker.js` both come back `no-cache`, the hashed bundles come back
+  `immutable`, and it serves from `syd1`, the same region as the database.
+  **Everything blocked on HTTPS is now unblocked** — push, swipe, the offline
+  queue and the signed-in a11y sweep. No CI beyond Vercel's build on push.
 - **Swipe and the offline queue are the last unverified features.** The 21 Aug
   clickthrough was done on a desktop browser, so neither was exercised. Every
   other page and interaction in Phases 3 to 5 has now been seen working.

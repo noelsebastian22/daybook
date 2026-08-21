@@ -32,9 +32,14 @@ The magic link still works and is kept deliberately as a recovery path.
 **Deploying to production** needs no Google console change. In the Supabase
 dashboard only:
 
-- Authentication → URL Configuration → set **Site URL** to the production URL
-- Add `https://<production-domain>/**` to the **Redirect URLs** allow list
+- Authentication → URL Configuration → set **Site URL** to
+  `https://daybook-bay.vercel.app`
+- Add `https://daybook-bay.vercel.app/**` to the **Redirect URLs** allow list
 - Add `https://daybook-*.vercel.app/**` too, so preview deployments can sign in
+
+Vercel appended `-bay` because `daybook.vercel.app` was already taken. The
+production host is therefore `daybook-bay.vercel.app`, and the preview wildcard
+happens to cover it as well.
 
 The `/**` wildcard is required. `login.ts` passes
 `redirectTo: location.origin + '/today'`, and Supabase silently rejects any
