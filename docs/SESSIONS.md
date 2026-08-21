@@ -11,6 +11,36 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-21 · claude-code · phase 6 close-out
+
+Close-out only. The session's substance is in the entry below, written as the work
+landed; this records the verification run afterwards and nothing new was built.
+
+**Did**
+- **Full suite run, all four, not quoted from memory**: `ng build` **526.96 kB**
+  initial / **127.46 kB** transferred; `ng test` **31** passing in 3 files;
+  `auth.test.mjs` **12**; `webpush.test.mjs` **13**. The entry below quoted only
+  the first two — the node suites had not been run at the time it was written.
+  All four pass, so Phase 6 broke nothing in the notify function.
+- Tree clean, one commit this session: `6e79403`.
+- **No schema change**, so no migration to reconcile. `supabase/migrations/` still
+  holds 4 files against the 6 live versions, unchanged since 21 Aug.
+- **`BUILD-PLAN.md` needed no edit in this close-out** — §3, §4, §5, §9 and §12
+  were all brought current in `6e79403`.
+
+**Open**
+- Unchanged from the entry below. The one that matters: **no signed-in page has
+  been through the accessibility audit in situ**, so the skip link and all four
+  empty states are still unseen on a real page.
+
+**Next**
+Unchanged: sign in on a desktop browser, re-run the §9 contrast audit in the
+console across `/today`, `/upcoming`, `/calendar/:date` and `/reporting`, Tab
+from the top of `/today` to confirm the skip link lands focus on `<main>`, and
+empty the list to see the three Today scenes.
+
+**Touched** — `docs/SESSIONS.md`
+
 ## 2026-08-21 · claude-code · phase 6 built, a11y pass
 
 **Did**
