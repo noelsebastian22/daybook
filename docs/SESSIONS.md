@@ -11,6 +11,101 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-22 · claude-code · signed-in a11y, swipe, install hint
+
+**Did**
+- **Swept every signed-in page for contrast in situ**, driving Noel's own Chrome
+  so the audit finally had a session — the thing that had blocked it since
+  21 Aug. Seven routes, zero failures. **The skip link was seen for the first
+  time** and lands focus on `MAIN#content`.
+- Four a11y fixes: `task-row` push button was `text-ink-400 opacity-60` = 2.38:1;
+  `composer` + `toasts` got `lg:left-60` (they sat **120px** left of their
+  column, not the ~112 §12 guessed); `composer` now traps Tab (22 elements
+  behind the scrim were reachable); the hamburger was the one icon not
+  `aria-hidden`.
+- **Today splits into open work and a `Done today` section.** Built because
+  `scene="clear"` was **unreachable** — completed rows stayed in the list, so an
+  empty list could only mean an empty day. Noel chose making it reachable over
+  deleting it. Seen rendering afterwards.
+- **Swipe fixed on device**, both defects Noel found on his iPhone: the judder,
+  and a left swipe on a finished row that armed and then did nothing.
+- **iOS install hint built** (`shared/install-hint.ts` + `core/install.ts`), the
+  last unbuilt item in §4. `Push` now shares its `isStandalone`.
+- **Three §12 bugs fixed**: `ensure_user_setup` double call, silent rollover
+  failure, transient 401 killing a batch. `notify` **deployed as v8**, confirmed
+  by a clean 06:10 tick — checked `now()` in the same query first.
+- Build **527.78 kB** initial / **127.57 kB** transferred. `ng test` **55** in 4
+  files, up from 42 in 3. No schema change: 4 local migration files against 6
+  live versions, unchanged. All six commits pushed; live chunks verified by
+  content, not just by hash.
+
+**Decided**
+- **A pointer-driven `transform` must set `transition: none`, not `''`.** Empty
+  removes the inline property and hands the element back to its class — and the
+  row carries Tailwind's `transition` shorthand, which includes `transform` at
+  150ms. That was the judder. §9.
+- **Swipe is disabled outright on a finished row.** `onSwipe` has always guarded
+  the push with `!done()` because completing pins `scheduled_date` and
+  `day-detail` reads that pin, so pushing a done task rewrites history. The
+  guard stays; the row is now inert instead of promising an action. §9.
+- **The carried badge survives completion but goes neutral.** Noel's call on the
+  §12 item. Red is reserved for overdue or badly avoided; keeping the ≥3
+  escalation on a finished row reads as a reprimand. §9.
+- **`Done today` is expanded by default and that is load-bearing** — a
+  completing row unmounts from one list and mounts in the other, and the browser
+  FLIPping it between them *is* the fourth beat. Collapsed, it would vanish. §9.
+- **`verify_jwt` stays true on every `notify` deploy.** `auth.ts` says its
+  JWT-claim branch is only safe while it is on. Do not deploy with it off.
+- **`DIGEST_FROM` deliberately left** as the shared Resend sender, but recorded
+  as a **hard blocker for multi-tenancy** — a second user silently gets no
+  digest. §12.
+
+**Didn't work**
+- **A backtick inside a `template:` string, twice.** Same trap as 21 Aug. The
+  compiler reports a dozen errors at the decorator and the last line of the
+  file, never at the comment. Now a **hard rule in `AGENTS.md`** rather than
+  only a log line — five builds across three sessions.
+- **Do not eyeball offsets from a screenshot.** The capture is 1568px wide
+  against a 1502px viewport, so everything is ~4% off. The composer looked
+  ~112px out and measured 120. Read `getBoundingClientRect()`.
+- **The extension stopped delivering key presses mid-session** — no `keydown`
+  reached the document at all, so Tab did nothing and it read as a broken focus
+  trap. Verified the trap by dispatching `KeyboardEvent`s instead and asserting
+  `defaultPrevented`. `resize_window` also reported success while `innerWidth`
+  never changed. **Confirm a synthetic input actually landed before believing
+  what it shows.**
+- **The 401 fix was wider than §12 recorded.** It called it a reminders bug;
+  `due_digests` had the identical unguarded throw. The per-row `try`/`catch` and
+  the `allSettled` isolation were already correct — the exposed call was the
+  read that runs *before* either loop.
+
+**Open**
+- **The offline queue is the last wholly unverified feature.** Swipe is now
+  verified on a real thumb; the queue never has been.
+- **The swipe constants are still unjudged.** The gesture works and no longer
+  judders, but nobody has said whether 96px/12px/0.2/180ms *feel* right.
+- `InvalidStateError: Transition was aborted` fires on **every** dev-server
+  reload, not once as §12 recorded. Reproducible, and it is `withViewTransition`
+  losing its transition when the document is swapped. Not seen in a prod build.
+- The install hint has **never been seen on an actual iPhone** — it is gated on
+  not being standalone, so Noel must open the site in a normal tab, not the
+  installed app.
+
+**Next**
+The UI design pass, and **Noel drives it** — he finds the current look
+unprofessional and wants specific reactions rather than a guess. Offered to do a
+structured pass first (spacing rhythm, type scale, density, empty states) so he
+has something concrete to react to. Multi-tenancy is explicitly after that, and
+`DIGEST_FROM` becomes blocking there.
+
+**Touched** — `src/app/features/today/task-row.ts`, `src/app/features/today/today.ts`,
+`src/app/features/today/composer.ts`, `src/app/core/task.store.ts`,
+`src/app/core/session.store.ts`, `src/app/core/install.ts`,
+`src/app/core/install.spec.ts`, `src/app/core/push.ts`,
+`src/app/shared/install-hint.ts`, `src/app/shared/shell.ts`,
+`src/app/shared/swipe.ts`, `src/app/shared/toasts.ts`,
+`supabase/functions/notify/index.ts`, `AGENTS.md`, `BUILD-PLAN.md`
+
 ## 2026-08-22 · claude-code · capture chips, legacy keys revoked
 
 **Did**

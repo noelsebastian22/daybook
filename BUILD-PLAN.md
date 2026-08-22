@@ -98,8 +98,8 @@ silently rejects anything not on the list.
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
-| 2 | Today view, natural language capture, rollover, PWA shell | **done, unverified by a human** |
-| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7; swipe untested (desktop) |
+| 2 | Today view, natural language capture, rollover, PWA shell | **done, verified** — this cell read "unverified by a human" until 22 Aug while the prose below it already said the loop was closed; the shell has since been installed on an iPhone too |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7. **Swipe verified on an iPhone 22 Aug**, which found two defects (§9); its four constants are still unmeasured |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
@@ -152,8 +152,12 @@ See §9. Two smaller things are open rather than fixed — a duplicated
 `ensure_user_setup` call on every load, and a rollover failure seen once and
 never reproduced. Both are in §12.
 
-What is still unverified by a person: **swipe** (no touch device in the pass),
-the **offline queue**, and **Web Push**, which no device has ever received.
+What is still unverified by a person: **the offline queue, and only that.** Web
+Push was delivered to an installed iPhone on 22 Aug, and swipe was used on a
+real thumb the same day — it found two defects that no desktop pass could have
+(§9), which is the argument for the device pass rather than a footnote about
+one gesture. The swipe *distances* remain unjudged, which is a separate thing
+from the gesture being unverified.
 
 ---
 
