@@ -39,6 +39,12 @@ that symlink is load-bearing. Edit the `.agents/` copy.
 - **Components are `ChangeDetectionStrategy.OnPush`** without exception.
 - `input()` / `output()` functions, not the decorators.
 - `inject()`, not constructor parameter injection.
+- **Never put a backtick inside a `template:` string**, including in an HTML
+  comment. It closes the template literal, and the compiler then reports a
+  dozen errors pointing at the decorator and the last line of the file rather
+  than at the comment. Write `inset-x-0`, not the quoted form. This has cost
+  five builds across three sessions. If a component suddenly will not parse,
+  grep it for a backtick before reading anything else.
 
 ## State
 

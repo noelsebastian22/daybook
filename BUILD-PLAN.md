@@ -219,11 +219,15 @@ than not, and the order was set on 18 Aug against the Todoist captures.
    `document.startViewTransition()` and the browser FLIPs every row that moved,
    closing the gap for free. The strike is an animated background line, because
    `text-decoration` cannot be animated from nothing to full width.
-7. **Swipe gestures.** **Built, 21 Aug**, `shared/swipe.ts`. Right completes,
-   left reschedules, touch pointers only. Fires on release, not on crossing the
-   threshold, so a gesture can be backed out of. **The four timing constants at
-   the top of that file are reasoned, not measured** — the captures below never
-   happened, so they remain the one thing here still owed.
+7. **Swipe gestures.** **Built 21 Aug**, `shared/swipe.ts`; **verified on an
+   iPhone 22 Aug.** Right completes, left reschedules, touch pointers only,
+   and disabled outright on a finished row. Fires on release, not on crossing
+   the threshold, so a gesture can be backed out of. The device pass found two
+   defects — a judder caused by the row's own CSS transition, and a left swipe
+   that promised an action it never performed — both fixed, both in §9. **The
+   four timing constants at the top of that file are still reasoned, not
+   measured**: the gesture works, but whether the distances feel right has not
+   been called either way.
 
 **6 and 7 were unblocked rather than waited on.** The plan held both for
 Todoist **iOS** captures that were never taken. 6 turned out not to need them:
@@ -1168,6 +1172,35 @@ inside the panel, so its options join the cycle with no extra bookkeeping.
 Verified by dispatching Tab at both ends: it wraps, and it leaves middle tabs
 to the browser.
 
+### Swipe on a real thumb, 22 Aug
+
+**A pointer-driven `transform` must set `transition: none`, not `''`.** The row
+juddered the whole way through a swipe on an iPhone. The directive was setting
+its inline transition to the empty string while dragging, which *removes* the
+inline property and hands the row back to its class — and the row carries
+Tailwind's `transition` shorthand, which includes `transform` at 150ms. So
+every `pointermove` set a new offset the browser then animated toward, and the
+next move 16ms later restarted it from wherever it had reached. The row lagged
+the thumb and shook. It is now `none` while dragging, the snap-back is the only
+animated part, and `settling` is released on a timer so the row gets its own
+hover transitions back afterwards. `translate3d` replaces `translateX` to keep
+the card, its shadow and its ring off the repaint path.
+
+**This was invisible on a desktop and always would have been.** The gesture is
+touch-only by design, so no amount of clicking would have found it. It is the
+argument for the device pass rather than a note about one bug.
+
+**Swipe is disabled outright on a finished row.** It used to drag, reveal a
+"Tomorrow →" backing, arm at the commit point and then do nothing, because
+`onSwipe` has always guarded the push with `!done()`. A gesture that promises an
+action and silently declines is worse than one that does not move. The guard
+stays where it is, because it is the guard that keeps history honest — a
+completed task pins `scheduled_date` to the day it was finished and
+`day-detail` reads that pin to say what the day amounted to, so pushing a done
+task would rewrite the past. The backing labels are no longer rendered there at
+all, and the desktop push button was already hidden by the same condition, so
+the two paths finally agree.
+
 **A contrast failure can come from an ancestor, not a token.** The push button
 in `task-row.ts` was `text-ink-400 opacity-60` — a compliant token faded to
 2.38:1. Every colour *pair* the app uses passed when checked in isolation on
@@ -1290,9 +1323,10 @@ Not core. Revisit once the main app is solid.
   `immutable`, and it serves from `syd1`, the same region as the database.
   **Everything blocked on HTTPS is now unblocked** — push, swipe, the offline
   queue and the signed-in a11y sweep. No CI beyond Vercel's build on push.
-- **Swipe and the offline queue are the last unverified features.** The 21 Aug
-  clickthrough was done on a desktop browser, so neither was exercised. Every
-  other page and interaction in Phases 3 to 5 has now been seen working.
+- ~~Swipe and the offline queue are the last unverified features.~~ **Swipe was
+  exercised on Noel's iPhone, 22 Aug, and it works** — the first time any touch
+  device has touched it. It found two defects, both since fixed; see §9. **The
+  offline queue is now the last unverified feature.**
 - **Swipe thresholds are guesses.** The four constants in `shared/swipe.ts`
   were reasoned, not measured, because the Todoist iOS captures the plan
   called for were never taken. The gesture works; whether it *feels* right is

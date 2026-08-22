@@ -33,30 +33,38 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         Green is the reserved completion colour and this completes. The
         reschedule side is brand, not red — pushing a task on purpose is not
         the same as one going badly, and red would say it was.
+
+        Not rendered at all on a finished row, because there is no gesture
+        left to label: the swipe is disabled there. It used to promise
+        "Tomorrow" on a completed row and then do nothing, since onSwipe has
+        always guarded the push with a not-done check.
       -->
-      <div
-        class="pointer-events-none absolute inset-0 flex items-center justify-between px-4 text-sm font-medium"
-        aria-hidden="true"
-      >
-        <span
-          class="flex items-center gap-1.5 transition-opacity"
-          [class]="swipe.armed() ? 'text-done-700' : 'text-done-500/60'"
-          [class.opacity-0]="swipe.offset() <= 0"
+      @if (!done()) {
+        <div
+          class="pointer-events-none absolute inset-0 flex items-center justify-between px-4 text-sm font-medium"
+          aria-hidden="true"
         >
-          <span aria-hidden="true">&check;</span> {{ done() ? 'Not done' : 'Done' }}
-        </span>
-        <span
-          class="flex items-center gap-1.5 transition-opacity"
-          [class]="swipe.armed() ? 'text-brand-700' : 'text-brand-500/60'"
-          [class.opacity-0]="swipe.offset() >= 0"
-        >
-          {{ pushLabel() }} <span aria-hidden="true">&rarr;</span>
-        </span>
-      </div>
+          <span
+            class="flex items-center gap-1.5 transition-opacity"
+            [class]="swipe.armed() ? 'text-done-700' : 'text-done-500/60'"
+            [class.opacity-0]="swipe.offset() <= 0"
+          >
+            <span aria-hidden="true">&check;</span> Done
+          </span>
+          <span
+            class="flex items-center gap-1.5 transition-opacity"
+            [class]="swipe.armed() ? 'text-brand-700' : 'text-brand-500/60'"
+            [class.opacity-0]="swipe.offset() >= 0"
+          >
+            {{ pushLabel() }} <span aria-hidden="true">&rarr;</span>
+          </span>
+        </div>
+      }
 
       <div
         appSwipe
         #swipe="appSwipe"
+        [appSwipeDisabled]="done()"
         (swiped)="onSwipe($event)"
         class="group relative flex items-start gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
       >
@@ -190,6 +198,12 @@ export class TaskRow {
    * Both gestures land on outputs the row already had, so a swipe and the
    * button beside it go through exactly the same store call — including the
    * same undo toast.
+   *
+   * The `done()` guard is now belt and braces: the directive is disabled on a
+   * finished row, so nothing fires there at all. It stays because it is the
+   * guard that makes the rule true — a completed task pins `scheduled_date`
+   * to the day it was finished, and `day-detail` reads that pin to say what
+   * that day amounted to. Pushing a done task would rewrite history.
    */
   protected onSwipe(direction: SwipeDirection): void {
     if (direction === 'right') this.toggled.emit();
