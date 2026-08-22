@@ -46,6 +46,35 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
+/**
+ * Asks the database what is due, retrying a failure that is plausibly
+ * transient.
+ *
+ * Seen live on the 09:15 tick, 22 Aug: `due_reminders` returned
+ * `401 JWT issued at future` — clock skew between the token issuer and
+ * PostgREST — while 09:05, 09:10 and 09:20 all returned 200. A single throw
+ * there abandoned every reminder for that tick, not one row. It self-healed
+ * only because the 15-minute grace window in `due_reminders` is wider than the
+ * five-minute tick, so the next tick still found the row; that window was
+ * written for a missed tick and caught this by luck. With one user it is
+ * invisible. With fifty, one bad tick delays everybody.
+ *
+ * **Read RPCs only.** `mark_digest_sent` and `mark_reminder_sent` are writes
+ * and must not be retried blindly from here — a retried mark is a lost
+ * notification, not a duplicated one.
+ */
+async function readDue<T>(fn: 'due_digests' | 'due_reminders'): Promise<T[]> {
+  const backoffMs = [200, 600];
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await supabase.rpc(fn);
+    if (!error) return (data ?? []) as T[];
+
+    if (attempt >= backoffMs.length) throw new Error(`${fn}: ${error.message}`);
+    console.log(`${fn}: attempt ${attempt + 1} failed (${error.message}), retrying`);
+    await new Promise((resolve) => setTimeout(resolve, backoffMs[attempt]));
+  }
+}
+
 function escapeHtml(value: string): string {
   return value.replace(
     /[&<>"']/g,
@@ -113,13 +142,12 @@ async function runDigests(): Promise<{ sent: number; failed: number; skipped?: s
     return { sent: 0, failed: 0, skipped: 'RESEND_API_KEY or DIGEST_FROM not set' };
   }
 
-  const { data, error } = await supabase.rpc('due_digests');
-  if (error) throw new Error(`due_digests: ${error.message}`);
+  const due = await readDue<DigestRow>('due_digests');
 
   let sent = 0;
   let failed = 0;
 
-  for (const row of (data ?? []) as DigestRow[]) {
+  for (const row of due) {
     const { data: payload, error: payloadError } = await supabase.rpc('digest_payload', {
       p_user_id: row.user_id,
     });
@@ -165,13 +193,12 @@ async function runReminders(): Promise<{ sent: number; failed: number; skipped?:
   }
   const keys: VapidKeys = { publicKey, privateKey, subject };
 
-  const { data, error } = await supabase.rpc('due_reminders');
-  if (error) throw new Error(`due_reminders: ${error.message}`);
+  const due = await readDue<ReminderRow>('due_reminders');
 
   let sent = 0;
   let failed = 0;
 
-  for (const row of (data ?? []) as ReminderRow[]) {
+  for (const row of due) {
     const payload = JSON.stringify({
       notification: {
         title: row.text,

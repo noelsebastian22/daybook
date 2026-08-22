@@ -46,6 +46,9 @@ export const SessionStore = signalStore(
   })),
 
   withMethods((store, sb = inject(Supabase), toast = inject(ToastStore)) => {
+    /** The user id {@link ensureSetup} has already run for this page load. */
+    let setupRanFor: string | null = null;
+
     const apply = (session: Session | null) =>
       patchState(store, {
         session,
@@ -58,13 +61,28 @@ export const SessionStore = signalStore(
 
       /**
        * Creates user_settings and the default categories on first login.
-       * Idempotent, so calling it on every sign-in is fine.
+       * Idempotent server-side, so calling it twice corrupts nothing — but it
+       * was being called twice on every single app open, which is two wasted
+       * round trips against a sub-100ms budget.
+       *
+       * Two paths race here and both are legitimate: `getSession()` resolving,
+       * and `onAuthStateChange` firing `INITIAL_SESSION`. Their order is not
+       * guaranteed, so this runs once per user id rather than trying to decide
+       * which one should own the call. A failure clears the latch so the next
+       * trigger retries instead of leaving the account unseeded.
        */
       async ensureSetup(): Promise<void> {
+        const userId = store.user()?.id ?? null;
+        if (!userId || setupRanFor === userId) return;
+        setupRanFor = userId;
+
         const { error } = await sb.client.rpc('ensure_user_setup', {
           p_timezone: browserTimezone(),
         });
-        if (error) console.error('ensure_user_setup failed', error);
+        if (error) {
+          setupRanFor = null;
+          console.error('ensure_user_setup failed', error);
+        }
       },
 
       async signInWithGoogle(): Promise<void> {

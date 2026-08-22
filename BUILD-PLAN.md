@@ -1280,12 +1280,22 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **`ensure_user_setup` fires twice on every page load**, consistently two calls
-  for every one `rollover_and_snapshot`. It is idempotent so no data is harmed,
-  but it is four wasted round trips on every app open, against the sub-100ms
-  bar in `AGENTS.md`. Cause not investigated.
-- **A rollover failure is invisible to the user.** `task.store.ts:253` logs to
-  the console and silently `return`s. Related, and unexplained: `rollover
+- ~~`ensure_user_setup` fires twice on every page load.~~ **Closed 22 Aug.** It
+  was a race, not a duplicated call site: `getSession().then()` called
+  `ensureSetup()` **unconditionally**, while `onAuthStateChange` fired
+  `INITIAL_SESSION` separately and called it again. Their order is not
+  guaranteed, so whichever landed first, both saw a session. `ensureSetup` now
+  latches on the user id and runs once per page load, clearing the latch on
+  failure so an error still retries. Verified by counting requests over two
+  cold loads: one `ensure_user_setup` to one `rollover_and_snapshot`, where it
+  had been two to one.
+- ~~A rollover failure is invisible to the user.~~ **Closed 22 Aug.** It now
+  toasts `Could not carry unfinished tasks over.` The failure was never
+  cosmetic: yesterday's unfinished work stays on yesterday, so Today looks
+  emptier than it is and nothing distinguishes that from having finished it.
+  **Offline stays silent**, per `AGENTS.md` — rollover runs on every open
+  including the ones with no connection, it is retried on the next one, and
+  there is nothing the user could do. Still unexplained: `rollover
   failed` plus `InvalidStateError: Transition was aborted` were seen once on a
   genuinely cold first load on 21 Aug and never reproduced across four reloads.
   **Lead, 22 Aug:** `InvalidStateError: Transition was aborted because of
@@ -1328,9 +1338,16 @@ Not core. Revisit once the main app is solid.
   `navigateLastFocusedOrOpen` payload is proven too — the one part that would
   have failed silently even after a successful send. Installed via Chrome on
   iOS, which produces a genuine standalone PWA — Safari is not required.
-- **A transient auth failure abandons the whole reminders batch.**
-  `index.ts:169` does `throw new Error(\`due_reminders: ${error.message}\`)`, so
-  one bad RPC kills every reminder that tick, not just one row. Seen live: the
+- ~~A transient auth failure abandons the whole reminders batch.~~ **Fixed in
+  the source 22 Aug; not yet deployed.** Both `due_digests` and `due_reminders`
+  now go through `readDue`, which retries twice at 200ms and 600ms before
+  giving up — the bug was in **both** halves, not only reminders as recorded
+  here. The per-row `try`/`catch` inside the send loop was already there, and
+  `Promise.allSettled` in the handler already kept a digest failure from
+  taking reminders with it; the unguarded call was the "what is due" read that
+  runs before either loop. Original finding: the
+  `throw new Error(\`due_reminders: ...\`)` killed every reminder that tick,
+  not just one row. Seen live: the
   09:15 tick on 22 Aug returned `401 JWT issued at future` — clock skew between
   the token issuer and PostgREST — while 09:05, 09:10 and 09:20 all returned
   200. **It self-healed**, because `due_reminders`' 15-minute grace window is

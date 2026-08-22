@@ -264,6 +264,16 @@ export const TaskStore = signalStore(
         });
         if (error) {
           console.error('rollover failed', error);
+          // A failure here is not cosmetic: yesterday's unfinished work stays
+          // on yesterday, so Today looks emptier than it is and the user has
+          // no way to tell that from having actually finished. It used to
+          // return in silence.
+          //
+          // Offline is the exception, and the usual one — rollover runs on
+          // every open, including the ones with no connection. It is retried
+          // on the next open, so there is nothing to report and nothing the
+          // user could do about it.
+          if (!isOffline(error)) toast.error('Could not carry unfinished tasks over.');
           return;
         }
         const rolled = Array.isArray(data) ? (data[0]?.rolled_count ?? 0) : 0;
