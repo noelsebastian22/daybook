@@ -317,9 +317,8 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   `Energy`), a category popover fed by `TaskStore.categories` and a quick/deep
   selector. Each writes its token into the textarea through `writeToken` in
   `core/parse-capture.ts` — see §9 for why that, and not parallel state. Both
-  open details are settled there too. **Not yet seen on screen**: it needs a
-  signed-in session, so it stands where Phase 2 stood — built and unit-tested,
-  unverified by a human.
+  open details are settled there too. **Seen on screen and signed in, 22 Aug**,
+  including the keyboard paths through all three popovers.
 - **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt — Noel
   could not find the option on 22 Aug and it had to be talked through, which is
   exactly the failure this hint prevents. An uninstalled PWA can also have its
@@ -339,12 +338,14 @@ tracked.
    does not say. State: done.
 3. **Natural language capture.** Typing `call physio thursday 2pm #physio
    !quick` parses into date, time, category and energy, with tokens rendering
-   as inline chips as you type. State: **done as the typed path; the manual
-   path is half built.** Date and time have a full picker behind the date chip.
-   **Category and energy have no manual control at all**, and their chips do
-   not render until the text parses a token, so neither is discoverable by a
-   new user. Decided 22 Aug to fix this with always-visible chip buttons that
-   write tokens back into the text — §4 and §9.
+   as inline chips as you type. State: **done, both paths, verified on screen
+   22 Aug.** All four chips are always-visible buttons with placeholders, and
+   the keyboard path through each popover has been walked. The history below
+   is kept because it explains why the manual path looks the way it does.
+   Previously: date and time had a picker but **category and energy had no
+   manual control at all**, and their chips did not render until the text
+   parsed a token, so neither was discoverable. Fixed 22 Aug with
+   always-visible chip buttons that write tokens back into the text — §4, §9.
 4. **Complete with a timestamp**, not just a checkbox, so history and the email
    digest can show "completed at 9:15 AM". State: done.
 5. **Daily history.** Each day's list preserved with date and details, viewable
@@ -1137,9 +1138,43 @@ click that opened the panel) was about to be pasted twice more. It is now one
 component owning dismissal and focus; positioning stays with the caller, so two
 popovers can sit under two different chips without fighting.
 
----
+### The signed-in accessibility sweep, 22 Aug
 
-## 10. Explicitly out of scope
+**Today splits into open work and a `Done today` section.** It was built to fix
+a real bug: `scene="clear"` — "All clear for today." — was **unreachable**.
+The empty state only rendered when the list was empty *and* something had been
+completed, but completed rows stayed in that same list, so an empty list could
+only ever mean an empty day and `blank` took its place. The one other way to
+empty the list is a filter, which `filtered` claimed first. Splitting the list
+is what makes the finished-day state expressible at all, and finishing the day
+is the moment the app should feel best. Noel chose this over deleting the dead
+branch.
+
+**The `Done today` section is expanded by default, and that is load-bearing.**
+Completing a row now unmounts it from the open list and mounts it in the done
+list; the fourth beat of the choreography is the browser FLIPping it between
+the two. Collapsed by default, the row would vanish instead of travel, which is
+the "hidden rather than unmounted" failure `AGENTS.md` warns about.
+
+**`filtered` now requires that the filter hid *everything*.** With the list
+split, a filter can leave nothing open but still match something done. The
+condition is `filtered() && doneTasks().length === 0`, so a day whose only
+matching task is finished reads as finished rather than as "nothing matches".
+
+**The composer traps Tab.** It is modal — scrim, Escape, explicit Cancel — but
+22 elements behind it stayed tabbable, walking a keyboard user out into a list
+dimmed to 20% with nothing to tell them they had left. An open popover renders
+inside the panel, so its options join the cycle with no extra bookkeeping.
+Verified by dispatching Tab at both ends: it wraps, and it leaves middle tabs
+to the browser.
+
+**A contrast failure can come from an ancestor, not a token.** The push button
+in `task-row.ts` was `text-ink-400 opacity-60` — a compliant token faded to
+2.38:1. Every colour *pair* the app uses passed when checked in isolation on
+21 Aug, which is exactly why this survived: the defect was in the composite,
+not the palette. It is the same `opacity` trap that Phase 6 found on completed
+rows, in a second place. De-emphasis is now `ink-400` → `ink-600` on hover,
+by colour alone. **Audit the rendered stack, not the token list.**
 
 **Kanban / board view with configurable statuses.** Considered and rejected. It
 pulls the app toward being a project tracker when the premise is a daily log,
@@ -1190,12 +1225,22 @@ Not core. Revisit once the main app is solid.
   the console and silently `return`s. Related, and unexplained: `rollover
   failed` plus `InvalidStateError: Transition was aborted` were seen once on a
   genuinely cold first load on 21 Aug and never reproduced across four reloads.
+  **Lead, 22 Aug:** `InvalidStateError: Transition was aborted because of
+  invalid state` fires on **every** dev-server hot reload, not once — so it is
+  reproducible after all, and it is `withViewTransition()` losing its
+  transition when the document is replaced mid-flight. That makes it a likely
+  cause of the 21 Aug sighting rather than a coincidence beside it. It has not
+  been seen in a production build.
 - **A row's carried badge is dropped the instant it completes**, while the
   category chip survives. The count disappears at the exact moment it carries
   the most meaning. Deliberate or not, it is unreviewed. Noel's call.
-- **Toasts and the composer centre on the viewport, not the content column.**
-  Both use `fixed inset-x-0`, which spans under the 240px sidebar, putting them
-  ~112px left of the column they belong to on desktop. Invisible on mobile.
+- ~~Toasts and the composer centre on the viewport, not the content column.~~
+  **Closed 22 Aug.** The offset was **120px**, not the ~112px estimated here —
+  exactly half the 240px sidebar. Measured, not eyeballed: content column
+  centre 871.1, composer centre 751.1. Both now carry `lg:left-60`, which the
+  compiled CSS puts inside `@media(width>=64rem)` alongside `.lg\:hidden` and
+  `.lg\:translate-x-0` — the same rules that hide the sidebar, so the inset and
+  the sidebar can never disagree. Re-measured after: offset 0.
 - **The digest sends from a shared Resend address.** `DIGEST_FROM` is
   `onboarding@resend.dev`, which Resend only delivers to the account owner. It
   works for Noel and for nobody else. A verified domain is the fix, and it is
@@ -1255,17 +1300,20 @@ Not core. Revisit once the main app is solid.
 - **The initial bundle budget was raised from 500 kB to 560 kB** to take the
   router features and five new pages. Actual initial total is 527 kB after
   Phase 6. Every page lazy-loads; the growth is in the shared vendor chunk.
-- **The accessibility pass was verified on `/welcome` and `/login` only.** Both
-  come back with zero contrast failures, measured by compositing every text
-  node against its real background stack in a canvas. The signed-in pages were
-  not swept the same way, because the browser profile driving the audit has no
-  Supabase session. Their colours all come from the same tokens and every
-  foreground/background pair the app uses was checked in isolation and passes,
-  but **no signed-in page has been run through the audit in situ** — the skip
-  link and the four empty states have never been seen on a real page. As of
-  22 Aug the composer adds three popovers to this: `Popover` takes focus on
-  open and Escape closes it, but choosing a value hands the caret to the
-  textarea by design, and no keyboard user has walked that path yet.
+- ~~The accessibility pass was verified on `/welcome` and `/login` only.~~
+  **Closed 22 Aug. Every signed-in page has now been swept in situ**, driving
+  the user's own Chrome so the audit had a real Supabase session — which is
+  what had blocked it since 21 Aug. `/today`, `/upcoming`, `/calendar`,
+  `/calendar/:date`, `/reporting`, `/settings` and `/today/:id` all return
+  **zero contrast failures** by the same canvas-compositing method. Found and
+  fixed one real failure the isolated check could not see, because it came from
+  an ancestor and not from a token: see §9. **The skip link has been seen**, and
+  it lands focus on `MAIN#content`. Three of the four empty states have been
+  seen rendered — `filtered`, `quiet` and `clear`; `blank` is reachable but was
+  not forced. **The popover keyboard paths are sound**: `closeCategory` /
+  `closeEnergy` / `closePicker` each restore focus to their own chip, so
+  Escape does not strand anyone, and choosing a value hands the caret to the
+  textarea by design. That answers the question left open on 22 Aug.
 - **The task rows in the live project are test data**, confirmed by Noel on
   22 Aug — `call the doctor`, `call the agent`, `call physio`, `buy tomato` and
   the completed rows are all fixtures, not his real to-dos. Clicking through the

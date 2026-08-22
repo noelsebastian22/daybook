@@ -62,26 +62,39 @@ export const TaskStore = signalStore(
         .sort(sortForDay),
     );
 
+    /**
+     * Energy and category filter together, as an AND. They answer different
+     * questions — "how much focus have I got" and "which part of my life" —
+     * so making them exclusive would force a pointless choice between them.
+     */
+    const visibleTasks = computed(() => {
+      const energy = store.filter();
+      const category = store.categoryFilter();
+      return todaysTasks().filter(
+        (t) =>
+          (energy === 'all' || t.energy === energy) &&
+          (category === null || t.category_id === category),
+      );
+    });
+
     return {
       todaysTasks,
-
-      /**
-       * Energy and category filter together, as an AND. They answer different
-       * questions — "how much focus have I got" and "which part of my life" —
-       * so making them exclusive would force a pointless choice between them.
-       */
-      visibleTasks: computed(() => {
-        const energy = store.filter();
-        const category = store.categoryFilter();
-        return todaysTasks().filter(
-          (t) =>
-            (energy === 'all' || t.energy === energy) &&
-            (category === null || t.category_id === category),
-        );
-      }),
+      visibleTasks,
 
       /** True when anything is hidden, so the empty state can say why. */
       filtered: computed(() => store.filter() !== 'all' || store.categoryFilter() !== null),
+
+      /**
+       * The two halves of `visibleTasks`, because they answer different
+       * questions: what is left, and what today already amounted to.
+       *
+       * Splitting them is what makes the `clear` empty state reachable at all.
+       * While completed rows stayed in the one list, an empty list could only
+       * ever mean an empty day, so "All clear for today." could not render and
+       * "Write the first thing down." took its place on a finished day.
+       */
+      openTasks: computed(() => visibleTasks().filter((t) => !t.completed_at)),
+      doneTasks: computed(() => visibleTasks().filter((t) => t.completed_at)),
 
       /** Only categories with something on today; an empty chip filters to nothing. */
       todaysCategories: computed(() => {

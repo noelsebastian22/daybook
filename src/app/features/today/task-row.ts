@@ -144,7 +144,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         @if (!done()) {
           <button
             type="button"
-            class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 opacity-60 transition hover:bg-ink-50 hover:text-ink-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
+            class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 transition hover:bg-ink-50 hover:text-ink-600 group-hover:text-ink-600"
             [attr.aria-label]="'Move to ' + pushTargetDate()"
             (click)="pushed.emit()"
           >

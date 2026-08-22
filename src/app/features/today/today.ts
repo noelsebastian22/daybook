@@ -94,9 +94,9 @@ import type { Task } from '../../core/models';
         </div>
       }
 
-      <!-- list -->
+      <!-- what is left -->
       <div class="mt-4 space-y-2">
-        @for (task of tasks.visibleTasks(); track task.id) {
+        @for (task of tasks.openTasks(); track task.id) {
           <app-task-row
             [task]="task"
             [categories]="tasks.categoryById()"
@@ -109,8 +109,12 @@ import type { Task } from '../../core/models';
             a filter is hiding work, a finished day is an achievement, and a
             fresh day is an invitation. Each gets its own drawing and its own
             sentence.
+
+            "filtered" only wins when the filter hid *everything*. With work
+            left but all of it done, something did match, so the finished day
+            is the truer message.
           -->
-          @if (tasks.filtered()) {
+          @if (tasks.filtered() && tasks.doneTasks().length === 0) {
             <app-empty-state scene="filtered" title="Nothing matches that filter today.">
               <button
                 type="button"
@@ -120,13 +124,51 @@ import type { Task } from '../../core/models';
                 Clear filters
               </button>
             </app-empty-state>
-          } @else if (tasks.completedCount() > 0) {
+          } @else if (tasks.doneTasks().length > 0) {
             <app-empty-state scene="clear" title="All clear for today." />
           } @else {
             <app-empty-state scene="blank" title="Write the first thing down." />
           }
         }
       </div>
+
+      <!--
+        Done today. Expanded by default, and deliberately so: completing a row
+        unmounts it from the list above and mounts it here, and the fourth beat
+        of the choreography is the browser FLIPping it between the two. A
+        collapsed section would make the row vanish instead of travel.
+      -->
+      @if (tasks.doneTasks().length > 0) {
+        <div class="mt-8">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-100"
+            [attr.aria-expanded]="doneOpen()"
+            (click)="doneOpen.set(!doneOpen())"
+          >
+            <span class="transition-transform" [class.rotate-90]="doneOpen()" aria-hidden="true"
+              >&rsaquo;</span
+            >
+            Done today
+            <span class="rounded-full bg-done-100 px-2 py-0.5 text-xs text-done-700">
+              {{ tasks.doneTasks().length }}
+            </span>
+          </button>
+
+          @if (doneOpen()) {
+            <div class="mt-2 space-y-2">
+              @for (task of tasks.doneTasks(); track task.id) {
+                <app-task-row
+                  [task]="task"
+                  [categories]="tasks.categoryById()"
+                  (toggled)="complete(task)"
+                  (pushed)="pushOneDay(task)"
+                />
+              }
+            </div>
+          }
+        </div>
+      }
 
       <!-- upcoming strip, collapsed by default -->
       @if (tasks.upcomingCount() > 0) {
@@ -184,6 +226,9 @@ export class Today implements OnInit {
   private readonly appRef = inject(ApplicationRef);
 
   protected readonly composerOpen = signal(false);
+
+  /** Open by default so a completing row is seen travelling into it. */
+  protected readonly doneOpen = signal(true);
 
   protected readonly heading =
     friendlyDate(today()) +
