@@ -1304,9 +1304,14 @@ Not core. Revisit once the main app is solid.
   transition when the document is replaced mid-flight. That makes it a likely
   cause of the 21 Aug sighting rather than a coincidence beside it. It has not
   been seen in a production build.
-- **A row's carried badge is dropped the instant it completes**, while the
-  category chip survives. The count disappears at the exact moment it carries
-  the most meaning. Deliberate or not, it is unreviewed. Noel's call.
+- ~~A row's carried badge is dropped the instant it completes.~~ **Closed
+  22 Aug, Noel's call: the count survives.** Finishing something carried four
+  times is the win, and the badge is the only thing on the row that says so —
+  it matters more now that completed rows sit in their own Done today section.
+  **It goes neutral once done**, though: the badge escalates to `late-100/700`
+  at three or more carries, and red is reserved for overdue or badly avoided.
+  A finished task is neither, and keeping the escalation would read as a
+  reprimand for work that had just been done.
 - ~~Toasts and the composer centre on the viewport, not the content column.~~
   **Closed 22 Aug.** The offset was **120px**, not the ~112px estimated here —
   exactly half the 240px sidebar. Measured, not eyeballed: content column
@@ -1317,7 +1322,9 @@ Not core. Revisit once the main app is solid.
 - **The digest sends from a shared Resend address.** `DIGEST_FROM` is
   `onboarding@resend.dev`, which Resend only delivers to the account owner. It
   works for Noel and for nobody else. A verified domain is the fix, and it is
-  not urgent while Daybook has one user.
+  not urgent while Daybook has one user. **Deliberately left, 22 Aug** — but
+  note it is a **hard blocker for multi-tenancy**, not a nicety: a second user
+  would silently never receive a digest. Raise it again there.
 - ~~The digest's "Yesterday you finished" section has never rendered.~~
   **Closed 22 Aug.** The 07:00 digest arrived with subject `Daybook — 2 on
   today, 1 done yesterday` and rendered `Yesterday you finished 1 · call
@@ -1338,8 +1345,10 @@ Not core. Revisit once the main app is solid.
   `navigateLastFocusedOrOpen` payload is proven too — the one part that would
   have failed silently even after a successful send. Installed via Chrome on
   iOS, which produces a genuine standalone PWA — Safari is not required.
-- ~~A transient auth failure abandons the whole reminders batch.~~ **Fixed in
-  the source 22 Aug; not yet deployed.** Both `due_digests` and `due_reminders`
+- ~~A transient auth failure abandons the whole reminders batch.~~ **Closed
+  22 Aug, deployed as `notify` v8** with `verify_jwt` left true — `auth.ts`
+  depends on that being true for its JWT-claim branch, and deploying with it
+  off would make that half forgeable. Both `due_digests` and `due_reminders`
   now go through `readDue`, which retries twice at 200ms and 600ms before
   giving up — the bug was in **both** halves, not only reminders as recorded
   here. The per-row `try`/`catch` inside the send loop was already there, and
