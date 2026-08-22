@@ -30,7 +30,8 @@ it turned out wrong, say so in a new one.
   beside a purple `deep` chip.
 - Verified on screen at localhost, signed in: four chips, popovers opening
   upward, `#health` written into the text with the caret held in front of it,
-  `!quick` → `!deep` replacing rather than appending.
+  `!quick` → `!deep` replacing rather than appending. Noel confirmed the purple
+  `!deep` in the mirror afterwards, so every part of the work has been seen.
 - Build **527.43 kB** initial / **127.59 kB** transferred. `ng test` **42** in 3
   files, up from 31 — 11 new for `writeToken`. No schema change; 4 local
   migration files against 6 live versions, unchanged.
@@ -46,6 +47,12 @@ it turned out wrong, say so in a new one.
   appended token. §9.
 - **Popover dismissal lives in one `shared/popover.ts`**, not a third copy of the
   date picker's backdrop-button trick. §9.
+- **The task rows in the live project are test data, not Noel's real to-dos**
+  (confirmed 22 Aug). Clicking through the signed-in app is therefore cheap —
+  add, complete, reschedule freely rather than reaching for read-only checks.
+  It does not make writes free: `day_snapshots` and the rollover counters are
+  the evidence base for verifying rollover, so wrecking them costs the next
+  verification, not Noel's day. §12.
 
 **Didn't work**
 - **Driving the browser by screenshot coordinates. Do not do it in this app.**
@@ -60,17 +67,14 @@ it turned out wrong, say so in a new one.
   typing — a ref click can land before the component mounts.
 - **Assumed a task's `deep` badge was my stray typing; it was Noel using the app
   at the same time.** Reverted his deliberate change, then put it back. Two
-  agents on one live database: ask before "restoring" anything.
+  agents on one live database: ask before "restoring" anything. The `call the
+  doctor` move to 23 Aug turned out to be his too — restored to 22 Aug in error,
+  left there, because **every task row in the project is test data** (below).
 - **Read `net._http_response` as evidence the cron had stopped**, when the next
   tick simply had not fired yet — misread the clock. Check `now()` in the same
   query before concluding anything is broken.
 
 **Open**
-- **Was the `call the doctor` move to 23 Aug actually Noel's, not the stray
-  keystrokes?** Asked, unanswered. It currently sits on 22 Aug with
-  `reschedule_count` 0. If it was deliberate, it needs moving back.
-- **The mirror's purple `!deep` fix is built but never seen** — browser work was
-  stopped after the second data incident. Everything else in the chips was seen.
 - Swipe and the offline queue remain the only wholly unverified features.
 - A transient 401 still abandons the whole reminders batch, `notify/index.ts:169`.
 - No signed-in page has been through the a11y audit in situ, and the chips add

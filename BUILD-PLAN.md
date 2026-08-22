@@ -1266,6 +1266,14 @@ Not core. Revisit once the main app is solid.
   22 Aug the composer adds three popovers to this: `Popover` takes focus on
   open and Escape closes it, but choosing a value hands the caret to the
   textarea by design, and no keyboard user has walked that path yet.
+- **The task rows in the live project are test data**, confirmed by Noel on
+  22 Aug — `call the doctor`, `call the agent`, `call physio`, `buy tomato` and
+  the completed rows are all fixtures, not his real to-dos. Clicking through the
+  signed-in app is therefore cheap: add, complete and reschedule freely instead
+  of falling back to read-only checks, which is what made the 22 Aug
+  verification slower and more cautious than it needed to be. This does **not**
+  make writes free — `day_snapshots` and the rollover counters are the evidence
+  base for §7, and a wrecked snapshot costs the next rollover verification.
 - **The `ink-300` token is declared but unused.** It holds the old `ink-400`
   value for decorative tints. Nothing needs it yet; it exists so the next
   person reaching for a light grey does not reach for the text colour.
