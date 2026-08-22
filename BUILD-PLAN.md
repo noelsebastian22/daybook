@@ -323,10 +323,17 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   `core/parse-capture.ts` — see §9 for why that, and not parallel state. Both
   open details are settled there too. **Seen on screen and signed in, 22 Aug**,
   including the keyboard paths through all three popovers.
-- **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt — Noel
-  could not find the option on 22 Aug and it had to be talked through, which is
-  exactly the failure this hint prevents. An uninstalled PWA can also have its
-  cached storage evicted after roughly 7 days.
+- ~~**Custom iOS "Add to Home Screen" hint.**~~ **Built 22 Aug**,
+  `shared/install-hint.ts`, gated by `core/install.ts`. A card in the flow at
+  the top of the shell — not floating, because the composer and the toasts both
+  own the bottom of the viewport. It draws the Share glyph inline in the
+  sentence rather than naming it, since "tap Share" is the instruction that
+  already failed: the control is an unlabelled icon and recognising it is the
+  hard part. Dismissible, remembered in `localStorage`. **iOS only**: every
+  other platform either prompts on its own or does not need installing, so
+  nobody else has a banner to close. `Push` now shares the same `isStandalone`
+  check rather than keeping a second copy. 13 unit tests cover the gating,
+  including the iPad that reports itself as a Mac.
 
 ---
 
@@ -1171,6 +1178,29 @@ dimmed to 20% with nothing to tell them they had left. An open popover renders
 inside the panel, so its options join the cycle with no extra bookkeeping.
 Verified by dispatching Tab at both ends: it wraps, and it leaves middle tabs
 to the browser.
+
+### The iOS install hint, 22 Aug
+
+**The hint draws the Share glyph instead of naming it.** "Tap Share, then Add
+to Home Screen" is the instruction that had already failed once — the control
+is an icon with no label, sitting in a toolbar, and recognising it is the whole
+difficulty. The banner renders the same glyph inline in the sentence, with an
+`sr-only` "Share" beside it so the text still reads aloud correctly.
+
+**It is iOS only, not a general install banner.** Android and desktop Chrome
+fire `beforeinstallprompt` or offer an address-bar control, so a banner there
+is something to close rather than something to learn. iOS offers nothing at
+all, which is why it is the one platform that needs telling.
+
+**`isStandalone` moved into `core/install.ts` and `Push` now calls it.** The
+banner and the push toggle both hinge on "is this the installed app", and two
+copies of that check would eventually disagree — the toggle offering itself
+while the banner still nags, or the reverse. One definition, two callers.
+
+**iPadOS 13+ reports itself as a Mac**, so the user agent alone misses every
+iPad. The test is a touch-capable `MacIntel`, since no Mac has a touchscreen.
+This is covered by a unit test because it is exactly the kind of check that
+silently stops working and nobody notices until an iPad user never sees it.
 
 ### Swipe on a real thumb, 22 Aug
 

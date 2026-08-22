@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SessionStore } from '../core/session.store';
 import { OfflineQueue } from '../core/offline-queue';
+import { InstallHint } from './install-hint';
 
 interface NavItem {
   path: string;
@@ -26,7 +27,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, InstallHint],
   host: {
     '(document:keydown.escape)': 'menuOpen.set(false)',
   },
@@ -183,6 +184,15 @@ interface NavItem {
       next Tab goes straight back into the drawer.
     -->
     <main id="content" tabindex="-1" class="outline-none lg:pl-60">
+      <!--
+        In the flow above the outlet, not floating: the composer and the toasts
+        both own the bottom of the viewport, and a banner that overlapped
+        either would be worse than no banner. Renders itself only on an iOS
+        browser that is not already the installed app.
+      -->
+      <div class="px-4">
+        <app-install-hint />
+      </div>
       <router-outlet />
     </main>
   `,

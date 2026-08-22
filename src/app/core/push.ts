@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
 import { environment } from '../../environments/environment';
+import { Install } from './install';
 
 /** Why the push toggle cannot be offered, in words a person can act on. */
 export type PushBlocker =
@@ -25,18 +26,15 @@ export type PushBlocker =
 @Injectable({ providedIn: 'root' })
 export class Push {
   private readonly swPush = inject(SwPush);
-
-  private get isStandalone(): boolean {
-    const iosStandalone = (globalThis.navigator as { standalone?: boolean }).standalone;
-    return (
-      globalThis.matchMedia?.('(display-mode: standalone)').matches || iosStandalone === true
-    );
-  }
+  // One definition of "installed", shared with the hint that tells people how
+  // to get there. Two copies of this check would drift, and the toggle and the
+  // banner disagreeing about it is the worst way to find that out.
+  private readonly install = inject(Install);
 
   blocker(): PushBlocker {
     if (!environment.vapidPublicKey) return 'unconfigured';
     if (!this.swPush.isEnabled) return 'no-service-worker';
-    if (!this.isStandalone) return 'not-installed';
+    if (!this.install.isStandalone) return 'not-installed';
     if (globalThis.Notification?.permission === 'denied') return 'denied';
     return null;
   }
