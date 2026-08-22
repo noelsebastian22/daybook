@@ -312,16 +312,14 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   `vercel.json` carries the build command, `dist/daybook/browser`, the SPA
   rewrite and the service-worker cache headers (§9). Every check was made
   against the running site; see §12.
-- **Manual controls in capture — the next piece of work.** Category and energy
-  can only be set by typing `#tag` and `!energy`, and their chips are invisible
-  until the text parses one, so neither feature is discoverable. Make all four
-  chips always-visible buttons with placeholders (`Today` · `Add time` ·
-  `#Category` · `Energy`); add a category popover fed by the user's categories
-  and a quick/deep selector. Each control **writes its token into the
-  textarea** — see §9 for why that, and not parallel state. The date chip at
-  `capture.ts:96` is the pattern to extend. Two open details: whether picking a
-  category replaces an existing `#tag` or appends a second, and whether tokens
-  insert at the cursor or append at the end.
+- ~~**Manual controls in capture.**~~ **Built 22 Aug.** All four chips are
+  always-visible buttons with placeholders (`Today` · `Add time` · `#Category` ·
+  `Energy`), a category popover fed by `TaskStore.categories` and a quick/deep
+  selector. Each writes its token into the textarea through `writeToken` in
+  `core/parse-capture.ts` — see §9 for why that, and not parallel state. Both
+  open details are settled there too. **Not yet seen on screen**: it needs a
+  signed-in session, so it stands where Phase 2 stood — built and unit-tested,
+  unverified by a human.
 - **Custom iOS "Add to Home Screen" hint.** iOS gives no install prompt — Noel
   could not find the option on 22 Aug and it had to be talked through, which is
   exactly the failure this hint prevents. An uninstalled PWA can also have its
@@ -1067,6 +1065,23 @@ cron job's command text was confirmed to carry an `sb_secret_` key and no
 legacy JWT — the one place a hand-pasted legacy key could have hidden and
 broken the digest silently on revocation.
 
+**Actually disabled 22 Aug at 23:50:46Z**, and verified after the fact rather
+than assumed. The key in git history now returns `401 Legacy API keys are
+disabled`; the publishable key still returns `200` on the Data API and
+`/auth/v1/settings` still advertises Google, so the sign-in path is intact. Two
+things worth keeping:
+
+- **Disabling propagates to the edge in under 90 seconds, not instantly.** The
+  control plane reported `disabled: true` while the data plane still served the
+  legacy key `200`. If a revocation looks like it did not work, re-check before
+  touching anything.
+- **`notify`'s `SUPABASE_SERVICE_ROLE_KEY` was already a modern key**, provable
+  without reading it: an `sb_secret_…` token is opaque, so `hasServiceRoleClaim`
+  cannot pass it and only the exact match at `auth.ts:57` can — and the guard
+  was passing. The post-revocation tick was then confirmed directly by running
+  the cron's own command through a `do` block (which executes it without
+  printing the key): `200`, both branches clean.
+
 **Capture gets manual controls, and they rewrite the text rather than holding
 their own state.** Decided 22 Aug. Typing is a fast path for people who already
 know the syntax; it cannot be the *only* path. But the fix is not a parallel
@@ -1091,6 +1106,36 @@ push mints a new preview URL, and Supabase silently rejects a `redirectTo` that
 is not on the list — the symptom is a bounce back to login with no error. For a
 single-user app the wildcard costs nothing and removes a confusing failure mode
 while the device testing is in progress.
+
+### The capture chip controls, 22 Aug
+
+**A chip control replaces every token of its kind, not just the first.**
+`parseCapture` honours only the first `#tag` and the first `!energy`
+(`categorySlug ??= slug`). Replacing just the first would leave a second one in
+the box, highlighted like a chip by the mirror div, meaning nothing — the UI
+would be lying. So `writeToken` collapses all tokens of the kind into the one it
+writes. This was one of the two details left open on 22 Aug; it is a correctness
+constraint, not a preference.
+
+**Tokens append after the task text, never at the cursor.** `toCaptureText`
+already emits `text #tag !energy` in that order, so appending is what an edit
+box round-trips to. A token dropped at the cursor would land mid-sentence and
+the same task would look different after a save-and-reopen. The second open
+detail, settled the same way: by what the existing code already guarantees.
+
+**The caret is preserved across a chip write, not pushed to the end.** It falls
+out of appending: the user keeps typing in front of the trailing token instead
+of inside it. `writeToken` returns the caret alongside the text, and `setToken`
+sets the DOM value itself rather than waiting for the `[value]` binding —
+change detection lands a frame later and the browser drops the caret to the end
+in between, which is visible as a jump.
+
+**A `Popover` shell in `shared/`, not a third copy of the dismiss logic.** The
+date picker's backdrop-button trick (a real `<button>` covering the viewport
+rather than a document click listener, which would otherwise fire on the very
+click that opened the panel) was about to be pasted twice more. It is now one
+component owning dismissal and focus; positioning stays with the caller, so two
+popovers can sit under two different chips without fighting.
 
 ---
 
@@ -1217,7 +1262,10 @@ Not core. Revisit once the main app is solid.
   Supabase session. Their colours all come from the same tokens and every
   foreground/background pair the app uses was checked in isolation and passes,
   but **no signed-in page has been run through the audit in situ** — the skip
-  link and the four empty states have never been seen on a real page.
+  link and the four empty states have never been seen on a real page. As of
+  22 Aug the composer adds three popovers to this: `Popover` takes focus on
+  open and Escape closes it, but choosing a value hands the caret to the
+  textarea by design, and no keyboard user has walked that path yet.
 - **The `ink-300` token is declared but unused.** It holds the old `ink-400`
   value for decorative tints. Nothing needs it yet; it exists so the next
   person reaching for a light grey does not reach for the text colour.
@@ -1244,6 +1292,20 @@ Not core. Revisit once the main app is solid.
 - **`cron.schedule` upserts on the job name.** Re-running
   `schedule-notify.sql` replaces the existing job rather than adding a second,
   so a botched run is fixed by running it again. No `unschedule` needed.
+- **The cron sends its `sb_secret_` key on `Authorization: Bearer`, against
+  Supabase's own advice, and it works. Do not "fix" it.** The migration guide
+  says secret keys are not JWTs and must go on the `apikey` header instead,
+  because the platform tries to parse a `Bearer` value as a JWT. That applies
+  when `verify_jwt` is on; `notify` has it off and authorises in code at
+  `auth.ts:57`, which matches the bearer token against
+  `SUPABASE_SERVICE_ROLE_KEY`. Moving the key to `apikey` would leave that
+  match with nothing to read and 401 every tick. Verified working after the
+  legacy keys were disabled, 22 Aug.
+- **To run the job by hand without printing its key**, execute the stored
+  command instead of selecting it:
+  `do $$ declare c text; begin select command into c from cron.job where
+  jobid = 1; execute c; end $$;` — useful for proving a change immediately
+  rather than waiting for the next five-minute tick.
 - **`cron.job.command` contains the service role key in plain text**, since it
   is baked into the job definition. Never `select *` from that table into
   somewhere the key should not be. Select the columns you need, or test with

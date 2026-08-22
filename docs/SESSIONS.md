@@ -11,6 +11,83 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-22 · claude-code · capture chips, legacy keys revoked
+
+**Did**
+- **Legacy JWT API keys actually disabled**, 23:50:46Z — the open thread from the
+  last entry. Verified after, not assumed: the key in git history now returns
+  `401 Legacy API keys are disabled`, the publishable key still serves the Data
+  API and `/auth/v1/settings`, and a manually fired cron tick returned `200` with
+  both branches clean. GitHub alert can be closed as revoked.
+- **Built the capture chip controls.** All four chips are always-visible buttons
+  with placeholders; category popover fed by `TaskStore.categories`, quick/deep
+  selector. New `writeToken` in `core/parse-capture.ts` does the text edit;
+  `Capture.setToken` applies it and restores the caret. New shared `Popover`.
+- **Fixed two pre-existing bugs found while testing**, neither caused by the
+  chips: the date picker opened *below* a composer pinned to the bottom of the
+  viewport, so the whole panel was off-screen and had never been clicked there;
+  and the mirror div painted every `!energy` token amber, so `!deep` rendered
+  beside a purple `deep` chip.
+- Verified on screen at localhost, signed in: four chips, popovers opening
+  upward, `#health` written into the text with the caret held in front of it,
+  `!quick` → `!deep` replacing rather than appending.
+- Build **527.43 kB** initial / **127.59 kB** transferred. `ng test` **42** in 3
+  files, up from 31 — 11 new for `writeToken`. No schema change; 4 local
+  migration files against 6 live versions, unchanged.
+
+**Decided**
+- **A chip replaces every token of its kind, not just the first.** `parseCapture`
+  honours only the first `#tag`/`!energy`, so a leftover second one would render
+  as a chip in the mirror and mean nothing. Settles open detail one — it was a
+  correctness constraint, not a preference. §9.
+- **Tokens append after the task text, never at the cursor.** `toCaptureText`
+  already emits that order, so it is what an edit round-trips to. Settles open
+  detail two. The caret is preserved, so typing continues in front of the
+  appended token. §9.
+- **Popover dismissal lives in one `shared/popover.ts`**, not a third copy of the
+  date picker's backdrop-button trick. §9.
+
+**Didn't work**
+- **Driving the browser by screenshot coordinates. Do not do it in this app.**
+  The screenshot is 1568×745 while the viewport is 1502×714, so every raw
+  coordinate lands ~4% off. Each such click hit the composer's full-viewport
+  scrim and closed it — which read as an app bug and was chased as one twice.
+  **Click by `ref` from `find`/`read_page`, never by coordinate.**
+- **Typing without first confirming the composer is open and focused mutated
+  real data, twice.** Keystrokes fell through to the page and hit row controls:
+  `call the doctor` was moved to 23 Aug (`reschedule_count` 1). Restored to
+  22 Aug / 0 with Noel's approval. Screenshot *after* opening and *before*
+  typing — a ref click can land before the component mounts.
+- **Assumed a task's `deep` badge was my stray typing; it was Noel using the app
+  at the same time.** Reverted his deliberate change, then put it back. Two
+  agents on one live database: ask before "restoring" anything.
+- **Read `net._http_response` as evidence the cron had stopped**, when the next
+  tick simply had not fired yet — misread the clock. Check `now()` in the same
+  query before concluding anything is broken.
+
+**Open**
+- **Was the `call the doctor` move to 23 Aug actually Noel's, not the stray
+  keystrokes?** Asked, unanswered. It currently sits on 22 Aug with
+  `reschedule_count` 0. If it was deliberate, it needs moving back.
+- **The mirror's purple `!deep` fix is built but never seen** — browser work was
+  stopped after the second data incident. Everything else in the chips was seen.
+- Swipe and the offline queue remain the only wholly unverified features.
+- A transient 401 still abandons the whole reminders batch, `notify/index.ts:169`.
+- No signed-in page has been through the a11y audit in situ, and the chips add
+  three new popovers to that debt.
+- `DIGEST_FROM` is still `onboarding@resend.dev`.
+
+**Next**
+Get the a11y audit done in situ on Today with the composer open — it is the one
+page that now has three popovers, and `Popover` focuses its first button on open
+but nothing returns focus to the chip when a value is chosen rather than
+dismissed (`chooseCategory`/`chooseEnergy` hand the caret to the textarea by
+design; confirm a keyboard user is not stranded). Use localhost, click by `ref`
+only, and screenshot before typing.
+
+**Touched** — `src/app/core/parse-capture.ts`, `src/app/core/parse-capture.spec.ts`,
+`src/app/features/today/capture.ts`, `src/app/shared/popover.ts`, `BUILD-PLAN.md`
+
 ## 2026-08-22 · claude-code · deployed, push proven
 
 **Did**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCapture, toCaptureText } from './parse-capture';
+import { parseCapture, toCaptureText, writeToken } from './parse-capture';
 import { today } from './dates';
 
 // Fixed reference so "thursday" is deterministic.
@@ -89,5 +89,92 @@ describe('toCaptureText', () => {
     expect(toCaptureText('call physio thursday', null, null)).toBe('call physio thursday');
     // "thursday" is only there because it is part of the stored text; the
     // seeded picker is what actually carries the day.
+  });
+});
+
+describe('writeToken', () => {
+  /** Writes into `input` the way the chip controls do, tokens and all. */
+  const write = (
+    input: string,
+    kind: 'date' | 'category' | 'energy',
+    raw: string | null,
+    caret = input.length,
+  ) => writeToken(input, parseCapture(input, REF).tokens, kind, raw, caret);
+
+  it('appends a token when there is none, after the task text', () => {
+    expect(write('call physio', 'category', '#physio').text).toBe('call physio #physio');
+    expect(write('call physio', 'energy', '!deep').text).toBe('call physio !deep');
+  });
+
+  it('replaces an existing token of the same kind in place', () => {
+    expect(write('call physio #admin !quick', 'category', '#health').text).toBe(
+      'call physio #health !quick',
+    );
+    expect(write('call physio #admin !quick', 'energy', '!deep').text).toBe(
+      'call physio #admin !deep',
+    );
+  });
+
+  it('collapses every token of the kind into the one the parser honours', () => {
+    // parseCapture takes the first #tag, so a second left behind would render
+    // as a chip in the mirror while meaning nothing.
+    const r = write('call #admin physio #health', 'category', '#urgent');
+    expect(r.text).toBe('call #urgent physio');
+    expect(parseCapture(r.text, REF).tokens.filter((t) => t.kind === 'category')).toHaveLength(1);
+  });
+
+  it('clears the kind on a null raw, taking the spare space with it', () => {
+    expect(write('call physio #admin !quick', 'category', null).text).toBe('call physio !quick');
+    expect(write('call physio #admin', 'category', null).text).toBe('call physio');
+    expect(write('#admin call physio', 'category', null).text).toBe('call physio');
+  });
+
+  it('is a no-op when clearing a kind that is not there', () => {
+    expect(write('call physio', 'category', null).text).toBe('call physio');
+  });
+
+  it('round-trips: writing what is already there changes nothing', () => {
+    expect(write('call physio #admin', 'category', '#admin').text).toBe('call physio #admin');
+  });
+
+  it('keeps the caret in the task text when a token is appended', () => {
+    // Caret after "call", mid-sentence. Appending must not drag it to the end,
+    // or the next keystroke lands inside the token.
+    const r = write('call physio', 'category', '#physio', 4);
+    expect(r.text).toBe('call physio #physio');
+    expect(r.caret).toBe(4);
+  });
+
+  it('shifts the caret by the length a replacement changed', () => {
+    // Caret at the very end, token replaced earlier in the string.
+    const input = 'call #a physio';
+    const r = write(input, 'category', '#health', input.length);
+    expect(r.text).toBe('call #health physio');
+    expect(r.caret).toBe(input.length + '#health'.length - '#a'.length);
+  });
+
+  it('pulls the caret back when the token under it is removed', () => {
+    const input = 'call physio #admin';
+    const r = write(input, 'category', null, input.length);
+    expect(r.text).toBe('call physio');
+    expect(r.caret).toBe('call physio'.length);
+  });
+
+  it('never returns a caret outside the text', () => {
+    for (const raw of ['#health', null]) {
+      for (const caret of [0, 3, 99]) {
+        const r = write('call physio #admin', 'category', raw, caret);
+        expect(r.caret).toBeGreaterThanOrEqual(0);
+        expect(r.caret).toBeLessThanOrEqual(r.text.length);
+      }
+    }
+  });
+
+  it('leaves a parse that survives being written back out', () => {
+    const r = write('call physio thursday 2pm', 'energy', '!quick');
+    const parsed = parseCapture(r.text, REF);
+    expect(parsed.text).toBe('call physio');
+    expect(parsed.energy).toBe('quick');
+    expect(parsed.scheduled_date).toBe('2026-08-20');
   });
 });

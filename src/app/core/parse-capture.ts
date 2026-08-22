@@ -45,6 +45,70 @@ export function toCaptureText(
     .join(' ');
 }
 
+export interface CaptureEdit {
+  text: string;
+  /** Where the caret should sit once the new text is in the box. */
+  caret: number;
+}
+
+/**
+ * Writes a token into the capture text on behalf of a manual chip control.
+ *
+ * The chips are a pure render of `parseCapture`, so a control cannot hold its
+ * own value — it edits the text and lets the parse come back round. That keeps
+ * one source of truth and it shows the user the token they could have typed.
+ *
+ * Every existing token of the kind is replaced by the single new one. Not just
+ * the first: `parseCapture` honours only the first `#tag` and `!energy`, so a
+ * leftover second one would sit in the box highlighted like a chip while
+ * meaning nothing. `raw` of null clears the kind entirely.
+ *
+ * With nothing to replace, the token is appended after the task text — the
+ * order `toCaptureText` already produces, so an edit box round-trips unchanged.
+ * The caret is preserved rather than pushed to the end, so typing continues in
+ * front of the appended token instead of inside it.
+ */
+export function writeToken(
+  input: string,
+  tokens: CaptureToken[],
+  kind: TokenKind,
+  raw: string | null,
+  caret: number,
+): CaptureEdit {
+  const mine = tokens.filter((t) => t.kind === kind).sort((a, b) => a.start - b.start);
+
+  if (mine.length === 0) {
+    if (raw === null) return { text: input, caret };
+    const head = input.replace(/\s+$/, '');
+    return {
+      text: head ? `${head} ${raw}` : raw,
+      caret: Math.min(caret, head.length),
+    };
+  }
+
+  let text = input;
+  let next = caret;
+
+  // Descending, so a token's own indices are still valid by the time it is cut.
+  for (let i = mine.length - 1; i >= 0; i--) {
+    const insert = i === 0 && raw !== null ? raw : '';
+    let { start, end } = mine[i];
+
+    // A token being removed takes one adjacent space with it, or the box
+    // collects a double space every time a chip is changed.
+    if (!insert) {
+      if (start > 0 && text[start - 1] === ' ') start -= 1;
+      else if (text[end] === ' ') end += 1;
+    }
+
+    text = text.slice(0, start) + insert + text.slice(end);
+    if (next > end) next += insert.length - (end - start);
+    else if (next > start) next = start + insert.length;
+  }
+
+  return { text, caret: Math.max(0, Math.min(next, text.length)) };
+}
+
 const CATEGORY_RE = /#([\p{L}\p{N}_-]+)/gu;
 const ENERGY_RE = /!(quick|deep)\b/giu;
 
