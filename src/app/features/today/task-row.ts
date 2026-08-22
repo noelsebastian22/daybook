@@ -130,15 +130,30 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
                 {{ e }}
               </span>
             }
-            @if (task().carried_over_count > 0 && !done()) {
+            <!--
+              The count survives completion. It used to vanish the instant the
+              row was ticked, which dropped it at the moment it meant most:
+              finishing something carried four times is the win, and this is
+              the only thing on the row that says so.
+
+              It goes neutral once done, though. Red is reserved for overdue
+              or badly avoided, and a finished task is neither — keeping the
+              escalation would read as a reprimand for work that just got
+              done.
+            -->
+            @if (task().carried_over_count > 0) {
               <span
                 class="rounded-full px-2 py-0.5 font-medium"
                 [class]="
-                  task().carried_over_count >= 3
+                  task().carried_over_count >= 3 && !done()
                     ? 'bg-late-100 text-late-700'
                     : 'bg-ink-100 text-ink-600'
                 "
-                [title]="'Rolled over ' + task().carried_over_count + ' times'"
+                [title]="
+                  done()
+                    ? 'Rolled over ' + task().carried_over_count + ' times before it was done'
+                    : 'Rolled over ' + task().carried_over_count + ' times'
+                "
               >
                 carried &times;{{ task().carried_over_count }}
               </span>
