@@ -518,6 +518,11 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
   being a duration property rather than a status.
 - **The brand is `#6366f1`**, which is Tailwind's unmodified `indigo-500`.
   Noted so it is a choice next time rather than a default.
+- **The spacing, radius and type scales are now fixed** and are the substrate
+  the visual pass paints on: three radii, six type steps, six spacing steps.
+  Declared in `@theme` in `src/styles.css`, ruled in `AGENTS.md`, adapted from
+  Doist's published tokens (§9, 25 Aug). Colour was deliberately left
+  untouched — it is the half of the look Noel is bringing references for.
 
 ### 5.5 Capture syntax
 
