@@ -99,7 +99,7 @@ silently rejects anything not on the list.
 |---|---|---|
 | 1 | Auth, data model, session store, guard, create-and-save | **done** |
 | 2 | Today view, natural language capture, rollover, PWA shell | **done, verified** — this cell read "unverified by a human" until 22 Aug while the prose below it already said the loop was closed; the shell has since been installed on an iPhone too |
-| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7. **Swipe verified on an iPhone 22 Aug**, which found two defects (§9); its four constants are still unmeasured |
+| 3 | Date picker, task-as-object view transitions, floating composer, nav shell, swipe, completion choreography | **done, verified on screen** — 7 of 7. **Swipe verified on an iPhone 22 Aug**, which found two defects (§9); its four constants were judged good enough by Noel on 25 Aug |
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
@@ -156,8 +156,8 @@ What is still unverified by a person: **the offline queue, and only that.** Web
 Push was delivered to an installed iPhone on 22 Aug, and swipe was used on a
 real thumb the same day — it found two defects that no desktop pass could have
 (§9), which is the argument for the device pass rather than a footnote about
-one gesture. The swipe *distances* remain unjudged, which is a separate thing
-from the gesture being unverified.
+one gesture. The swipe *distances* were called fine by Noel on 25 Aug —
+still unmeasured against a reference, but no longer an open question.
 
 ---
 
@@ -229,14 +229,15 @@ than not, and the order was set on 18 Aug against the Todoist captures.
    the threshold, so a gesture can be backed out of. The device pass found two
    defects — a judder caused by the row's own CSS transition, and a left swipe
    that promised an action it never performed — both fixed, both in §9. **The
-   four timing constants at the top of that file are still reasoned, not
-   measured**: the gesture works, but whether the distances feel right has not
-   been called either way.
+   four timing constants at the top of that file remain reasoned rather than
+   measured, and Noel called them fine on 25 Aug** after using the gesture —
+   good enough to stop treating as open, not good enough to call tuned.
 
 **6 and 7 were unblocked rather than waited on.** The plan held both for
 Todoist **iOS** captures that were never taken. 6 turned out not to need them:
-View Transitions decide the motion, not a chosen duration. 7 does still want
-them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
+View Transitions decide the motion, not a chosen duration. 7 no longer needs
+them either: the constants were judged by use on 25 Aug rather than against a
+reference. `docs/reference/todoist/NOTES.md`.
 
 ### Phase 4, history — **built 21 Aug**
 
@@ -337,7 +338,9 @@ them — see the note on its constants. `docs/reference/todoist/NOTES.md`.
   other platform either prompts on its own or does not need installing, so
   nobody else has a banner to close. `Push` now shares the same `isStandalone`
   check rather than keeping a second copy. 13 unit tests cover the gating,
-  including the iPad that reports itself as a Mac.
+  including the iPad that reports itself as a Mac. **Seen on Noel's iPhone,
+  25 Aug** — the banner renders in a normal Safari tab, which is the only place
+  it can, since it is gated on not already being standalone.
 
 ---
 
@@ -887,7 +890,10 @@ queue against an id still valid when both replay.
 **Swipe fires on release, not on crossing the threshold.** An action that
 commits mid-drag cannot be backed out of. Its four timing constants are
 reasoned rather than measured and are gathered at the top of `shared/swipe.ts`
-so replacing them is a one-place edit when the iOS captures exist.
+so replacing them is a one-place edit if they ever need to change. Noel used
+the gesture and called them fine on 25 Aug, which is the only judgement they
+were ever going to get — the iOS captures that would have set them were never
+taken.
 
 **Web Push is implemented rather than depended on.** `web-push` assumes Node's
 crypto and will not run on Deno Deploy, so RFC 8291 and 8292 are written out on
@@ -1387,10 +1393,11 @@ Not core. Revisit once the main app is solid.
   exercised on Noel's iPhone, 22 Aug, and it works** — the first time any touch
   device has touched it. It found two defects, both since fixed; see §9. **The
   offline queue is now the last unverified feature.**
-- **Swipe thresholds are guesses.** The four constants in `shared/swipe.ts`
-  were reasoned, not measured, because the Todoist iOS captures the plan
-  called for were never taken. The gesture works; whether it *feels* right is
-  untested on a real thumb.
+- ~~**Swipe thresholds are guesses.**~~ **Closed 25 Aug.** The four constants
+  in `shared/swipe.ts` were reasoned, not measured, because the Todoist iOS
+  captures the plan called for were never taken. They stay unmeasured, but Noel
+  used the gesture and called them fine, so they are settled by judgement
+  rather than left open.
 - **The initial bundle budget was raised from 500 kB to 560 kB** to take the
   router features and five new pages. Actual initial total is 527 kB after
   Phase 6. Every page lazy-loads; the growth is in the shared vendor chunk.
@@ -1468,7 +1475,8 @@ Not core. Revisit once the main app is solid.
 
 ### iOS PWA
 
-- No automatic install prompt. Needs a custom "Add to Home Screen" hint.
+- No automatic install prompt. Needs a custom "Add to Home Screen" hint —
+  built, `shared/install-hint.ts`, and seen on a real iPhone 25 Aug.
 - No Background Sync API at all. Sync on foreground only.
 - Cached storage can be evicted after roughly 7 days of non-use unless the PWA
   is installed.
