@@ -315,6 +315,30 @@ reference. `docs/reference/todoist/NOTES.md`.
 - ~~**Accessibility pass.**~~ **Done**, and it found four real defects rather
   than nits. All four are recorded in §9.
 
+### Next up — design tokens, code quality, test coverage
+
+Agreed 25 Aug as the next major body of work, ahead of both the visual pass and
+multi-tenancy.
+
+- **Design tokens.** The app has a colour scale and nothing else. Spacing,
+  radii, type sizes, weights and shadows are all chosen per call site — the
+  core surfaces use `px-2/px-3/px-4`, `py-0.5/py-1.5/py-2`, `gap-1.5/gap-2/gap-3`
+  and three different radii with no rule behind any of them. Declare the scales
+  in `@theme`, fix the allowed steps, and make anything outside them a review
+  failure. This is the prerequisite for a visual pass, not a consequence of one:
+  a repaint on top of ad-hoc spacing repaints the ad-hoc spacing.
+- **Load a typeface.** See §12 — `--font-sans` names Inter and Inter is never
+  fetched. Part of the token work because the type scale is meaningless until
+  the face is real.
+- **Code quality.** No specific list yet. `features/today/capture.ts` at 545
+  lines and `features/welcome/welcome.ts` at 498 are the two obvious candidates
+  to look at first, being roughly double anything else in the repo.
+- **Test coverage.** 55 tests across 4 files as of 22 Aug, against ~4,300 lines
+  of components. The stores and `parse-capture` carry most of it; the
+  components carry almost none. The offline queue — still the one unverified
+  feature — is the highest-value thing to cover, since it is also the hardest
+  to exercise by hand.
+
 ### Not phased, needed before daily use
 
 - ~~**Hosting on Vercel.**~~ **Done 22 Aug**, `https://daybook-bay.vercel.app`.
@@ -479,7 +503,17 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
 - Strong hero section on the landing / marketing view.
 - Visually rich dashboard.
 - Premium-feeling login screen with Google sign-in.
-- AI-generated illustrations for the hero and empty states.
+- AI-generated illustrations for the hero and empty states. **Superseded** —
+  they are hand-drawn SVG, see §9, Phase 6.
+- **The look is adapted from references Noel collects, not designed from a
+  brief.** Settled 25 Aug after a ground-up redesign was explored and dropped;
+  see §9. Expect the change to be colour and type within the existing layout.
+- **The palette is close to full.** Green is done, red is overdue, amber is
+  `quick`, violet is `deep`, plus the brand — five semantic hues in a list app.
+  Any new colour has to displace one, and `quick`/`deep` are the candidates,
+  being a duration property rather than a status.
+- **The brand is `#6366f1`**, which is Tailwind's unmodified `indigo-500`.
+  Noted so it is a choice next time rather than a default.
 
 ### 5.5 Capture syntax
 
@@ -1278,6 +1312,45 @@ sidebar is the part worth having, and it is part of the nav shell.
 
 ---
 
+### The redesign that was dropped, 25 Aug
+
+**A ground-up redesign was explored and abandoned inside one session.** Noel
+opened with claymorphism in mind, read the case against it, dropped it, asked
+for alternatives, and dropped those too. Recorded because the next agent will
+otherwise re-run the same conversation.
+
+**Claymorphism was costed and rejected, not refused.** The objection was never
+taste. It collides with three things the app has already paid for: the contrast
+work — clay reads through low-contrast tonal steps, and `ink-400` was tuned to
+4.74:1 the hard way; density — a list app that fits five rows on a phone
+instead of eleven has regressed while looking polished; and paint cost — large
+soft shadows on rows that carry `view-transition-name` get rasterised into the
+snapshot on every completion, which is the one interaction the app is built
+around. The workable version was clay restricted to actionable objects only,
+so depth means "you can act on this" and two elements carry a shadow instead of
+twenty. Noel dropped the direction before choosing.
+
+**Three alternatives were drafted and none was taken.** The Ledger — a daybook
+is the book of original entry, so carried work becomes structure, opening the
+day under a *brought forward* rule instead of wearing a badge. The Instrument —
+no brand hue at all, so green and red are the only colour on screen. Nocturne —
+a deep blue-violet field as the identity. Contrast was verified for all three
+before proposing; Nocturne's numbers are the interesting ones, because on a
+dark field the semantic colours invert: `done-500` reaches 6.50:1 while
+`done-700` falls to 3.01:1 and `late-700` to 2.55:1, and the 700 shades are
+currently the *text* shades. **A dark theme is not a repaint of this app.**
+That holds whenever dark mode is next raised.
+
+**The look will be adapted from references rather than designed from a brief.**
+Noel's call. He will collect designs and typefaces and bring them; the change
+is expected to be colour and type inside the existing layout. Nothing about the
+directions above is committed.
+
+**Design tokens come before any visual change.** Repainting on top of ad-hoc
+spacing repaints the ad-hoc spacing. §4.
+
+---
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -1431,6 +1504,17 @@ Not core. Revisit once the main app is solid.
   still does. See `docs/reference/todoist/NOTES.md`.
 
 ---
+
+- **Inter is never loaded, and never has been.** `--font-sans` in
+  `src/styles.css` asks for `'Inter var', 'Inter'`, but there is no
+  `@font-face`, no stylesheet link in `src/index.html`, and nothing in
+  `public/`. Every screen ever looked at has rendered in `system-ui` — SF Pro
+  on Noel's Mac and iPhone, Segoe or Roboto elsewhere. The typography in the
+  theme has therefore never been on screen. Found 25 Aug. Fix belongs with the
+  design-token work in §4; self-host rather than link to a CDN, so the PWA
+  keeps working offline.
+- **Spacing and radii are ad hoc.** No scale exists for anything except colour.
+  See §4, design tokens.
 
 ## 13. Platform constraints and gotchas
 

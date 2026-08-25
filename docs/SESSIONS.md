@@ -11,6 +11,61 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-25 · claude-code · redesign explored and dropped
+
+**Did**
+- Closed two open threads from 22 Aug on Noel's word: the four swipe constants
+  in `shared/swipe.ts` are **fine by use, still unmeasured**, and the install
+  hint **was seen on his iPhone**. §12's "Swipe thresholds are guesses" struck.
+- Explored a ground-up redesign. Costed claymorphism, drafted three
+  alternatives — Ledger, Instrument, Nocturne — with contrast verified for
+  each. **None taken.** Full reasoning in §9 so it is not re-run.
+- **Found that Inter has never been loaded.** `--font-sans` names it; there is
+  no `@font-face`, no link in `src/index.html`, nothing in `public/`. The app
+  has always rendered in `system-ui`. New §12 gap.
+- Recorded the other two structural findings: no spacing/radius scale exists,
+  and the palette already spends five semantic hues.
+- No source changed, so **no build or test run this session**. Last real
+  numbers remain 22 Aug: 527.78 kB initial, 55 tests in 4 files.
+
+**Decided**
+- **The look gets adapted from references, not designed from a brief.** Noel
+  will collect designs and typefaces and bring them; expect colour and type
+  inside the existing layout. §9, §5.4.
+- **Design tokens come before any visual change.** Repainting on top of ad-hoc
+  spacing just repaints the ad-hoc spacing. §4.
+- **Next major work is design tokens, code quality and test coverage** — ahead
+  of the visual pass and ahead of multi-tenancy. §4.
+- **A dark theme is not a repaint.** On a dark field the semantic colours
+  invert: `done-700` drops to 3.01:1 and `late-700` to 2.55:1, and those are
+  the text shades. Applies whenever dark mode is next raised. §9.
+
+**Didn't work**
+- **Three attempts to close the design conversation with a choice all stalled.**
+  Options were offered before Noel had anything to look at — ASCII wireframes
+  and hex codes are not a design. He dropped each direction rather than picking
+  one. If a visual choice is put to him again, **render it**; do not describe
+  it.
+- Claymorphism was talked out of the room, possibly harder than intended. The
+  restrained version — depth only on things you can act on — was viable and
+  went unbuilt. Worth re-offering if he circles back to soft depth.
+
+**Open**
+- The **offline queue** is still the only wholly unverified feature, and now
+  also the highest-value target for the test-coverage work.
+- `InvalidStateError: Transition was aborted` on every dev-server reload,
+  unseen in a prod build.
+- No reference designs collected yet — the visual pass is blocked on Noel.
+- `DIGEST_FROM` still blocks multi-tenancy.
+
+**Next**
+Start the design-token pass: self-host a typeface to close the Inter gap, then
+declare spacing, radius and type scales in `@theme` in `src/styles.css` and
+migrate the core surfaces — `task-row.ts`, `shell.ts`, `today.ts`,
+`composer.ts` — onto the fixed steps. Colour stays exactly as it is.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-08-22 · claude-code · signed-in a11y, swipe, install hint
 
 **Did**
