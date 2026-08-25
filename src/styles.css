@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/*
+  Do not scan Markdown.
+
+  Tailwind v4 scans the whole project by default, which includes AGENTS.md and
+  BUILD-PLAN.md — both of which name utility classes in prose to say when NOT
+  to use them. That was enough to emit real rules for `rounded-lg`,
+  `rounded-xl` and `rounded-2xl` into the stylesheet on the very commit that
+  removed the last of them from the app. Documentation should not be able to
+  resurrect a class the code has retired.
+*/
+@source not "../**/*.md";
+
 /* ------------------------------------------------------------------
    Daybook palette.
    Bright and energetic without being childish. Green and red are
@@ -52,7 +64,99 @@
   --color-deep-100: #ede9fe;
   --color-deep-700: #6d28d9;
 
-  --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* ------------------------------------------------------------------
+     Typeface.
+
+     The app asked for Inter for months and never loaded it — no
+     @font-face, no link, nothing in public/ — so every screen ever
+     reviewed was actually rendering in system-ui. Rather than fetch
+     Inter and change how the whole app looks, the stack now names what
+     was really on screen the whole time, on purpose.
+
+     No webfont, deliberately (see BUILD-PLAN §9). Todoist ships the
+     same decision, and a PWA that has to be usable offline should not
+     have a face that arrives over the network.
+
+     'Segoe UI' must be named before `system-ui`. On Windows `system-ui`
+     resolves to the locale's UI font, and under CJK locales that is
+     Microsoft YaHei UI, Yu Gothic UI or Malgun Gothic — faces whose
+     Latin glyphs are wider and heavier than Segoe's and which have no
+     semibold. Naming Segoe explicitly keeps Latin text stable across
+     locales while CJK still falls through below it.
+     ------------------------------------------------------------------ */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+
+  /* ------------------------------------------------------------------
+     Type scale.
+
+     Six steps, named for the job rather than the size, so a call site
+     says what it is and not how big it is. Adapted from Doist's scale
+     (12/13/14/16/20/24/32) — their 13px `copy` and 32px display had no
+     use here, and a 15px step was added because the task line is the
+     app's primary content and sits a notch above ordinary UI text.
+
+     In rem, not px as Doist has them, so the whole scale responds to a
+     larger browser font size instead of pinning the app at 14px for
+     someone who set 20px.
+
+     This scale also retires two arbitrary values: `text-[11px]` on the
+     badges, which was below every documented floor, and `text-[15px]`
+     on the task line.
+     ------------------------------------------------------------------ */
+  --text-caption: 0.75rem; /* 12px — badges, meta, micro labels */
+  --text-caption--line-height: 1.35;
+  --text-body: 0.875rem; /* 14px — default UI text */
+  --text-body--line-height: 1.45;
+  --text-task: 0.9375rem; /* 15px — the task line itself */
+  --text-task--line-height: 1.4;
+  --text-subtitle: 1rem; /* 16px */
+  --text-subtitle--line-height: 1.4;
+  --text-header: 1.25rem; /* 20px */
+  --text-header--line-height: 1.3;
+  --text-display: 1.5rem; /* 24px — page titles */
+  --text-display--line-height: 1.2;
+
+  /* ------------------------------------------------------------------
+     Radii.
+
+     Named by what they sit on, not by t-shirt size. That idea is taken
+     wholesale from Doist's token package — `rounded-card` carries a
+     decision, `rounded-lg` carries none — but the values are Daybook's
+     own, because the point of this pass is to fix the steps, not to
+     restyle the app.
+
+     The app had five radii in play: 4, 6, 8, 12, 16 and full. Three
+     survive. 8px folds into 6px, the only value change here and about
+     two pixels on a small button; 4px had a single use and folds in
+     too. Pills keep Tailwind's `rounded-full`; a `radius-max` token
+     would just be a second name for it.
+
+     Only these three exist. Reaching for `rounded-lg` or `rounded-2xl`
+     from here on is the same mistake as reaching for `text-ink-800`.
+     ------------------------------------------------------------------ */
+  --radius-control: 6px; /* checkboxes, small buttons, chips */
+  --radius-card: 12px; /* task rows, nav items, icon buttons */
+  --radius-panel: 16px; /* composer, dialogs, large surfaces */
+
+  /* ------------------------------------------------------------------
+     Spacing — declared nowhere, on purpose.
+
+     Doist's scale is 4 / 8 / 12 / 16 / 24 / 32. Tailwind's default
+     `--spacing` base of 0.25rem already emits exactly those six steps
+     as 1 / 2 / 3 / 4 / 6 / 8, so aliasing them to `p-medium` and the
+     rest would only give every value two names.
+
+     The scale was never the problem. The fractional steps were:
+     `py-0.5`, `gap-1.5`, `py-1.5`, `px-2.5`, `px-3.5` — eighteen uses
+     across the four core surfaces, each one picked by eye.
+
+     **The rule is 1, 2, 3, 4, 6, 8 and nothing else.** The single
+     exception is `0.5` (2px) to optically centre a control or an icon
+     against a line of text, where it is alignment rather than spacing.
+     See AGENTS.md.
+     ------------------------------------------------------------------ */
 }
 
 html,

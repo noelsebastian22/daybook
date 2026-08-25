@@ -63,7 +63,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="grid h-9 w-9 place-items-center rounded-xl text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
             aria-label="Previous month"
             (click)="step(-1)"
           >
@@ -71,14 +71,14 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
           </button>
           <button
             type="button"
-            class="rounded-xl px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+            class="rounded-card px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
             (click)="month.set(startOfThisMonth)"
           >
             Today
           </button>
           <button
             type="button"
-            class="grid h-9 w-9 place-items-center rounded-xl text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
             aria-label="Next month"
             (click)="step(1)"
           >
@@ -87,7 +87,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
         </div>
       </header>
 
-      <div class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-ink-200/60">
+      <div class="rounded-panel bg-white p-3 shadow-sm ring-1 ring-ink-200/60">
         <div class="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] font-medium text-ink-400">
           @for (d of weekdayHeadings; track $index) {
             <span aria-hidden="true">{{ d }}</span>
@@ -99,7 +99,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
             @if (cell) {
               <a
                 [routerLink]="['/calendar', cell.date]"
-                class="relative grid aspect-square place-items-center rounded-lg text-sm transition hover:ring-2 hover:ring-brand-500"
+                class="relative grid aspect-square place-items-center rounded-control text-sm transition hover:ring-2 hover:ring-brand-500"
                 [style.background]="cell.past ? heat(cell) : null"
                 [class]="cellClass(cell)"
                 [attr.aria-label]="describe(cell)"

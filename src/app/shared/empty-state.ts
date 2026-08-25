@@ -42,7 +42,7 @@ export type EmptyScene =
   selector: 'app-empty-state',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="rounded-2xl border-2 border-dashed border-ink-200 px-6 py-10 text-center">
+    <div class="rounded-panel border-2 border-dashed border-ink-200 px-6 py-10 text-center">
       <svg
         viewBox="0 0 168 128"
         class="mx-auto h-28 w-auto"

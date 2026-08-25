@@ -53,7 +53,7 @@ export interface CaptureSeed {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePicker, Popover],
   template: `
-    <div class="rounded-2xl bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500">
+    <div class="rounded-panel bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500">
       <div class="relative">
         <!-- mirror -->
         <div
@@ -63,16 +63,16 @@ export interface CaptureSeed {
           @for (s of parts(); track $index) {
             @switch (s.kind) {
               @case ('date') {
-                <span class="rounded-md bg-brand-100 text-brand-700">{{ s.text }}</span>
+                <span class="rounded-control bg-brand-100 text-brand-700">{{ s.text }}</span>
               }
               @case ('category') {
-                <span class="rounded-md bg-ink-100 text-ink-600">{{ s.text }}</span>
+                <span class="rounded-control bg-ink-100 text-ink-600">{{ s.text }}</span>
               }
               @case ('energy') {
                 <!-- quick and deep have their own scales; the mirror used to
                      paint both amber, which put an amber "!deep" beside a
                      purple deep chip -->
-                <span class="rounded-md" [class]="energyTokenClass(s.text)">{{ s.text }}</span>
+                <span class="rounded-control" [class]="energyTokenClass(s.text)">{{ s.text }}</span>
               }
               @default {
                 <span>{{ s.text }}</span>
@@ -193,7 +193,7 @@ export interface CaptureSeed {
               @for (c of categories(); track c.id) {
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+                  class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
                   [class]="c.slug === parsed().categorySlug ? 'font-semibold text-brand-700' : 'text-ink-900'"
                   [attr.aria-pressed]="c.slug === parsed().categorySlug"
                   (click)="chooseCategory(c.slug)"
@@ -253,7 +253,7 @@ export interface CaptureSeed {
               @for (e of energies; track e) {
                 <button
                   type="button"
-                  class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+                  class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
                   [class]="e === parsed().energy ? 'font-semibold text-brand-700' : 'text-ink-900'"
                   [attr.aria-pressed]="e === parsed().energy"
                   (click)="chooseEnergy(e)"
@@ -270,14 +270,14 @@ export interface CaptureSeed {
           <div class="ml-auto flex items-center gap-2">
             <button
               type="button"
-              class="rounded-lg px-3 py-1.5 font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+              class="rounded-control px-3 py-1.5 font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
               (click)="cancelled.emit()"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="rounded-lg bg-brand-600 px-3 py-1.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-40"
+              class="rounded-control bg-brand-600 px-3 py-1.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-40"
               [disabled]="!value().trim()"
               (click)="commit()"
             >

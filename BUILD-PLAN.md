@@ -320,16 +320,20 @@ reference. `docs/reference/todoist/NOTES.md`.
 Agreed 25 Aug as the next major body of work, ahead of both the visual pass and
 multi-tenancy.
 
-- **Design tokens.** The app has a colour scale and nothing else. Spacing,
-  radii, type sizes, weights and shadows are all chosen per call site — the
-  core surfaces use `px-2/px-3/px-4`, `py-0.5/py-1.5/py-2`, `gap-1.5/gap-2/gap-3`
-  and three different radii with no rule behind any of them. Declare the scales
-  in `@theme`, fix the allowed steps, and make anything outside them a review
-  failure. This is the prerequisite for a visual pass, not a consequence of one:
-  a repaint on top of ad-hoc spacing repaints the ad-hoc spacing.
-- **Load a typeface.** See §12 — `--font-sans` names Inter and Inter is never
-  fetched. Part of the token work because the type scale is meaningless until
-  the face is real.
+- ~~**Design tokens.**~~ **Done 25 Aug**, adapted from Doist's published token
+  package (§9). Declared in `@theme` in `src/styles.css`, rules in `AGENTS.md`:
+  spacing restricted to 1/2/3/4/6/8 with one named 2px alignment exception;
+  three semantic radii (`control` 6, `card` 12, `panel` 16) replacing the five
+  that were in play; six role-named type steps in `rem`; three font weights.
+  **Radius is migrated app-wide** — a value-preserving rename except an 8px→6px
+  fold on small controls — so "only three radii exist" is a true statement.
+  **Type is migrated on the four core surfaces only** (`task-row`, `shell`,
+  `today`, `composer`). The rest of the app still carries `text-sm`, `text-xs`
+  and three arbitrary sizes; `text-subtitle` and `text-header` have no call
+  sites until that lands. That is the next piece of this work.
+- ~~**Load a typeface.**~~ **Closed 25 Aug, the other way.** Inter is not
+  fetched; `--font-sans` now names the system stack it was always really
+  rendering (§9, §12).
 - **Code quality.** No specific list yet. `features/today/capture.ts` at 545
   lines and `features/welcome/welcome.ts` at 498 are the two obvious candidates
   to look at first, being roughly double anything else in the repo.
@@ -1023,10 +1027,64 @@ mid-flight, and a card that clipped it would cut it in half. **That makes the
 any card padding or row height in that component and the keyframe changes with
 it.
 
-**No webfont anywhere, including the marketing page.** Inter is already the
-app's face, and a landing page that blocks on a font request is a landing page
-nobody waits for. The type personality comes from the scale — a very tight
-display size against very wide-tracked micro labels.
+**No webfont anywhere, including the marketing page.** A landing page that
+blocks on a font request is a landing page nobody waits for. The type
+personality comes from the scale — a very tight display size against very
+wide-tracked micro labels.
+
+**Corrected 25 Aug.** This paragraph used to open "Inter is already the app's
+face", which was false when it was written: Inter was named in `--font-sans`
+and never once fetched. The conclusion survives the premise being wrong — the
+decision is now a deliberate system stack rather than an accident, and the rule
+it states holds unchanged.
+
+#### Reactist was evaluated and rejected; its tokens were taken
+
+**25 Aug.** Todoist's interface is the reference Daybook keeps coming back to,
+and Doist publish their component library as `@doist/reactist`. It was costed
+and **not adopted.**
+
+It is React, and not lightly: `react` and `react-dom` as peer dependencies
+alongside `@ariakit/react`, `react-compiler-runtime` and
+`react-transition-group`, with `react-focus-lock` and `react-markdown` beneath.
+Daybook is Angular 22, standalone and **zoneless**. Using it would mean a React
+root inside Angular components with every signal bridged across the boundary —
+against `OnPush` everywhere, against no-zone.js, and putting React's reconciler
+in front of the sub-100ms bar. It would also fight `view-transition-name`, which
+needs Angular to own the DOM at the moment state changes. Not a close call.
+
+**The tokens are separable and were taken.** `src/styles/design-tokens.css` is
+a plain `:root` block with no React in it, MIT licensed, and Doist publish the
+colour and radius sets separately as `@doist/product-libraries-tokens`. What
+was actually adopted:
+
+- **Naming radii for what they sit on** rather than by t-shirt size —
+  `radius-card`, `radius-button`, `radius-list-item`. `rounded-card` carries a
+  decision; `rounded-lg` carries none. This is the single best idea in the
+  package. Daybook took the naming and kept its own values.
+- **Naming type steps for the job** — `caption`, `body`, `subtitle`, `header` —
+  so a call site says what it is instead of how big it is.
+- **A hard ceiling of three font weights.**
+- **The system font stack**, with its reasoning (below).
+
+What was deliberately **not** taken:
+
+- **The colour tokens.** All 381 of them, but the shape is the problem, not the
+  size: Todoist spends green on *today* and red on *overdue*, where Daybook
+  reserves green for *completed*. Adopting their schedule palette would break
+  the one colour rule this app has.
+- **Their spacing scale**, because Daybook already had it. Doist's
+  4/8/12/16/24/32 is exactly Tailwind's default 1/2/3/4/6/8, so aliasing it to
+  `p-medium` would only give every value a second name. The scale was never the
+  problem — the fractional steps between its rungs were.
+- **`px` units.** Doist pin their type scale in px; Daybook's is in `rem` so it
+  responds to a browser font-size change instead of ignoring one.
+- **Their `hiddenVisually`**, which was checked and is weaker than Tailwind's
+  `sr-only` — no `position`, no `overflow`, no clip fallback.
+
+One convention worth stealing later, not taken yet: Doist use `aria-disabled`
+rather than the HTML `disabled` attribute for soft-disable, which keeps the
+control focusable and lets a screen reader say why it is inert. See §12.
 
 #### What the accessibility pass actually found
 
@@ -1505,18 +1563,38 @@ Not core. Revisit once the main app is solid.
 
 ---
 
-- **Inter is never loaded, and never has been.** `--font-sans` in
-  `src/styles.css` asks for `'Inter var', 'Inter'`, but there is no
-  `@font-face`, no stylesheet link in `src/index.html`, and nothing in
-  `public/`. Every screen ever looked at has rendered in `system-ui` — SF Pro
-  on Noel's Mac and iPhone, Segoe or Roboto elsewhere. The typography in the
-  theme has therefore never been on screen. Found 25 Aug. Fix belongs with the
-  design-token work in §4; self-host rather than link to a CDN, so the PWA
-  keeps working offline.
-- **Spacing and radii are ad hoc.** No scale exists for anything except colour.
-  See §4, design tokens.
+- ~~**Inter is never loaded, and never has been.**~~ **Closed 25 Aug**, by
+  making it true rather than by fetching Inter. `--font-sans` now names the
+  system stack every screen was already rendering in, with `'Segoe UI'` ahead
+  of `system-ui` so Windows CJK locales do not swap the Latin glyphs. §9.
+- ~~**Spacing and radii are ad hoc.**~~ **Closed 25 Aug.** Scales for spacing,
+  radius, type and weight are declared in `@theme` and ruled in `AGENTS.md`.
+  Radius is migrated app-wide; **type is migrated on four surfaces only** and
+  the remainder is the named next step in §4.
+- **Disabled controls are faded with `opacity`.** Eight or so `[disabled]`
+  sites carry `disabled:opacity-30`, `-40` or `-50` — `settings.ts`,
+  `capture.ts`, `upcoming.ts`, `login.ts`, `date-picker.ts`. That is the exact
+  pattern the Colour rule in `AGENTS.md` bans for de-emphasis, and at 30% a
+  control is far under AA. Found 25 Aug while evaluating Reactist, which uses
+  `aria-disabled` over the HTML attribute so the control stays focusable and
+  can say why it is inert. Not fixed: `composer.ts`'s focus trap filters on
+  `hasAttribute('disabled')` and would need to change with it.
 
 ## 13. Platform constraints and gotchas
+
+### Tailwind scans Markdown, including this file
+
+Tailwind v4 scans the whole project for class names, and that includes
+`AGENTS.md` and `BUILD-PLAN.md`. Both name utility classes in prose in order to
+say when *not* to use them, which was enough to emit real rules for
+`rounded-lg`, `rounded-xl` and `rounded-2xl` into the stylesheet on the very
+commit that removed the last of them from the app — 0.63 kB of CSS generated
+purely by documentation, resurrecting classes the code had just retired.
+
+`src/styles.css` carries `@source not "../**/*.md";` to stop it. If a class
+that no longer exists anywhere in `src/app` turns up in the built CSS, check
+whether a Markdown file mentions it before hunting through components.
+
 
 ### pg_cron and pg_net
 

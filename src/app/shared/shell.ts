@@ -39,7 +39,7 @@ interface NavItem {
     -->
     <a
       href="#content"
-      class="skip-link rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-medium text-white"
+      class="skip-link rounded-card bg-ink-900 px-4 py-2 text-body font-medium text-white"
       (click)="focusContent($event)"
     >
       Skip to content
@@ -51,7 +51,7 @@ interface NavItem {
     >
       <button
         type="button"
-        class="grid h-10 w-10 place-items-center rounded-xl text-ink-600 transition hover:bg-ink-100"
+        class="grid h-10 w-10 place-items-center rounded-card text-ink-600 transition hover:bg-ink-100"
         aria-label="Open the menu"
         [attr.aria-expanded]="menuOpen()"
         (click)="menuOpen.set(true)"
@@ -67,7 +67,7 @@ interface NavItem {
           <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
         </svg>
       </button>
-      <span class="text-sm font-semibold tracking-tight">Daybook</span>
+      <span class="text-body font-semibold tracking-tight">Daybook</span>
     </div>
 
     <!-- scrim, mobile only -->
@@ -91,25 +91,25 @@ interface NavItem {
       [class]="menuOpen() ? 'translate-x-0' : '-translate-x-full'"
       aria-label="Main"
     >
-      <p class="px-3 pb-4 text-sm font-semibold tracking-tight">Daybook</p>
+      <p class="px-3 pb-4 text-body font-semibold tracking-tight">Daybook</p>
 
       @if (queue.pending(); as waiting) {
         <p
-          class="mx-1 mb-2 rounded-lg bg-quick-100 px-2.5 py-1.5 text-[11px] font-medium text-quick-700"
+          class="mx-1 mb-2 rounded-control bg-quick-100 px-2 py-1 text-caption font-medium text-quick-700"
           aria-live="polite"
         >
           {{ waiting }} change{{ waiting === 1 ? '' : 's' }} waiting to sync
         </p>
       }
 
-      <ul class="flex flex-1 flex-col gap-0.5">
+      <ul class="flex flex-1 flex-col gap-1">
         @for (item of items; track item.path) {
           <li>
             <a
               [routerLink]="item.path"
               routerLinkActive="bg-brand-50 text-brand-700"
               #active="routerLinkActive"
-              class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition"
+              class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
               [class]="active.isActive ? '' : 'text-ink-600 hover:bg-ink-100'"
               [attr.aria-current]="active.isActive ? 'page' : null"
             >
@@ -134,7 +134,7 @@ interface NavItem {
           routerLink="/settings"
           routerLinkActive="bg-brand-50 text-brand-700"
           #settingsActive="routerLinkActive"
-          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition"
+          class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
           [class]="settingsActive.isActive ? '' : 'text-ink-600 hover:bg-ink-100'"
         >
           <svg
@@ -156,7 +156,7 @@ interface NavItem {
         </a>
         <button
           type="button"
-          class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+          class="flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
           (click)="session.signOut()"
         >
           <svg

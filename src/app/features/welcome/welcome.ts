@@ -35,7 +35,7 @@ import { Mark } from '../../shared/mark';
         </div>
         <a
           routerLink="/login"
-          class="rounded-xl px-3.5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+          class="rounded-card px-3.5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
         >
           Sign in
         </a>
@@ -66,7 +66,7 @@ import { Mark } from '../../shared/mark';
               <div class="mt-9 flex flex-wrap items-center gap-3">
                 <a
                   routerLink="/login"
-                  class="rounded-xl bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
+                  class="rounded-card bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
                 >
                   Start today
                 </a>
@@ -140,15 +140,15 @@ import { Mark } from '../../shared/mark';
                   light up as you type, so you can see what Daybook understood before you commit.
                 </p>
               </div>
-              <div class="self-center rounded-2xl bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
+              <div class="self-center rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
                 <p class="text-sm text-ink-400">Add task</p>
                 <p class="mt-2 text-lg leading-loose">
                   call physio
-                  <span class="rounded-md bg-brand-50 px-1.5 py-1 text-brand-700"
+                  <span class="rounded-control bg-brand-50 px-1.5 py-1 text-brand-700"
                     >thursday 2pm</span
                   >
-                  <span class="rounded-md bg-ink-100 px-1.5 py-1 text-ink-600">#health</span>
-                  <span class="rounded-md bg-quick-100 px-1.5 py-1 text-quick-700">!quick</span>
+                  <span class="rounded-control bg-ink-100 px-1.5 py-1 text-ink-600">#health</span>
+                  <span class="rounded-control bg-quick-100 px-1.5 py-1 text-quick-700">!quick</span>
                 </p>
                 <p class="mt-3 text-sm text-ink-400">
                   Thursday 22 August, 2:00 PM · Health · Quick
@@ -171,7 +171,7 @@ import { Mark } from '../../shared/mark';
                 </p>
               </div>
               <div class="grid gap-3 self-center sm:grid-cols-2">
-                <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
+                <div class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
                   <p class="text-sm font-medium">Carried over most</p>
                   <p class="mt-0.5 text-xs text-ink-400">The app moved these. You did not.</p>
                   <div class="mt-4 flex items-baseline gap-3">
@@ -189,7 +189,7 @@ import { Mark } from '../../shared/mark';
                     >
                   </div>
                 </div>
-                <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
+                <div class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
                   <p class="text-sm font-medium">Pushed most</p>
                   <p class="mt-0.5 text-xs text-ink-400">These you moved by hand.</p>
                   <div class="mt-4 flex items-baseline gap-3">
@@ -218,7 +218,7 @@ import { Mark } from '../../shared/mark';
                 </p>
               </div>
               <div
-                class="self-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink-200/60"
+                class="self-center overflow-hidden rounded-panel bg-white shadow-sm ring-1 ring-ink-200/60"
               >
                 <div class="border-b border-ink-100 px-5 py-3">
                   <p class="text-sm font-medium">Daybook — 3 on today</p>
@@ -253,7 +253,7 @@ import { Mark } from '../../shared/mark';
           </p>
           <a
             routerLink="/login"
-            class="mt-8 inline-block rounded-xl bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
+            class="mt-8 inline-block rounded-card bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
           >
             Start today
           </a>

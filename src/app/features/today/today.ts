@@ -23,10 +23,10 @@ import type { Task } from '../../core/models';
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
       <header class="safe-top flex items-start justify-between gap-4 py-6">
         <div>
-          <p class="text-xs font-medium uppercase tracking-wider text-ink-400">
+          <p class="text-caption font-medium uppercase tracking-wider text-ink-400">
             {{ heading }}
           </p>
-          <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">
+          <h1 class="mt-1 text-display font-semibold tracking-tight">
             @if (tasks.openCount() === 0 && tasks.completedCount() > 0) {
               All clear
             } @else if (tasks.openCount() === 0) {
@@ -36,13 +36,13 @@ import type { Task } from '../../core/models';
             }
           </h1>
           @if (tasks.completedCount() > 0) {
-            <p class="mt-1 text-sm text-done-700">{{ tasks.completedCount() }} done today</p>
+            <p class="mt-1 text-body text-done-700">{{ tasks.completedCount() }} done today</p>
           }
         </div>
 
         <button
           type="button"
-          class="rounded-xl bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
+          class="rounded-card bg-brand-600 px-4 py-2 text-body font-medium text-white shadow-sm transition hover:bg-brand-700"
           (click)="composerOpen.set(true)"
         >
           <span aria-hidden="true">+</span> Add task
@@ -54,7 +54,7 @@ import type { Task } from '../../core/models';
         @for (f of filters; track f.value) {
           <button
             type="button"
-            class="rounded-full px-3 py-1.5 text-sm font-medium transition"
+            class="rounded-full px-3 py-2 text-body font-medium transition"
             [class]="
               tasks.filter() === f.value
                 ? 'bg-ink-900 text-white'
@@ -78,7 +78,7 @@ import type { Task } from '../../core/models';
           @for (c of tasks.todaysCategories(); track c.id) {
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition"
+              class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-body font-medium transition"
               [class]="
                 tasks.categoryFilter() === c.id
                   ? 'bg-ink-900 text-white'
@@ -118,7 +118,7 @@ import type { Task } from '../../core/models';
             <app-empty-state scene="filtered" title="Nothing matches that filter today.">
               <button
                 type="button"
-                class="rounded-lg text-sm font-medium text-brand-700 transition hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                class="rounded-control text-body font-medium text-brand-700 transition hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                 (click)="tasks.clearFilters()"
               >
                 Clear filters
@@ -142,7 +142,7 @@ import type { Task } from '../../core/models';
         <div class="mt-8">
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-100"
+            class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-ink-600 transition hover:bg-ink-100"
             [attr.aria-expanded]="doneOpen()"
             (click)="doneOpen.set(!doneOpen())"
           >
@@ -150,7 +150,7 @@ import type { Task } from '../../core/models';
               >&rsaquo;</span
             >
             Done today
-            <span class="rounded-full bg-done-100 px-2 py-0.5 text-xs text-done-700">
+            <span class="rounded-full bg-done-100 px-2 py-1 text-caption text-done-700">
               {{ tasks.doneTasks().length }}
             </span>
           </button>
@@ -175,7 +175,7 @@ import type { Task } from '../../core/models';
         <div class="mt-8">
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-100"
+            class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-ink-600 transition hover:bg-ink-100"
             [attr.aria-expanded]="tasks.upcomingOpen()"
             (click)="tasks.toggleUpcoming()"
           >
@@ -186,7 +186,7 @@ import type { Task } from '../../core/models';
               >&rsaquo;</span
             >
             Next 7 days
-            <span class="rounded-full bg-ink-200 px-2 py-0.5 text-xs">
+            <span class="rounded-full bg-ink-200 px-2 py-1 text-caption">
               {{ tasks.upcomingCount() }}
             </span>
           </button>
@@ -195,7 +195,7 @@ import type { Task } from '../../core/models';
             <div class="mt-2 space-y-4">
               @for (day of tasks.upcoming(); track day.date) {
                 <div>
-                  <p class="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-ink-400">
+                  <p class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-ink-400">
                     {{ label(day.date) }}
                   </p>
                   <div class="space-y-2">

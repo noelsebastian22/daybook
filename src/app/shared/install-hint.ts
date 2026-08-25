@@ -23,7 +23,7 @@ import { Install } from '../core/install';
   template: `
     @if (install.shouldHint()) {
       <aside
-        class="mx-auto mt-4 max-w-2xl rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/70"
+        class="mx-auto mt-4 max-w-2xl rounded-panel bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/70"
         aria-labelledby="install-hint-title"
       >
         <div class="flex items-start gap-3">
@@ -35,7 +35,7 @@ import { Install } from '../core/install';
             <p class="mt-1 text-sm text-ink-400">
               Tap
               <span
-                class="mx-0.5 inline-flex h-6 w-6 -translate-y-0.5 items-center justify-center rounded-md bg-ink-100 align-middle text-ink-600"
+                class="mx-0.5 inline-flex h-6 w-6 -translate-y-0.5 items-center justify-center rounded-control bg-ink-100 align-middle text-ink-600"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -73,7 +73,7 @@ import { Install } from '../core/install';
 
           <button
             type="button"
-            class="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
+            class="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
             aria-label="Dismiss the install hint"
             (click)="install.dismiss()"
           >

@@ -32,10 +32,10 @@ import { Mark } from '../../shared/mark';
           </p>
         </div>
 
-        <div class="rounded-2xl bg-white p-6 shadow-xl shadow-brand-700/20">
+        <div class="rounded-panel bg-white p-6 shadow-xl shadow-brand-700/20">
           <button
             type="button"
-            class="flex w-full items-center justify-center gap-3 rounded-xl border border-ink-200 px-4 py-3 font-medium transition hover:bg-ink-50 disabled:opacity-50"
+            class="flex w-full items-center justify-center gap-3 rounded-card border border-ink-200 px-4 py-3 font-medium transition hover:bg-ink-50 disabled:opacity-50"
             [disabled]="session.busy()"
             (click)="session.signInWithGoogle()"
           >
@@ -67,7 +67,7 @@ import { Mark } from '../../shared/mark';
           </div>
 
           @if (session.magicLinkSentTo(); as sentTo) {
-            <div class="rounded-xl bg-done-100 p-4 text-sm text-done-700">
+            <div class="rounded-card bg-done-100 p-4 text-sm text-done-700">
               Link sent to <strong>{{ sentTo }}</strong
               >. Open it on this device to finish signing in.
             </div>
@@ -83,12 +83,12 @@ import { Mark } from '../../shared/mark';
                 required
                 autocomplete="email"
                 placeholder="you@example.com"
-                class="w-full rounded-xl border border-ink-200 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                class="w-full rounded-card border border-ink-200 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                 [(ngModel)]="email"
               />
               <button
                 type="submit"
-                class="mt-3 w-full rounded-xl bg-ink-900 px-4 py-3 font-medium text-white transition hover:bg-ink-600 disabled:opacity-50"
+                class="mt-3 w-full rounded-card bg-ink-900 px-4 py-3 font-medium text-white transition hover:bg-ink-600 disabled:opacity-50"
                 [disabled]="session.busy() || !email()"
               >
                 {{ session.busy() ? 'Sending...' : 'Send link' }}

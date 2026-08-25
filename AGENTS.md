@@ -117,6 +117,73 @@ Everything else comes from the `ink` and `brand` scales in `src/styles.css`.
   takes the element's children down with it, including badge backgrounds, and
   no colour choice inside can recover the contrast. Change the text colour.
 
+## Spacing, radius and type
+
+Declared in `@theme` in `src/styles.css`. Adapted from Doist's published
+token package — the naming is theirs, the values are Daybook's. See
+`BUILD-PLAN.md` §9 for why the library itself was not adopted.
+
+**Spacing is 1, 2, 3, 4, 6, 8 and nothing else.** That is 4/8/12/16/24/32px,
+which is both Tailwind's default scale and Doist's, so there are no aliases to
+learn. No fractional steps — `py-0.5`, `gap-1.5`, `px-2.5` and `px-3.5` were
+eighteen eyeballed values across the core surfaces and they are gone. The rule
+governs padding, margin and gap; `h-` and `w-` are sizes, not spacing, and are
+not bound by it.
+
+The one exception is `0.5` (2px) to optically centre a control or icon against
+a line of text — alignment, not spacing. There is exactly one, on the checkbox
+in `task-row.ts`, and it is commented as such.
+
+**Three radii exist**, named for what they sit on rather than by size:
+
+| Token | Value | Used on |
+|---|---|---|
+| `rounded-control` | 6px | checkboxes, small buttons, chips |
+| `rounded-card` | 12px | task rows, nav items, icon buttons |
+| `rounded-panel` | 16px | composer, dialogs, page sections |
+
+Plus `rounded-full` for pills. `rounded-lg`, `rounded-xl` and `rounded-2xl` are
+no longer used anywhere and reaching for one is the same mistake as reaching
+for `text-ink-800`. Decorative geometry is exempt and there are two pieces of
+it: the chart bar caps in `reporting.ts` and the legend swatch in
+`calendar.ts`, which is 12px square and would read as a circle at 6px.
+
+**Six type steps**, named for the job, not the size, and set in `rem` so the
+app scales with the browser font size:
+
+| Token | Value | Used on |
+|---|---|---|
+| `text-caption` | 12px | badges, meta rows, micro labels |
+| `text-body` | 14px | default UI text |
+| `text-task` | 15px | the task line — the app's primary content |
+| `text-subtitle` | 16px | — |
+| `text-header` | 20px | — |
+| `text-display` | 24px | page titles |
+
+Each carries its own line height, so `leading-*` beside one of these is
+usually a mistake. **Only `task-row.ts`, `shell.ts`, `today.ts` and
+`composer.ts` are migrated.** The rest of the app is still on `text-sm`,
+`text-xs` and three arbitrary values (`text-[15px]`, `text-[11px]`,
+`text-[10px]`); `subtitle` and `header` have no call sites until that lands.
+Do not add a new arbitrary text size — extend the scale instead.
+
+**Three font weights**: `font-normal`, `font-medium`, `font-semibold`. Nothing
+else, and in particular not `font-bold`. Doist's middle weight is 600 where
+Daybook's `font-medium` is 500; whether to follow them is a question for the
+visual pass, not a thing to change one call site at a time.
+
+## Typeface
+
+**No webfont, anywhere, deliberately.** `--font-sans` is a system stack. The
+theme named Inter for months without ever loading it, so every screen ever
+reviewed was already rendering in `system-ui`; the stack now says so on
+purpose rather than by accident. A PWA that has to work offline should not have
+a face that arrives over the network, and Todoist ships the same decision.
+
+`'Segoe UI'` must stay ahead of `system-ui` in the stack. Under CJK locales on
+Windows, `system-ui` resolves to Microsoft YaHei UI or Yu Gothic UI, whose
+Latin glyphs are wider and heavier and which have no semibold.
+
 ## Accessibility
 
 - **One global `:focus-visible` ring**, in `@layer base` in `src/styles.css`.

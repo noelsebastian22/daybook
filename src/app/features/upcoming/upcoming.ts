@@ -50,7 +50,7 @@ const MAX_WEEK = 3;
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="grid h-9 w-9 place-items-center rounded-xl text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
             [disabled]="week() === 0"
             aria-label="Previous week"
             (click)="week.set(week() - 1)"
@@ -59,7 +59,7 @@ const MAX_WEEK = 3;
           </button>
           <button
             type="button"
-            class="grid h-9 w-9 place-items-center rounded-xl text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
             [disabled]="week() >= maxWeek"
             aria-label="Next week"
             (click)="week.set(week() + 1)"
@@ -91,7 +91,7 @@ const MAX_WEEK = 3;
 
               <button
                 type="button"
-                class="flex w-full items-center gap-2 rounded-xl border border-dashed border-ink-200 px-4 py-2.5 text-left text-sm font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
+                class="flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-sm font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
                 [attr.aria-label]="'Add a task on ' + full(day.date)"
                 (click)="addingOn.set(day.date)"
               >

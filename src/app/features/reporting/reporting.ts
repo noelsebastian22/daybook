@@ -49,7 +49,7 @@ const LIST_SIZE = 5;
 
       <!-- headline -->
       <div class="grid grid-cols-2 gap-3">
-        <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <div class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <p class="text-xs text-ink-400">Done this week</p>
           <p class="mt-1 text-3xl font-semibold tabular-nums tracking-tight text-done-700">
             {{ thisWeek() }}
@@ -63,7 +63,7 @@ const LIST_SIZE = 5;
           </p>
         </div>
 
-        <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <div class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <p class="text-xs text-ink-400">Open right now</p>
           <p class="mt-1 text-3xl font-semibold tabular-nums tracking-tight">
             {{ tasks.openCount() }}
@@ -73,7 +73,7 @@ const LIST_SIZE = 5;
       </div>
 
       <!-- completion trend -->
-      <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
         <h2 class="text-sm font-semibold tracking-tight">Tasks completed per day</h2>
 
         <div class="mt-4 flex h-32 items-end gap-[2px]">
@@ -144,7 +144,7 @@ const LIST_SIZE = 5;
       </section>
 
       <!-- what keeps moving -->
-      <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
         <h2 class="text-sm font-semibold tracking-tight">Carried over most</h2>
         <p class="mt-0.5 text-xs text-ink-400">The app moved these. You did not.</p>
 
@@ -174,7 +174,7 @@ const LIST_SIZE = 5;
         }
       </section>
 
-      <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
         <h2 class="text-sm font-semibold tracking-tight">Pushed most</h2>
         <p class="mt-0.5 text-xs text-ink-400">These you moved by hand.</p>
 

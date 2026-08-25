@@ -37,7 +37,7 @@ import {
 
     <div
       #panel
-      class="relative z-50 min-w-44 rounded-2xl bg-white p-1 shadow-lg ring-1 ring-ink-200"
+      class="relative z-50 min-w-44 rounded-panel bg-white p-1 shadow-lg ring-1 ring-ink-200"
       role="dialog"
       [attr.aria-label]="label()"
     >

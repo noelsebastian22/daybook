@@ -56,7 +56,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
 
       @if (settings.settings(); as s) {
         <!-- digest -->
-        <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <section class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <h2 class="text-sm font-semibold tracking-tight">Daily digest</h2>
           <p class="mt-0.5 text-xs text-ink-400">
             What you finished yesterday and what is on today, by email.
@@ -77,7 +77,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
               <span class="text-sm">Send at</span>
               <input
                 type="time"
-                class="rounded-lg bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                class="rounded-control bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
                 [value]="sendAt()"
                 (change)="setSendAt($event)"
               />
@@ -86,7 +86,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
         </section>
 
         <!-- timezone -->
-        <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <h2 class="text-sm font-semibold tracking-tight">Timezone</h2>
           <p class="mt-0.5 text-xs text-ink-400">
             When the server thinks your day starts. Your device says
@@ -101,7 +101,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
             is America/Los_Angeles. It renders a zone the user never chose.
           -->
           <select
-            class="mt-3 w-full rounded-lg bg-ink-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            class="mt-3 w-full rounded-control bg-ink-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
             aria-label="Timezone"
             (change)="setTimezone($event)"
           >
@@ -122,14 +122,14 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
         </section>
 
         <!-- reminders -->
-        <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <h2 class="text-sm font-semibold tracking-tight">Reminders</h2>
           <p class="mt-0.5 text-xs text-ink-400">
             A push when a task's reminder time arrives.
           </p>
 
           @if (blocker(); as reason) {
-            <p class="mt-3 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600">
+            <p class="mt-3 rounded-control bg-ink-50 px-3 py-2 text-xs text-ink-600">
               {{ blockerText(reason) }}
             </p>
           } @else {
@@ -147,7 +147,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
         </section>
 
         <!-- categories -->
-        <section class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+        <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <h2 class="text-sm font-semibold tracking-tight">Categories</h2>
           <p class="mt-0.5 text-xs text-ink-400">
             Typing a new <code class="text-[11px]">#tag</code> creates one. Deleting a
@@ -159,14 +159,14 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
               <li class="flex items-center gap-3 py-2">
                 <input
                   type="color"
-                  class="h-7 w-7 shrink-0 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+                  class="h-7 w-7 shrink-0 cursor-pointer rounded-control border-0 bg-transparent p-0"
                   [value]="c.colour"
                   [attr.aria-label]="'Colour for ' + c.name"
                   (change)="setColour(c, $event)"
                 />
                 <input
                   type="text"
-                  class="min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1 text-sm outline-none focus:bg-ink-50 focus:ring-2 focus:ring-brand-500"
+                  class="min-w-0 flex-1 rounded-control bg-transparent px-2 py-1 text-sm outline-none focus:bg-ink-50 focus:ring-2 focus:ring-brand-500"
                   [value]="c.name"
                   [attr.aria-label]="'Name for ' + c.name"
                   (change)="setName(c, $event)"
@@ -174,7 +174,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
                 <span class="shrink-0 text-[11px] text-ink-400">#{{ c.slug }}</span>
                 <button
                   type="button"
-                  class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-late-700 transition hover:bg-late-100"
+                  class="shrink-0 rounded-control px-2 py-1 text-xs font-medium text-late-700 transition hover:bg-late-100"
                   [attr.aria-label]="'Delete ' + c.name"
                   (click)="tasks.removeCategory(c)"
                 >
@@ -187,7 +187,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
           </ul>
         </section>
       } @else {
-        <div class="h-32 animate-pulse rounded-2xl bg-ink-100"></div>
+        <div class="h-32 animate-pulse rounded-panel bg-ink-100"></div>
       }
     </div>
   `,

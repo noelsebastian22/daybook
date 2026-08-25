@@ -67,7 +67,7 @@ interface Shortcut {
     ></button>
 
     <div
-      class="relative z-50 w-72 rounded-2xl bg-white p-2 shadow-lg ring-1 ring-ink-200"
+      class="relative z-50 w-72 rounded-panel bg-white p-2 shadow-lg ring-1 ring-ink-200"
       role="dialog"
       aria-label="Choose a date"
     >
@@ -77,7 +77,7 @@ interface Shortcut {
           <button
             #option
             type="button"
-            class="flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+            class="flex items-center justify-between rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
             [class]="s.date === date() ? 'font-semibold text-brand-700' : 'text-ink-900'"
             [attr.aria-label]="s.label + ', ' + full(s.date)"
             (click)="choose(s.date)"
@@ -95,7 +95,7 @@ interface Shortcut {
           <div class="flex items-center gap-1">
             <button
               type="button"
-              class="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-600 disabled:opacity-30 disabled:hover:bg-transparent"
+              class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600 disabled:opacity-30 disabled:hover:bg-transparent"
               [disabled]="atFirstMonth()"
               aria-label="Previous month"
               (click)="stepMonth(-1)"
@@ -104,7 +104,7 @@ interface Shortcut {
             </button>
             <button
               type="button"
-              class="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
+              class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
               aria-label="Next month"
               (click)="stepMonth(1)"
             >
@@ -124,7 +124,7 @@ interface Shortcut {
             @if (cell) {
               <button
                 type="button"
-                class="grid h-8 place-items-center rounded-lg text-sm transition disabled:text-ink-200 disabled:hover:bg-transparent"
+                class="grid h-8 place-items-center rounded-control text-sm transition disabled:text-ink-200 disabled:hover:bg-transparent"
                 [class]="dayClass(cell)"
                 [disabled]="cell < todayDate"
                 [attr.aria-label]="full(cell)"
@@ -145,7 +145,7 @@ interface Shortcut {
         <span class="text-xs text-ink-400" aria-hidden="true">&#9200;</span>
         <input
           type="time"
-          class="min-w-0 flex-1 rounded-lg bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+          class="min-w-0 flex-1 rounded-control bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
           [value]="time() ?? ''"
           aria-label="Reminder time"
           (change)="onTime($event)"
@@ -153,7 +153,7 @@ interface Shortcut {
         @if (time()) {
           <button
             type="button"
-            class="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
+            class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
             aria-label="Clear the reminder time"
             (click)="picked.emit({ date: date(), time: null })"
           >

@@ -12,14 +12,14 @@ import { ToastStore } from '../core/toast.store';
     >
       @for (t of toasts.toasts(); track t.id) {
         <div
-          class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl px-4 py-3 text-sm shadow-lg"
+          class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-card px-4 py-3 text-sm shadow-lg"
           [class]="t.tone === 'error' ? 'bg-late-700 text-white' : 'bg-ink-900 text-white'"
         >
           <span class="flex-1">{{ t.message }}</span>
           @if (t.undo) {
             <button
               type="button"
-              class="rounded-lg px-2 py-1 font-semibold text-brand-100 hover:bg-white/10"
+              class="rounded-control px-2 py-1 font-semibold text-brand-100 hover:bg-white/10"
               (click)="toasts.runUndo(t)"
             >
               Undo
@@ -27,7 +27,7 @@ import { ToastStore } from '../core/toast.store';
           }
           <button
             type="button"
-            class="rounded-lg px-2 py-1 text-white/60 hover:bg-white/10"
+            class="rounded-control px-2 py-1 text-white/60 hover:bg-white/10"
             aria-label="Dismiss"
             (click)="toasts.dismiss(t.id)"
           >

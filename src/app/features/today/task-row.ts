@@ -26,7 +26,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
     '[style.view-transition-name]': '"task-" + task().id',
   },
   template: `
-    <div class="relative overflow-hidden rounded-xl">
+    <div class="relative overflow-hidden rounded-card">
       <!--
         The action revealed under the row. Which side shows follows the
         direction of travel: a row moving right uncovers its left edge.
@@ -41,18 +41,18 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
       -->
       @if (!done()) {
         <div
-          class="pointer-events-none absolute inset-0 flex items-center justify-between px-4 text-sm font-medium"
+          class="pointer-events-none absolute inset-0 flex items-center justify-between px-4 text-body font-medium"
           aria-hidden="true"
         >
           <span
-            class="flex items-center gap-1.5 transition-opacity"
+            class="flex items-center gap-2 transition-opacity"
             [class]="swipe.armed() ? 'text-done-700' : 'text-done-500/60'"
             [class.opacity-0]="swipe.offset() <= 0"
           >
             <span aria-hidden="true">&check;</span> Done
           </span>
           <span
-            class="flex items-center gap-1.5 transition-opacity"
+            class="flex items-center gap-2 transition-opacity"
             [class]="swipe.armed() ? 'text-brand-700' : 'text-brand-500/60'"
             [class.opacity-0]="swipe.offset() >= 0"
           >
@@ -66,11 +66,17 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         #swipe="appSwipe"
         [appSwipeDisabled]="done()"
         (swiped)="onSwipe($event)"
-        class="group relative flex items-start gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
+        class="group relative flex items-start gap-3 rounded-card bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
       >
+        <!--
+          mt-0.5 is the one sanctioned 2px step: it optically centres the
+          20px box against the first line of task text. That is alignment,
+          not spacing, so it sits outside the 1/2/3/4/6/8 rule rather than
+          breaking it. See styles.css.
+        -->
         <button
           type="button"
-          class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition"
+          class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-control border-2 transition"
           [class]="
             done()
               ? 'border-done-500 bg-done-500 text-white'
@@ -99,7 +105,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         -->
           <a
             [routerLink]="['/today', task().id]"
-            class="block text-[15px] leading-snug outline-none focus-visible:underline"
+            class="block text-task outline-none focus-visible:underline"
           >
             <span
               class="task-text"
@@ -111,10 +117,10 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
             </span>
           </a>
 
-          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-caption">
             @if (category(); as c) {
               <span
-                class="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5 font-medium text-ink-600"
+                class="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2 py-1 font-medium text-ink-600"
               >
                 <span class="h-1.5 w-1.5 rounded-full" [style.background]="c.colour"></span>
                 {{ c.name }}
@@ -122,7 +128,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
             }
             @if (task().energy; as e) {
               <span
-                class="rounded-full px-2 py-0.5 font-medium"
+                class="rounded-full px-2 py-1 font-medium"
                 [class]="
                   e === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'
                 "
@@ -143,7 +149,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
             -->
             @if (task().carried_over_count > 0) {
               <span
-                class="rounded-full px-2 py-0.5 font-medium"
+                class="rounded-full px-2 py-1 font-medium"
                 [class]="
                   task().carried_over_count >= 3 && !done()
                     ? 'bg-late-100 text-late-700'
@@ -167,7 +173,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         @if (!done()) {
           <button
             type="button"
-            class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-400 transition hover:bg-ink-50 hover:text-ink-600 group-hover:text-ink-600"
+            class="shrink-0 rounded-control px-2 py-1 text-caption font-medium text-ink-400 transition hover:bg-ink-50 hover:text-ink-600 group-hover:text-ink-600"
             [attr.aria-label]="'Move to ' + pushTargetDate()"
             (click)="pushed.emit()"
           >

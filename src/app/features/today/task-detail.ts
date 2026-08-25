@@ -43,7 +43,7 @@ import {
       <header class="safe-top flex items-center justify-between gap-4 py-6">
         <a
           routerLink="/today"
-          class="-ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+          class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
         >
           <span aria-hidden="true">&lsaquo;</span> Today
         </a>
@@ -51,7 +51,7 @@ import {
 
       @if (task(); as t) {
         <article
-          class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-ink-200/60"
+          class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60"
           [style.view-transition-name]="'task-' + t.id"
         >
           @if (editing()) {
@@ -67,7 +67,7 @@ import {
             <div class="flex items-start gap-3">
               <button
                 type="button"
-                class="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition"
+                class="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-control border-2 transition"
                 [class]="
                   done()
                     ? 'border-done-500 bg-done-500 text-white'
@@ -162,7 +162,7 @@ import {
             <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4">
               <button
                 type="button"
-                class="rounded-lg bg-ink-100 px-3 py-1.5 text-sm font-medium text-ink-700 transition hover:bg-ink-200"
+                class="rounded-control bg-ink-100 px-3 py-1.5 text-sm font-medium text-ink-700 transition hover:bg-ink-200"
                 (click)="editing.set(true)"
               >
                 Edit
@@ -171,7 +171,7 @@ import {
               @if (!done()) {
                 <button
                   type="button"
-                  class="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+                  class="rounded-control px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
                   (click)="tasks.reschedule(t, tomorrow())"
                 >
                   <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
@@ -180,7 +180,7 @@ import {
 
               <button
                 type="button"
-                class="ml-auto rounded-lg px-3 py-1.5 text-sm font-medium text-late-700 transition hover:bg-late-100"
+                class="ml-auto rounded-control px-3 py-1.5 text-sm font-medium text-late-700 transition hover:bg-late-100"
                 (click)="remove()"
               >
                 Delete
@@ -189,14 +189,14 @@ import {
           }
         </article>
       } @else if (tasks.loaded()) {
-        <div class="rounded-2xl border-2 border-dashed border-ink-200 px-6 py-12 text-center">
+        <div class="rounded-panel border-2 border-dashed border-ink-200 px-6 py-12 text-center">
           <p class="font-medium text-ink-600">That task is gone.</p>
           <a routerLink="/today" class="mt-2 inline-block text-sm font-medium text-brand-700">
             Back to today
           </a>
         </div>
       } @else {
-        <div class="h-24 animate-pulse rounded-2xl bg-ink-100"></div>
+        <div class="h-24 animate-pulse rounded-panel bg-ink-100"></div>
       }
     </div>
   `,
