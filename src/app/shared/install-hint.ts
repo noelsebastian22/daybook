@@ -28,11 +28,11 @@ import { Install } from '../core/install';
       >
         <div class="flex items-start gap-3">
           <div class="min-w-0 flex-1">
-            <p id="install-hint-title" class="text-sm font-semibold text-ink-900">
+            <p id="install-hint-title" class="text-body font-semibold text-ink-900">
               Add Daybook to your Home Screen
             </p>
 
-            <p class="mt-1 text-sm text-ink-400">
+            <p class="mt-1 text-body text-ink-400">
               Tap
               <span
                 class="mx-0.5 inline-flex h-6 w-6 -translate-y-0.5 items-center justify-center rounded-control bg-ink-100 align-middle text-ink-600"
@@ -65,7 +65,7 @@ import { Install } from '../core/install';
               storage after about a week — which is where the offline queue
               lives. Someone who knows that will bother.
             -->
-            <p class="mt-2 text-xs text-ink-400">
+            <p class="mt-2 text-caption text-ink-400">
               Reminders only work from the installed app, and installing keeps
               anything saved offline from being cleared.
             </p>

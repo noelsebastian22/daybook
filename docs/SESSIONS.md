@@ -11,6 +11,95 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-08-26 · claude-code · type migration finished
+
+**Did**
+- **Finished the type migration app-wide**, the 25 Aug "Next". Twelve files:
+  `text-sm`→`text-body` ×56, `text-xs`→`text-caption` ×42,
+  `text-[11px]`→`text-caption` ×15, `text-[10px]`→`text-caption` ×2,
+  `text-[15px]`→`text-task` ×3, `text-2xl`→`text-display` ×5.
+- **Added a seventh step, `--text-display-lg` 1.875rem/30px** (line-height
+  1.15), for `login.ts:29` and `reporting.ts:54,68`. Value-preserving. §9.
+- `text-subtitle` and `text-header` stopped being dead tokens with nothing
+  restyled: `task-detail.ts:91` was already 20px (`text-xl` + `leading-snug`,
+  the leading dropped), `capture.ts` already 16px.
+- **`welcome.ts` exempted from the UI scale**, the only file that is — hero
+  44/60px, closer 30/36px, subhead 18px. Written into the file's own header.
+  Its UI-sized text still migrated; wordmark 15→14px to match `shell.ts`, demo
+  capture line 18→16px to match the real `capture.ts`.
+- Corrected `welcome.ts`'s header comment, which still claimed "Inter is
+  already the app's face". The 25 Aug entry says that was fixed in place — it
+  was fixed in `BUILD-PLAN.md` only, and this file still carried it.
+- **Verified in Chrome on the signed-in app.** Capture mirror and textarea both
+  16px/24px, identical rects, identical `scrollHeight` across a three-line
+  wrap — highlight registers exactly. Reporting h1 24/28.8, KPI 30/34.5, h2
+  14/20.3, chart axis 12/16.2 with no row overflow. Date-picker weekday row
+  12px, no overflow. Calendar day counts clear at 12px. No app console errors.
+- Build **527.89 kB** initial, down 0.34 kB — the stylesheet shrank as the
+  retired utilities stopped emitting. **55 tests in 4 files**, passing. Schema
+  untouched; live has 6 migrations to the folder's 4 because `0002_rpcs.sql`
+  consolidates `revoke_anon_rpc_execute` and `carry_count_by_days`.
+
+**Decided**
+- **30px got a token rather than being folded to 24px.** Folding would have
+  shrunk the login wordmark and both reporting figures to protect a round
+  number, and the visual pass is Noel's with references, not a side effect of
+  tokenising. Noel's call. §9.
+- **`welcome.ts` is exempt, not accommodated.** The alternative was four more
+  `@theme` steps used once each on one screen, which makes the scale a list of
+  everything rather than a set of choices. Noel's call. §9.
+- **`capture.ts` keeps `leading-6` beside `text-subtitle`, deliberately.** The
+  mirror and the textarea must share an integer line box or the highlight
+  drifts a fraction of a line per row; the token's unitless 1.4 gives 22.4px.
+  The one correct `leading-*` next to a type token. Commented in place.
+- **Spacing left alone.** 54 fractional sites survive outside the four core
+  surfaces. One rule at a time across a twelve-file diff is reviewable, two is
+  not. §12.
+
+**Didn't work**
+- **The opening survey undercounted, and the report to Noel was wrong because
+  of it.** Grepping `text-sm|text-xs|text-\[Npx\]` does not find `text-base`,
+  `text-lg`, `text-xl` or `text-3xl`, so four in-app off-scale sites went
+  unlisted and surfaced mid-migration as an unplanned decision. **Inventory by
+  grepping the whole `text-*` family.** Same mistake in kind as 25 Aug's
+  transcribing Doist's radii before counting Daybook's own — twice now, in two
+  consecutive sessions, on the same file.
+- **`sed -i '' ... $FILES` silently did nothing.** zsh does not word-split
+  unquoted parameters, so eleven paths went to `sed` as one filename. Use an
+  array, `FILES=(a b c)`, or it fails as a single no-such-file.
+- **Clicking "+ Add task" by screenshot coordinate missed.** The screenshot is
+  1481px wide for a 1274px viewport; driving the composer through
+  `javascript_tool` (`.click()`, then `.focus()` before a real `type`) worked
+  where coordinates did not.
+
+**Open**
+- **`welcome.ts` and `login.ts` never seen on screen.** Both are signed-out
+  surfaces and `/welcome` redirects to `/today` for a signed-in session, so the
+  verification pass could not reach them without signing Noel out. They build;
+  their only visible deltas are the two 1–2px changes above. New §12 entry.
+- `disabled:opacity-30/40/50` still on ~8 sites — unchanged from 25 Aug, still
+  blocked on `composer.ts`'s focus trap filtering `hasAttribute('disabled')`.
+- 54 fractional spacing sites, led by `mt-0.5` ×18 (one of which is the
+  sanctioned `task-row.ts` exception) and `py-1.5` ×10. New §12 entry.
+- Offline queue still the one wholly unverified feature.
+- `InvalidStateError: Transition was aborted` on dev-server reload — again not
+  exercised, only navigations were driven.
+- No reference designs collected yet; the visual pass is still blocked on Noel.
+- `DIGEST_FROM` still blocks multi-tenancy.
+
+**Next**
+Either sign out once and look at `welcome.ts` and `login.ts` to close the §12
+entry this session opened — five minutes, and it is the only unverified part of
+this change — or take the `aria-disabled` conversion, which is the larger piece
+and needs `composer.ts`'s `focusableIn()` to stop filtering on
+`hasAttribute('disabled')` before the eight `disabled:opacity-*` sites can move.
+
+**Touched** — `src/styles.css`, `AGENTS.md`, `BUILD-PLAN.md`,
+`src/app/features/today/{capture,task-detail}.ts`,
+`src/app/shared/{date-picker,install-hint,toasts}.ts`,
+`src/app/features/{calendar/calendar,calendar/day-detail,login/login,reporting/reporting,settings/settings,upcoming/upcoming,welcome/welcome}.ts`
+
+
 ## 2026-08-25 · claude-code · design tokens from Doist
 
 **Did**

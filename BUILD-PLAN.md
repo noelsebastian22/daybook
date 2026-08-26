@@ -327,10 +327,11 @@ multi-tenancy.
   that were in play; six role-named type steps in `rem`; three font weights.
   **Radius is migrated app-wide** — a value-preserving rename except an 8px→6px
   fold on small controls — so "only three radii exist" is a true statement.
-  **Type is migrated on the four core surfaces only** (`task-row`, `shell`,
-  `today`, `composer`). The rest of the app still carries `text-sm`, `text-xs`
-  and three arbitrary sizes; `text-subtitle` and `text-header` have no call
-  sites until that lands. That is the next piece of this work.
+  **Type is now migrated app-wide too, 26 Aug.** Every signed-in surface is on
+  the steps; `text-sm`, `text-xs`, `text-base`, `text-lg`, `text-xl` and the
+  arbitrary sizes are gone. The scale grew a seventh step, `text-display-lg`
+  at 30px, because three real sites had nothing to land on (§9). Every step now
+  has call sites. `welcome.ts` is exempt and is the only file that is (§9).
 - ~~**Load a typeface.**~~ **Closed 25 Aug, the other way.** Inter is not
   fetched; `--font-sans` now names the system stack it was always really
   rendering (§9, §12).
@@ -519,7 +520,7 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
 - **The brand is `#6366f1`**, which is Tailwind's unmodified `indigo-500`.
   Noted so it is a choice next time rather than a default.
 - **The spacing, radius and type scales are now fixed** and are the substrate
-  the visual pass paints on: three radii, six type steps, six spacing steps.
+  the visual pass paints on: three radii, seven type steps, six spacing steps.
   Declared in `@theme` in `src/styles.css`, ruled in `AGENTS.md`, adapted from
   Doist's published tokens (§9, 25 Aug). Colour was deliberately left
   untouched — it is the half of the look Noel is bringing references for.
@@ -1091,6 +1092,43 @@ One convention worth stealing later, not taken yet: Doist use `aria-disabled`
 rather than the HTML `disabled` attribute for soft-disable, which keeps the
 control focusable and lets a screen reader say why it is inert. See §12.
 
+#### The type scale grew a seventh step, and `welcome.ts` was exempted
+
+Finishing the type migration on 26 Aug turned up sizes the six steps had no
+answer for. The first survey missed them, because grepping for `text-sm` and
+`text-xs` does not find `text-base`, `text-lg`, `text-xl` or `text-3xl`.
+**Inventory by grepping for the whole family, not for the two classes you
+expect.** Same mistake in kind as transcribing Doist's radii before counting
+Daybook's own.
+
+Two populations, decided separately:
+
+- **30px, three sites in the app** — the login wordmark and the two reporting
+  figures. Given a seventh step, `text-display-lg` at 1.875rem. A rename, not
+  a visual change: nothing moved on screen. The alternative was folding them
+  to 24px, which would have shrunk two surfaces to protect a round number, and
+  the visual pass is Noel's with references, not a side effect of tokenising.
+- **44–60px, all on `welcome.ts`** — the marketing hero, its closer at 30/36px
+  and its 18px subhead. **That file is exempt from the UI scale and is the only
+  file that is.** A landing page needs a register the app never uses; the
+  alternative was four more `@theme` steps used once each on one screen, which
+  would have made the scale a list of everything rather than a set of choices.
+  The exemption is written into the file's own header comment so it cannot be
+  read as an oversight. Everything on that page doing a UI job is on the tokens.
+
+`text-subtitle` and `text-header` stopped being dead tokens without anything
+being restyled to suit them: `task-detail.ts`'s title was already exactly 20px,
+and `capture.ts`'s textarea already exactly 16px.
+
+**`capture.ts` keeps `leading-6` beside its type token, deliberately.** The
+mirror `div` and the `textarea` must share an identical line box or the syntax
+highlight drifts off the text by a fraction of a line per row. `text-subtitle`
+carries a unitless 1.4 (22.4px); `leading-6` pins both to an integer 24px. It
+is the one place a `leading-*` next to a type token is correct rather than a
+mistake, and it is commented in place. Verified on screen: both elements report
+16px/24px, identical bounding rects and identical `scrollHeight` across a
+three-line wrap.
+
 #### What the accessibility pass actually found
 
 Four real defects, not nits. The per-component work was already careful —
@@ -1574,8 +1612,23 @@ Not core. Revisit once the main app is solid.
   of `system-ui` so Windows CJK locales do not swap the Latin glyphs. §9.
 - ~~**Spacing and radii are ad hoc.**~~ **Closed 25 Aug.** Scales for spacing,
   radius, type and weight are declared in `@theme` and ruled in `AGENTS.md`.
-  Radius is migrated app-wide; **type is migrated on four surfaces only** and
-  the remainder is the named next step in §4.
+  Radius was migrated app-wide the same day; **type followed on 26 Aug** and is
+  now app-wide too, seven steps with `welcome.ts` the single documented
+  exemption (§9). No off-scale text size survives on a signed-in surface.
+- **`welcome.ts` and `login.ts` were not seen on screen after the type
+  migration.** Both are signed-out surfaces and `/welcome` redirects to
+  `/today` for a signed-in session, so the 26 Aug verification pass could not
+  reach them without signing Noel out. They build, and their diffs are renames
+  plus two deliberate 1–2px changes — the nav wordmark 15px→14px to match
+  `shell.ts`, and the demo capture line 18px→16px to match the real
+  `capture.ts`. Worth one look next time either is open.
+- **Fractional spacing survives outside the four core surfaces.** Counted
+  26 Aug: **54 sites**, led by `mt-0.5` ×18, `py-1.5` ×10, `py-0.5` ×5 and
+  `px-2.5` ×5, on the pages the 25 Aug spacing sweep did not reach. The type
+  migration deliberately did not touch them — one rule at a time across a
+  twelve-file diff is reviewable, two is not. Note that the `mt-0.5` count
+  includes the one sanctioned optical-alignment exception in `task-row.ts`, so
+  the real question is what the other 17 are doing.
 - **Disabled controls are faded with `opacity`.** Eight or so `[disabled]`
   sites carry `disabled:opacity-30`, `-40` or `-50` — `settings.ts`,
   `capture.ts`, `upcoming.ts`, `login.ts`, `date-picker.ts`. That is the exact

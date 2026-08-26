@@ -50,20 +50,20 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
       <header class="safe-top py-6">
-        <p class="text-xs font-medium uppercase tracking-wider text-ink-400">Settings</p>
-        <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">Preferences</h1>
+        <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Settings</p>
+        <h1 class="mt-0.5 text-display font-semibold tracking-tight">Preferences</h1>
       </header>
 
       @if (settings.settings(); as s) {
         <!-- digest -->
         <section class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-          <h2 class="text-sm font-semibold tracking-tight">Daily digest</h2>
-          <p class="mt-0.5 text-xs text-ink-400">
+          <h2 class="text-body font-semibold tracking-tight">Daily digest</h2>
+          <p class="mt-0.5 text-caption text-ink-400">
             What you finished yesterday and what is on today, by email.
           </p>
 
           <label class="mt-3 flex items-center justify-between gap-4">
-            <span class="text-sm">Send me the digest</span>
+            <span class="text-body">Send me the digest</span>
             <input
               type="checkbox"
               class="h-5 w-9 shrink-0 appearance-none rounded-full bg-ink-200 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:transition-transform checked:bg-brand-600 checked:before:translate-x-[1.125rem]"
@@ -74,10 +74,10 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
 
           @if (s.digest_enabled) {
             <label class="mt-3 flex items-center justify-between gap-4">
-              <span class="text-sm">Send at</span>
+              <span class="text-body">Send at</span>
               <input
                 type="time"
-                class="rounded-control bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                class="rounded-control bg-ink-50 px-2 py-1.5 text-body outline-none focus:ring-2 focus:ring-brand-500"
                 [value]="sendAt()"
                 (change)="setSendAt($event)"
               />
@@ -87,8 +87,8 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
 
         <!-- timezone -->
         <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-          <h2 class="text-sm font-semibold tracking-tight">Timezone</h2>
-          <p class="mt-0.5 text-xs text-ink-400">
+          <h2 class="text-body font-semibold tracking-tight">Timezone</h2>
+          <p class="mt-0.5 text-caption text-ink-400">
             When the server thinks your day starts. Your device says
             {{ detectedZone }}.
           </p>
@@ -101,7 +101,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
             is America/Los_Angeles. It renders a zone the user never chose.
           -->
           <select
-            class="mt-3 w-full rounded-control bg-ink-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            class="mt-3 w-full rounded-control bg-ink-50 px-3 py-2 text-body outline-none focus:ring-2 focus:ring-brand-500"
             aria-label="Timezone"
             (change)="setTimezone($event)"
           >
@@ -113,7 +113,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
           @if (s.timezone !== detectedZone) {
             <button
               type="button"
-              class="mt-2 text-xs font-medium text-brand-700 transition hover:text-brand-600"
+              class="mt-2 text-caption font-medium text-brand-700 transition hover:text-brand-600"
               (click)="settings.update({ timezone: detectedZone })"
             >
               Use {{ detectedZone }}
@@ -123,18 +123,18 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
 
         <!-- reminders -->
         <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-          <h2 class="text-sm font-semibold tracking-tight">Reminders</h2>
-          <p class="mt-0.5 text-xs text-ink-400">
+          <h2 class="text-body font-semibold tracking-tight">Reminders</h2>
+          <p class="mt-0.5 text-caption text-ink-400">
             A push when a task's reminder time arrives.
           </p>
 
           @if (blocker(); as reason) {
-            <p class="mt-3 rounded-control bg-ink-50 px-3 py-2 text-xs text-ink-600">
+            <p class="mt-3 rounded-control bg-ink-50 px-3 py-2 text-caption text-ink-600">
               {{ blockerText(reason) }}
             </p>
           } @else {
             <label class="mt-3 flex items-center justify-between gap-4">
-              <span class="text-sm">Push reminders on this device</span>
+              <span class="text-body">Push reminders on this device</span>
               <input
                 type="checkbox"
                 class="h-5 w-9 shrink-0 appearance-none rounded-full bg-ink-200 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:transition-transform checked:bg-brand-600 checked:before:translate-x-[1.125rem]"
@@ -148,9 +148,9 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
 
         <!-- categories -->
         <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-          <h2 class="text-sm font-semibold tracking-tight">Categories</h2>
-          <p class="mt-0.5 text-xs text-ink-400">
-            Typing a new <code class="text-[11px]">#tag</code> creates one. Deleting a
+          <h2 class="text-body font-semibold tracking-tight">Categories</h2>
+          <p class="mt-0.5 text-caption text-ink-400">
+            Typing a new <code class="text-caption">#tag</code> creates one. Deleting a
             category leaves its tasks untagged, not deleted.
           </p>
 
@@ -166,15 +166,15 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
                 />
                 <input
                   type="text"
-                  class="min-w-0 flex-1 rounded-control bg-transparent px-2 py-1 text-sm outline-none focus:bg-ink-50 focus:ring-2 focus:ring-brand-500"
+                  class="min-w-0 flex-1 rounded-control bg-transparent px-2 py-1 text-body outline-none focus:bg-ink-50 focus:ring-2 focus:ring-brand-500"
                   [value]="c.name"
                   [attr.aria-label]="'Name for ' + c.name"
                   (change)="setName(c, $event)"
                 />
-                <span class="shrink-0 text-[11px] text-ink-400">#{{ c.slug }}</span>
+                <span class="shrink-0 text-caption text-ink-400">#{{ c.slug }}</span>
                 <button
                   type="button"
-                  class="shrink-0 rounded-control px-2 py-1 text-xs font-medium text-late-700 transition hover:bg-late-100"
+                  class="shrink-0 rounded-control px-2 py-1 text-caption font-medium text-late-700 transition hover:bg-late-100"
                   [attr.aria-label]="'Delete ' + c.name"
                   (click)="tasks.removeCategory(c)"
                 >
@@ -182,7 +182,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
                 </button>
               </li>
             } @empty {
-              <li class="py-2 text-sm text-ink-400">No categories yet.</li>
+              <li class="py-2 text-body text-ink-400">No categories yet.</li>
             }
           </ul>
         </section>

@@ -43,8 +43,8 @@ const MAX_WEEK = 3;
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
       <header class="safe-top flex items-center justify-between gap-4 py-6">
         <div>
-          <p class="text-xs font-medium uppercase tracking-wider text-ink-400">Upcoming</p>
-          <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">{{ range() }}</h1>
+          <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Upcoming</p>
+          <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ range() }}</h1>
         </div>
 
         <div class="flex items-center gap-1">
@@ -73,9 +73,9 @@ const MAX_WEEK = 3;
         @for (day of days(); track day.date) {
           <section>
             <div class="mb-2 flex items-baseline gap-2 px-1">
-              <h2 class="text-sm font-semibold tracking-tight">{{ label(day.date) }}</h2>
+              <h2 class="text-body font-semibold tracking-tight">{{ label(day.date) }}</h2>
               @if (day.tasks.length > 0) {
-                <span class="text-xs text-ink-400">{{ day.tasks.length }}</span>
+                <span class="text-caption text-ink-400">{{ day.tasks.length }}</span>
               }
             </div>
 
@@ -91,7 +91,7 @@ const MAX_WEEK = 3;
 
               <button
                 type="button"
-                class="flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-sm font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
+                class="flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-body font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
                 [attr.aria-label]="'Add a task on ' + full(day.date)"
                 (click)="addingOn.set(day.date)"
               >

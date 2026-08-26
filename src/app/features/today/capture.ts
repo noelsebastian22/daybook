@@ -55,9 +55,14 @@ export interface CaptureSeed {
   template: `
     <div class="rounded-panel bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500">
       <div class="relative">
+        <!-- The mirror and the textarea must share an identical line box or the
+             highlight drifts off the text by a fraction of a line per row.
+             text-subtitle carries a unitless 1.4, so leading-6 stays here to pin
+             both to an integer 24px. This is the one place a leading-* beside a
+             type token is deliberate rather than a mistake. -->
         <!-- mirror -->
         <div
-          class="pointer-events-none px-4 py-3 text-base leading-6 whitespace-pre-wrap break-words"
+          class="pointer-events-none px-4 py-3 text-subtitle leading-6 whitespace-pre-wrap break-words"
           aria-hidden="true"
         >
           @for (s of parts(); track $index) {
@@ -90,7 +95,7 @@ export interface CaptureSeed {
         <textarea
           #input
           rows="1"
-          class="absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-base leading-6 text-transparent caret-ink-900 outline-none"
+          class="absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-subtitle leading-6 text-transparent caret-ink-900 outline-none"
           [value]="value()"
           (input)="onInput($event)"
           (keydown)="onKeydown($event)"
@@ -98,7 +103,7 @@ export interface CaptureSeed {
         ></textarea>
       </div>
 
-      <div #chipRow class="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs">
+      <div #chipRow class="flex flex-wrap items-center gap-2 px-4 pb-3 text-caption">
         <div class="relative">
           <button
             #dateChip
@@ -193,7 +198,7 @@ export interface CaptureSeed {
               @for (c of categories(); track c.id) {
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+                  class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
                   [class]="c.slug === parsed().categorySlug ? 'font-semibold text-brand-700' : 'text-ink-900'"
                   [attr.aria-pressed]="c.slug === parsed().categorySlug"
                   (click)="chooseCategory(c.slug)"
@@ -207,7 +212,7 @@ export interface CaptureSeed {
                 </button>
               }
               @if (!categories().length) {
-                <p class="px-3 py-2 text-sm text-ink-400">
+                <p class="px-3 py-2 text-body text-ink-400">
                   No categories yet. Add them in Settings.
                 </p>
               }
@@ -253,13 +258,13 @@ export interface CaptureSeed {
               @for (e of energies; track e) {
                 <button
                   type="button"
-                  class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+                  class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
                   [class]="e === parsed().energy ? 'font-semibold text-brand-700' : 'text-ink-900'"
                   [attr.aria-pressed]="e === parsed().energy"
                   (click)="chooseEnergy(e)"
                 >
                   <span>{{ e === 'quick' ? 'Quick' : 'Deep' }}</span>
-                  <span class="text-xs text-ink-400">{{ e === 'quick' ? '!quick' : '!deep' }}</span>
+                  <span class="text-caption text-ink-400">{{ e === 'quick' ? '!quick' : '!deep' }}</span>
                 </button>
               }
             </app-popover>

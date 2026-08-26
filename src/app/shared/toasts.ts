@@ -12,7 +12,7 @@ import { ToastStore } from '../core/toast.store';
     >
       @for (t of toasts.toasts(); track t.id) {
         <div
-          class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-card px-4 py-3 text-sm shadow-lg"
+          class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-card px-4 py-3 text-body shadow-lg"
           [class]="t.tone === 'error' ? 'bg-late-700 text-white' : 'bg-ink-900 text-white'"
         >
           <span class="flex-1">{{ t.message }}</span>

@@ -37,18 +37,18 @@ import type { Task } from '../../core/models';
       <header class="safe-top py-6">
         <a
           routerLink="/calendar"
-          class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+          class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
         >
           <span aria-hidden="true">&lsaquo;</span> Calendar
         </a>
 
-        <p class="mt-3 text-xs font-medium uppercase tracking-wider text-ink-400">
+        <p class="mt-3 text-caption font-medium uppercase tracking-wider text-ink-400">
           {{ relative() }}
         </p>
-        <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">{{ full() }}</h1>
+        <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ full() }}</h1>
 
         @if (past()) {
-          <p class="mt-1 text-sm text-ink-400">
+          <p class="mt-1 text-body text-ink-400">
             @if (snapshot(); as s) {
               {{ s.completed_count }} done, {{ s.carried_count }} carried off
             } @else {
@@ -61,7 +61,7 @@ import type { Task } from '../../core/models';
       @if (onDay().length > 0) {
         <section>
           @if (past()) {
-            <h2 class="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-ink-400">
+            <h2 class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-ink-400">
               Finished
             </h2>
           }
@@ -80,7 +80,7 @@ import type { Task } from '../../core/models';
 
       @if (carried().length > 0) {
         <section class="mt-6">
-          <h2 class="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-ink-400">
+          <h2 class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-ink-400">
             Carried off this day
           </h2>
           <div class="space-y-2">
@@ -88,10 +88,10 @@ import type { Task } from '../../core/models';
               <div class="rounded-card bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60">
                 <a
                   [routerLink]="['/today', task.id]"
-                  class="text-[15px] leading-snug text-ink-900"
+                  class="text-task leading-snug text-ink-900"
                   >{{ task.text }}</a
                 >
-                <p class="mt-1 text-[11px] text-ink-400">
+                <p class="mt-1 text-caption text-ink-400">
                   now on {{ label(task.scheduled_date) }}
                   @if (task.carried_over_count > 0) {
                     · carried &times;{{ task.carried_over_count }}
@@ -104,7 +104,7 @@ import type { Task } from '../../core/models';
       }
 
       @if (missingCarried() > 0) {
-        <p class="mt-4 px-1 text-xs text-ink-400">
+        <p class="mt-4 px-1 text-caption text-ink-400">
           {{ missingCarried() }} more carried off this day
           {{ missingCarried() === 1 ? 'has' : 'have' }} since been deleted.
         </p>
@@ -120,7 +120,7 @@ import type { Task } from '../../core/models';
       @if (!past()) {
         <button
           type="button"
-          class="mt-4 flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-sm font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
+          class="mt-4 flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-body font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
           (click)="composerOpen.set(true)"
         >
           <span aria-hidden="true">+</span> Add task

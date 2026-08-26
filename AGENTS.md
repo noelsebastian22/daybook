@@ -148,7 +148,7 @@ for `text-ink-800`. Decorative geometry is exempt and there are two pieces of
 it: the chart bar caps in `reporting.ts` and the legend swatch in
 `calendar.ts`, which is 12px square and would read as a circle at 6px.
 
-**Six type steps**, named for the job, not the size, and set in `rem` so the
+**Seven type steps**, named for the job, not the size, and set in `rem` so the
 app scales with the browser font size:
 
 | Token | Value | Used on |
@@ -156,15 +156,27 @@ app scales with the browser font size:
 | `text-caption` | 12px | badges, meta rows, micro labels |
 | `text-body` | 14px | default UI text |
 | `text-task` | 15px | the task line — the app's primary content |
-| `text-subtitle` | 16px | — |
-| `text-header` | 20px | — |
+| `text-subtitle` | 16px | the capture box |
+| `text-header` | 20px | the task-detail title |
 | `text-display` | 24px | page titles |
+| `text-display-lg` | 30px | login wordmark, reporting figures |
 
-Each carries its own line height, so `leading-*` beside one of these is
-usually a mistake. **Only `task-row.ts`, `shell.ts`, `today.ts` and
-`composer.ts` are migrated.** The rest of the app is still on `text-sm`,
-`text-xs` and three arbitrary values (`text-[15px]`, `text-[11px]`,
-`text-[10px]`); `subtitle` and `header` have no call sites until that lands.
+**The whole app is migrated.** `text-sm`, `text-xs`, `text-base`, `text-lg`,
+`text-xl` and the arbitrary sizes are gone from every signed-in surface, and
+reaching for one is the same mistake as reaching for `rounded-lg`.
+
+Each step carries its own line height, so `leading-*` beside one of these is
+usually a mistake. There is exactly one deliberate exception: the capture box
+in `capture.ts` keeps `leading-6` because its mirror `div` and its `textarea`
+must share an integer line box or the syntax highlight drifts off the text.
+It is commented in place.
+
+**`welcome.ts` is exempt, and it is the only file that is.** A marketing page
+needs a register the app never uses; its hero runs 44px to 60px, its closer
+30px to 36px, and its subhead 18px. Everything else on that page is on the
+tokens. The exemption is written into the file's own header comment. Do not
+extend it to a signed-in surface.
+
 Do not add a new arbitrary text size — extend the scale instead.
 
 **Three font weights**: `font-normal`, `font-medium`, `font-semibold`. Nothing

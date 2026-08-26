@@ -26,8 +26,8 @@ import { Mark } from '../../shared/mark';
           <div class="mb-4 flex justify-center">
             <app-mark [size]="56" />
           </div>
-          <h1 class="text-3xl font-semibold tracking-tight">Daybook</h1>
-          <p class="mt-2 text-sm text-white/70">
+          <h1 class="text-display-lg font-semibold tracking-tight">Daybook</h1>
+          <p class="mt-2 text-body text-white/70">
             One page per day. Whatever you don't finish comes with you.
           </p>
         </div>
@@ -60,20 +60,20 @@ import { Mark } from '../../shared/mark';
             Continue with Google
           </button>
 
-          <div class="my-5 flex items-center gap-3 text-xs text-ink-400">
+          <div class="my-5 flex items-center gap-3 text-caption text-ink-400">
             <span class="h-px flex-1 bg-ink-200"></span>
             or
             <span class="h-px flex-1 bg-ink-200"></span>
           </div>
 
           @if (session.magicLinkSentTo(); as sentTo) {
-            <div class="rounded-card bg-done-100 p-4 text-sm text-done-700">
+            <div class="rounded-card bg-done-100 p-4 text-body text-done-700">
               Link sent to <strong>{{ sentTo }}</strong
               >. Open it on this device to finish signing in.
             </div>
           } @else {
             <form (ngSubmit)="sendLink()">
-              <label class="mb-1.5 block text-sm font-medium text-ink-600" for="email">
+              <label class="mb-1.5 block text-body font-medium text-ink-600" for="email">
                 Email a sign-in link
               </label>
               <input
@@ -97,7 +97,7 @@ import { Mark } from '../../shared/mark';
           }
         </div>
 
-        <p class="mt-6 text-center text-sm">
+        <p class="mt-6 text-center text-body">
           <a
             routerLink="/welcome"
             class="text-white/50 underline-offset-4 transition hover:text-white/80 hover:underline"

@@ -77,13 +77,13 @@ interface Shortcut {
           <button
             #option
             type="button"
-            class="flex items-center justify-between rounded-control px-3 py-2 text-left text-sm transition hover:bg-ink-50"
+            class="flex items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
             [class]="s.date === date() ? 'font-semibold text-brand-700' : 'text-ink-900'"
             [attr.aria-label]="s.label + ', ' + full(s.date)"
             (click)="choose(s.date)"
           >
             <span>{{ s.label }}</span>
-            <span class="text-xs text-ink-400">{{ s.hint }}</span>
+            <span class="text-caption text-ink-400">{{ s.hint }}</span>
           </button>
         }
       </div>
@@ -91,7 +91,7 @@ interface Shortcut {
       <!-- month grid -->
       <div class="mt-1 border-t border-ink-100 pt-2">
         <div class="flex items-center justify-between px-2 pb-1">
-          <p class="text-sm font-semibold">{{ label() }}</p>
+          <p class="text-body font-semibold">{{ label() }}</p>
           <div class="flex items-center gap-1">
             <button
               type="button"
@@ -113,7 +113,7 @@ interface Shortcut {
           </div>
         </div>
 
-        <div class="grid grid-cols-7 gap-0.5 px-1 pb-1 text-center text-[11px] font-medium text-ink-400">
+        <div class="grid grid-cols-7 gap-0.5 px-1 pb-1 text-center text-caption font-medium text-ink-400">
           @for (d of weekdayHeadings; track $index) {
             <span aria-hidden="true">{{ d }}</span>
           }
@@ -124,7 +124,7 @@ interface Shortcut {
             @if (cell) {
               <button
                 type="button"
-                class="grid h-8 place-items-center rounded-control text-sm transition disabled:text-ink-200 disabled:hover:bg-transparent"
+                class="grid h-8 place-items-center rounded-control text-body transition disabled:text-ink-200 disabled:hover:bg-transparent"
                 [class]="dayClass(cell)"
                 [disabled]="cell < todayDate"
                 [attr.aria-label]="full(cell)"
@@ -142,10 +142,10 @@ interface Shortcut {
 
       <!-- reminder time -->
       <div class="mt-1 flex items-center gap-2 border-t border-ink-100 px-2 pt-2">
-        <span class="text-xs text-ink-400" aria-hidden="true">&#9200;</span>
+        <span class="text-caption text-ink-400" aria-hidden="true">&#9200;</span>
         <input
           type="time"
-          class="min-w-0 flex-1 rounded-control bg-ink-50 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+          class="min-w-0 flex-1 rounded-control bg-ink-50 px-2 py-1.5 text-body outline-none focus:ring-2 focus:ring-brand-500"
           [value]="time() ?? ''"
           aria-label="Reminder time"
           (change)="onTime($event)"

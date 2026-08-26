@@ -43,7 +43,7 @@ import {
       <header class="safe-top flex items-center justify-between gap-4 py-6">
         <a
           routerLink="/today"
-          class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+          class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
         >
           <span aria-hidden="true">&lsaquo;</span> Today
         </a>
@@ -88,7 +88,7 @@ import {
                 }
               </button>
 
-              <h1 class="min-w-0 flex-1 text-xl font-semibold leading-snug tracking-tight">
+              <h1 class="min-w-0 flex-1 text-header font-semibold tracking-tight">
                 <span
                   class="task-text"
                   [class.is-done]="done()"
@@ -101,7 +101,7 @@ import {
             </div>
 
             <!-- chips -->
-            <div class="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+            <div class="mt-4 flex flex-wrap items-center gap-1.5 text-caption">
               <span class="rounded-full bg-brand-50 px-2.5 py-1 font-medium text-brand-700">
                 {{ day() }}
               </span>
@@ -138,13 +138,13 @@ import {
             </div>
 
             <!-- history: the two counts §5 feature 10 exists to answer -->
-            <dl class="mt-5 grid grid-cols-3 gap-3 border-t border-ink-100 pt-4 text-sm">
+            <dl class="mt-5 grid grid-cols-3 gap-3 border-t border-ink-100 pt-4 text-body">
               <div>
-                <dt class="text-xs text-ink-400">Written</dt>
+                <dt class="text-caption text-ink-400">Written</dt>
                 <dd class="mt-0.5 font-medium">{{ written() }}</dd>
               </div>
               <div>
-                <dt class="text-xs text-ink-400">Carried over</dt>
+                <dt class="text-caption text-ink-400">Carried over</dt>
                 <dd
                   class="mt-0.5 font-medium"
                   [class]="t.carried_over_count >= 3 ? 'text-late-700' : 'text-ink-900'"
@@ -153,7 +153,7 @@ import {
                 </dd>
               </div>
               <div>
-                <dt class="text-xs text-ink-400">Pushed</dt>
+                <dt class="text-caption text-ink-400">Pushed</dt>
                 <dd class="mt-0.5 font-medium">{{ t.reschedule_count }}&times;</dd>
               </div>
             </dl>
@@ -162,7 +162,7 @@ import {
             <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4">
               <button
                 type="button"
-                class="rounded-control bg-ink-100 px-3 py-1.5 text-sm font-medium text-ink-700 transition hover:bg-ink-200"
+                class="rounded-control bg-ink-100 px-3 py-1.5 text-body font-medium text-ink-700 transition hover:bg-ink-200"
                 (click)="editing.set(true)"
               >
                 Edit
@@ -171,7 +171,7 @@ import {
               @if (!done()) {
                 <button
                   type="button"
-                  class="rounded-control px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+                  class="rounded-control px-3 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
                   (click)="tasks.reschedule(t, tomorrow())"
                 >
                   <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
@@ -180,7 +180,7 @@ import {
 
               <button
                 type="button"
-                class="ml-auto rounded-control px-3 py-1.5 text-sm font-medium text-late-700 transition hover:bg-late-100"
+                class="ml-auto rounded-control px-3 py-1.5 text-body font-medium text-late-700 transition hover:bg-late-100"
                 (click)="remove()"
               >
                 Delete
@@ -191,7 +191,7 @@ import {
       } @else if (tasks.loaded()) {
         <div class="rounded-panel border-2 border-dashed border-ink-200 px-6 py-12 text-center">
           <p class="font-medium text-ink-600">That task is gone.</p>
-          <a routerLink="/today" class="mt-2 inline-block text-sm font-medium text-brand-700">
+          <a routerLink="/today" class="mt-2 inline-block text-body font-medium text-brand-700">
             Back to today
           </a>
         </div>

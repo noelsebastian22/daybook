@@ -16,10 +16,23 @@ import { Mark } from '../../shared/mark';
  * appear together, because it is explaining what they mean: green is a thing
  * finished, red is a thing avoided four times.
  *
- * No webfont. Inter is already the app's face and a marketing page that
- * blocks on a font request is a marketing page nobody waits for; the type
- * personality comes from the scale instead — a very tight display size
- * against very wide-tracked micro labels.
+ * No webfont. The app renders in the system stack (`--font-sans`), and a
+ * marketing page that blocks on a font request is a marketing page nobody
+ * waits for; the type personality comes from the scale instead — a very
+ * tight display size against very wide-tracked micro labels.
+ *
+ * **This page is exempt from the UI type scale**, and it is the only one.
+ * Everything that does a UI job here is on the tokens — body, caption,
+ * display. Three sites are not, and are deliberate:
+ *
+ *   - the hero h1, 44px rising to 60px
+ *   - the closing h2, 30px rising to 36px
+ *   - the hero subhead at 18px
+ *
+ * A landing page needs a register the app itself never uses, and the
+ * alternative was four more `@theme` steps used once each on one screen.
+ * The scale governs the app; this is a poster. Do not copy the pattern
+ * into a signed-in surface — see `src/styles.css` and AGENTS.md.
  */
 @Component({
   selector: 'app-welcome',
@@ -31,11 +44,11 @@ import { Mark } from '../../shared/mark';
       <header class="safe-top mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
         <div class="flex items-center gap-2.5">
           <app-mark [size]="28" />
-          <span class="text-[15px] font-semibold tracking-tight">Daybook</span>
+          <span class="text-body font-semibold tracking-tight">Daybook</span>
         </div>
         <a
           routerLink="/login"
-          class="rounded-card px-3.5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+          class="rounded-card px-3.5 py-2 text-body font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
         >
           Sign in
         </a>
@@ -46,7 +59,7 @@ import { Mark } from '../../shared/mark';
         <section class="mx-auto max-w-5xl px-5 pb-20 pt-10 lg:pt-20">
           <div class="grid items-center gap-14 lg:grid-cols-[1fr_340px] lg:gap-20">
             <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-100/60">
+              <p class="text-caption font-semibold uppercase tracking-[0.2em] text-brand-100/60">
                 One page per day
               </p>
 
@@ -70,7 +83,7 @@ import { Mark } from '../../shared/mark';
                 >
                   Start today
                 </a>
-                <span class="text-sm text-white/60">Free. Google sign-in or an emailed link.</span>
+                <span class="text-body text-white/60">Free. Google sign-in or an emailed link.</span>
               </div>
             </div>
 
@@ -129,10 +142,10 @@ import { Mark } from '../../shared/mark';
           <div class="mx-auto max-w-5xl space-y-16 px-5">
             <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
               <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                <p class="text-caption font-semibold uppercase tracking-[0.2em] text-ink-400">
                   Capture
                 </p>
-                <h2 class="mt-3 text-balance text-2xl font-semibold tracking-tight">
+                <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
                   Type it the way you'd say it
                 </h2>
                 <p class="mt-3 text-ink-600">
@@ -141,8 +154,8 @@ import { Mark } from '../../shared/mark';
                 </p>
               </div>
               <div class="self-center rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
-                <p class="text-sm text-ink-400">Add task</p>
-                <p class="mt-2 text-lg leading-loose">
+                <p class="text-body text-ink-400">Add task</p>
+                <p class="mt-2 text-subtitle leading-loose">
                   call physio
                   <span class="rounded-control bg-brand-50 px-1.5 py-1 text-brand-700"
                     >thursday 2pm</span
@@ -150,7 +163,7 @@ import { Mark } from '../../shared/mark';
                   <span class="rounded-control bg-ink-100 px-1.5 py-1 text-ink-600">#health</span>
                   <span class="rounded-control bg-quick-100 px-1.5 py-1 text-quick-700">!quick</span>
                 </p>
-                <p class="mt-3 text-sm text-ink-400">
+                <p class="mt-3 text-body text-ink-400">
                   Thursday 22 August, 2:00 PM · Health · Quick
                 </p>
               </div>
@@ -158,10 +171,10 @@ import { Mark } from '../../shared/mark';
 
             <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
               <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                <p class="text-caption font-semibold uppercase tracking-[0.2em] text-ink-400">
                   Two kinds of late
                 </p>
-                <h2 class="mt-3 text-balance text-2xl font-semibold tracking-tight">
+                <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
                   What slipped, and what you moved
                 </h2>
                 <p class="mt-3 text-ink-600">
@@ -172,30 +185,30 @@ import { Mark } from '../../shared/mark';
               </div>
               <div class="grid gap-3 self-center sm:grid-cols-2">
                 <div class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
-                  <p class="text-sm font-medium">Carried over most</p>
-                  <p class="mt-0.5 text-xs text-ink-400">The app moved these. You did not.</p>
+                  <p class="text-body font-medium">Carried over most</p>
+                  <p class="mt-0.5 text-caption text-ink-400">The app moved these. You did not.</p>
                   <div class="mt-4 flex items-baseline gap-3">
-                    <span class="min-w-0 flex-1 truncate text-sm">book the dentist</span>
+                    <span class="min-w-0 flex-1 truncate text-body">book the dentist</span>
                     <span
-                      class="shrink-0 rounded-full bg-late-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-late-700"
+                      class="shrink-0 rounded-full bg-late-100 px-2 py-0.5 text-caption font-medium tabular-nums text-late-700"
                       >&times;4</span
                     >
                   </div>
                   <div class="mt-2 flex items-baseline gap-3">
-                    <span class="min-w-0 flex-1 truncate text-sm">call physio</span>
+                    <span class="min-w-0 flex-1 truncate text-body">call physio</span>
                     <span
-                      class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-ink-600"
+                      class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-caption font-medium tabular-nums text-ink-600"
                       >&times;2</span
                     >
                   </div>
                 </div>
                 <div class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60">
-                  <p class="text-sm font-medium">Pushed most</p>
-                  <p class="mt-0.5 text-xs text-ink-400">These you moved by hand.</p>
+                  <p class="text-body font-medium">Pushed most</p>
+                  <p class="mt-0.5 text-caption text-ink-400">These you moved by hand.</p>
                   <div class="mt-4 flex items-baseline gap-3">
-                    <span class="min-w-0 flex-1 truncate text-sm">rewrite the invoice</span>
+                    <span class="min-w-0 flex-1 truncate text-body">rewrite the invoice</span>
                     <span
-                      class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-ink-600"
+                      class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-caption font-medium tabular-nums text-ink-600"
                       >&times;3</span
                     >
                   </div>
@@ -205,10 +218,10 @@ import { Mark } from '../../shared/mark';
 
             <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
               <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                <p class="text-caption font-semibold uppercase tracking-[0.2em] text-ink-400">
                   Mornings
                 </p>
-                <h2 class="mt-3 text-balance text-2xl font-semibold tracking-tight">
+                <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
                   It writes to you first
                 </h2>
                 <p class="mt-3 text-ink-600">
@@ -221,18 +234,18 @@ import { Mark } from '../../shared/mark';
                 class="self-center overflow-hidden rounded-panel bg-white shadow-sm ring-1 ring-ink-200/60"
               >
                 <div class="border-b border-ink-100 px-5 py-3">
-                  <p class="text-sm font-medium">Daybook — 3 on today</p>
-                  <p class="text-xs text-ink-400">to you · 7:00 AM</p>
+                  <p class="text-body font-medium">Daybook — 3 on today</p>
+                  <p class="text-caption text-ink-400">to you · 7:00 AM</p>
                 </div>
-                <div class="space-y-3 px-5 py-4 text-sm">
+                <div class="space-y-3 px-5 py-4 text-body">
                   <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">
+                    <p class="text-caption font-semibold uppercase tracking-wider text-ink-400">
                       Yesterday you finished
                     </p>
                     <p class="mt-1 text-done-700">pay rent · 9:14 AM</p>
                   </div>
                   <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">
+                    <p class="text-caption font-semibold uppercase tracking-wider text-ink-400">
                       Came with you
                     </p>
                     <p class="mt-1">call physio <span class="text-ink-400">· carried ×2</span></p>
@@ -260,7 +273,7 @@ import { Mark } from '../../shared/mark';
         </section>
       </main>
 
-      <footer class="safe-bottom border-t border-white/10 py-8 text-center text-xs text-white/50">
+      <footer class="safe-bottom border-t border-white/10 py-8 text-center text-caption text-white/50">
         Daybook
       </footer>
     </div>

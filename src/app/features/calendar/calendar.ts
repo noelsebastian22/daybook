@@ -56,8 +56,8 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
       <header class="safe-top flex items-center justify-between gap-4 py-6">
         <div>
-          <p class="text-xs font-medium uppercase tracking-wider text-ink-400">Calendar</p>
-          <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">{{ label() }}</h1>
+          <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Calendar</p>
+          <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ label() }}</h1>
         </div>
 
         <div class="flex items-center gap-1">
@@ -71,7 +71,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
           </button>
           <button
             type="button"
-            class="rounded-card px-3 py-1.5 text-sm font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+            class="rounded-card px-3 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
             (click)="month.set(startOfThisMonth)"
           >
             Today
@@ -88,7 +88,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
       </header>
 
       <div class="rounded-panel bg-white p-3 shadow-sm ring-1 ring-ink-200/60">
-        <div class="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] font-medium text-ink-400">
+        <div class="grid grid-cols-7 gap-1 pb-1 text-center text-caption font-medium text-ink-400">
           @for (d of weekdayHeadings; track $index) {
             <span aria-hidden="true">{{ d }}</span>
           }
@@ -99,7 +99,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
             @if (cell) {
               <a
                 [routerLink]="['/calendar', cell.date]"
-                class="relative grid aspect-square place-items-center rounded-control text-sm transition hover:ring-2 hover:ring-brand-500"
+                class="relative grid aspect-square place-items-center rounded-control text-body transition hover:ring-2 hover:ring-brand-500"
                 [style.background]="cell.past ? heat(cell) : null"
                 [class]="cellClass(cell)"
                 [attr.aria-label]="describe(cell)"
@@ -108,7 +108,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
 
                 @if (!cell.past && cell.count > 0) {
                   <span
-                    class="absolute bottom-1 text-[10px] font-medium tabular-nums text-ink-400"
+                    class="absolute bottom-1 text-caption font-medium tabular-nums text-ink-400"
                     >{{ cell.count }}</span
                   >
                 }
@@ -136,7 +136,7 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
       </div>
 
       <!-- legend -->
-      <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs text-ink-400">
+      <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-caption text-ink-400">
         <span class="inline-flex items-center gap-1.5">
           Done
           @for (step of heatSteps; track $index) {
