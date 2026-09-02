@@ -134,6 +134,17 @@ The one exception is `0.5` (2px) to optically centre a control or icon against
 a line of text — alignment, not spacing. There is exactly one, on the checkbox
 in `task-row.ts`, and it is commented as such.
 
+**The iOS safe area is `safe-py-*` / `safe-pb-*`, and it owns that axis.**
+These are hand-written rules in `src/styles.css`, not Tailwind utilities, and
+the step is baked into the name — `safe-py-6` means 24px *plus* the notch
+inset, so there is no `py-6` beside it. Do not pair one with a `py-*` on the
+same axis, and do not reintroduce a flat `safe-top`: unlayered CSS beats
+Tailwind's `@layer utilities` regardless of specificity, so a bare
+`padding-top: env(safe-area-inset-top)` silently zeroes the padding on every
+browser without a notch while looking correct on the installed iPhone. That is
+the same silent-failure family as `text-ink-800` and `rounded-lg`, and it had
+flattened every header in the app against the top of the desktop viewport.
+
 **Three radii exist**, named for what they sit on rather than by size:
 
 | Token | Value | Used on |

@@ -41,7 +41,7 @@ const MAX_WEEK = 3;
   imports: [TaskRow, Composer],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
-      <header class="safe-top flex items-center justify-between gap-4 py-6">
+      <header class="safe-py-6 flex items-center justify-between gap-4">
         <div>
           <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Upcoming</p>
           <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ range() }}</h1>

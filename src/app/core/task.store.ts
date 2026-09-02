@@ -21,6 +21,13 @@ interface TaskState {
   categories: Category[];
   loading: boolean;
   loaded: boolean;
+  /**
+   * The user id `loaded` refers to. Until sign-out navigated on its own, a
+   * reload always sat between two sessions and rebuilt this store from cold,
+   * so a plain boolean was enough. Now that it does not, `ensureLoaded` has
+   * to be able to tell "already loaded" from "loaded for somebody else".
+   */
+  loadedFor: string | null;
   filter: EnergyFilter;
   /** Category id, or null for every category. Independent of the energy filter. */
   categoryFilter: string | null;
@@ -47,6 +54,7 @@ export const TaskStore = signalStore(
     categories: [],
     loading: false,
     loaded: false,
+    loadedFor: null,
     filter: 'all',
     categoryFilter: null,
     upcomingOpen: false,
@@ -194,7 +202,7 @@ export const TaskStore = signalStore(
           .gte('scheduled_date', addDays(today(), -14))
           .lte('scheduled_date', addDays(today(), 30))
           .order('created_at');
-        patchState(store, { loading: false, loaded: true });
+        patchState(store, { loading: false, loaded: true, loadedFor: session.userId() });
         if (error) {
           toast.error('Could not load tasks.');
           return;
@@ -433,7 +441,26 @@ export const TaskStore = signalStore(
        * correctness.
        */
       async function ensureLoaded(): Promise<void> {
-        if (store.loaded() || store.loading()) return;
+        if (store.loading()) return;
+        // A second user signing in on the same page load inherits the first
+        // one's rows otherwise: `loaded` stays true, this returns early, and
+        // the list never refetches. RLS keeps the data safe on the server;
+        // this is about not showing somebody the wrong tasks.
+        if (store.loaded() && store.loadedFor() === session.userId()) return;
+        // Drop the previous user's rows before the refetch rather than after,
+        // so their tasks are never on screen under the new user's session.
+        if (store.loaded()) {
+          patchState(store, {
+            tasks: [],
+            categories: [],
+            snapshots: [],
+            loaded: false,
+            loadedFor: null,
+            lastRolledCount: 0,
+            filter: 'all',
+            categoryFilter: null,
+          });
+        }
         await init();
       }
 

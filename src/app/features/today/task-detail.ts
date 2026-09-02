@@ -40,7 +40,7 @@ import {
   },
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
-      <header class="safe-top flex items-center justify-between gap-4 py-6">
+      <header class="safe-py-6 flex items-center justify-between gap-4">
         <a
           routerLink="/today"
           class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"

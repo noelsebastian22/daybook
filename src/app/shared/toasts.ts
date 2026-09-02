@@ -6,7 +6,7 @@ import { ToastStore } from '../core/toast.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 lg:left-60"
+      class="safe-pb-4 pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 lg:left-60"
       role="status"
       aria-live="polite"
     >

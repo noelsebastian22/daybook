@@ -47,7 +47,7 @@ interface NavItem {
 
     <!-- mobile bar -->
     <div
-      class="safe-top sticky top-0 z-30 flex items-center gap-2 bg-ink-50/80 px-2 py-2 backdrop-blur lg:hidden"
+      class="safe-py-2 sticky top-0 z-30 flex items-center gap-2 bg-ink-50/80 px-2 backdrop-blur lg:hidden"
     >
       <button
         type="button"
@@ -87,7 +87,7 @@ interface NavItem {
       and a duplicate landmark for screen readers.
     -->
     <nav
-      class="safe-top fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-ink-200/70 bg-white px-3 py-4 transition-transform duration-200 lg:translate-x-0"
+      class="safe-py-4 fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-ink-200/70 bg-white px-3 transition-transform duration-200 lg:translate-x-0"
       [class]="menuOpen() ? 'translate-x-0' : '-translate-x-full'"
       aria-label="Main"
     >

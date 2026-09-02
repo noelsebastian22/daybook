@@ -1,4 +1,5 @@
 import { computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   signalStore,
   withState,
@@ -123,7 +124,7 @@ export const SessionStore = signalStore(
   }),
 
   withHooks({
-    onInit(store, sb = inject(Supabase)) {
+    onInit(store, sb = inject(Supabase), router = inject(Router)) {
       void sb.client.auth.getSession().then(({ data }) => {
         store.apply(data.session);
         if (data.session) void store.ensureSetup();
@@ -131,8 +132,22 @@ export const SessionStore = signalStore(
 
       sb.client.auth.onAuthStateChange((_event, session) => {
         const wasSignedOut = !store.session();
+        // `authGuard` is a CanActivateFn, so it only runs on a navigation.
+        // Clearing the session while sitting on /today re-ran no guard and
+        // left the page up until a manual reload — the reload rebuilt every
+        // store from cold and only then bounced to /welcome. The navigation
+        // has to be pushed from here.
+        //
+        // Here rather than in `signOut()` because Supabase fires this for
+        // every way a session can end: the button, a sign-out in another tab,
+        // a revoked or expired token. All three left the same stale page up.
+        const wasSignedIn = store.status() === 'signed-in';
         store.apply(session);
         if (session && wasSignedOut) void store.ensureSetup();
+        // Only on a real transition. This also fires INITIAL_SESSION with a
+        // null session for a signed-out visitor, and navigating on that would
+        // throw anyone who deep-linked to /login over to /welcome.
+        if (!session && wasSignedIn) void router.navigateByUrl('/welcome');
       });
     },
   }),

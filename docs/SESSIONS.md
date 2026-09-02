@@ -11,6 +11,81 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-02 · claude-code · sign-out nav, safe-area padding
+
+**Did**
+- **Sign-out now navigates.** `authGuard` is a `CanActivateFn` and only runs on
+  a navigation, so clearing the session on `/today` re-ran no guard and left
+  the page up; the reload that "fixed" it was rebuilding every store from cold.
+  Push added to `onAuthStateChange` in `session.store.ts`, guarded on a real
+  signed-in→signed-out transition. Noel confirmed it working.
+- **Every header had zero top padding on desktop.** `.safe-top` was an
+  unlayered rule in `styles.css`, so it beat Tailwind's `py-*` regardless of
+  specificity, and `env(safe-area-inset-top)` is `0px` without a notch. All
+  twelve `safe-top`/`safe-bottom` sites were paired with a `py-*` and all
+  twelve were losing it. Replaced with `safe-py-{2,4,5,6}` and
+  `safe-pb-{4,8}`, which own the axis and `calc()` the inset on top.
+- Verified on screen: 24px top and bottom across `/today`, `/upcoming`,
+  `/calendar`, `/reporting`, `/settings`, 16px on the drawer, and all six
+  utilities probed in isolation for the ones this viewport cannot reach.
+- **`TaskStore` and `SettingsStore` gained `loadedFor`**, a user id beside
+  `loaded`. `ensureLoaded()` short-circuited on a boolean that was never reset,
+  so a second user signing in on the same page load would have kept the first
+  one's rows. Latent until sign-out started navigating without a reload.
+- Build **526.64 kB** initial, up 0.27 kB. **55 tests in 4 files**, passing.
+  Schema untouched; live still has 6 migrations to the folder's 4, as expected.
+
+**Decided**
+- **The step is baked into the safe-area class name.** `safe-py-6` is 24px plus
+  the inset and there is no `py-6` beside it. A `safe-pt` modifier sitting next
+  to the existing `py-*` would repeat the number in two classes and break
+  silently the day one changed. §9.
+- **The navigation goes in `onAuthStateChange`, not `signOut()`.** One callback
+  covers the button, another tab and an expired token; `signOut()` would have
+  fixed only the first. §9.
+- `safe-py-5` exists solely for the `/welcome` header, which was already off
+  the documented spacing scale. It goes when the §12 cleanup reaches that file.
+
+**Didn't work**
+- **Reading the class list is not enough to know what a class does.** `py-6`
+  was right there in the markup on all twelve headers and looked correct; only
+  `getComputedStyle` showed `padding-top: 0px`. The bug was found from the
+  screen, by Noel, not from the code — and it had been live since the class was
+  written. **Measure the computed value, do not trust the utility.** Third
+  session running that a silent-failure class has cost something: `text-ink-800`,
+  `rounded-lg`, now `.safe-top`.
+- **Assuming the bundle only grows.** The sign-out fix measured 1.52 kB
+  *smaller* than the logged 527.89 kB, which looked like a bad number until it
+  was checked — `git stash`, rebuild, confirm the baseline, `stash pop`. It was
+  real: pulling `Router` into the eager graph let the bundler drop duplication
+  from the lazy chunks. **Rebuild the baseline before reporting a delta**
+  against a figure from a previous session.
+
+**Open**
+- **The iOS half of the safe-area fix is unverified on device.** The `calc()`
+  is additive by construction but no notched screen has been looked at since
+  the change. Daybook is installed on Noel's iPhone; this is a one-minute check.
+- **`loadedFor` is unverified** — it needs two accounts and one was not to hand.
+- `/welcome` and `/login` still not seen since the type migration. `/welcome`
+  was seen once this session, but *before* the padding fix, so its header is
+  the one surface changed here that nobody has looked at.
+- Unchanged from 26 Aug: ~8 `disabled:opacity-*` sites still blocked on
+  `composer.ts`'s focus trap; 54 fractional spacing sites; offline queue still
+  wholly unverified; `InvalidStateError` on dev-server reload; no reference
+  designs collected; `DIGEST_FROM` blocks multi-tenancy.
+
+**Next**
+Sign out once and look at `/welcome` and `/login` on screen — it closes the
+oldest open §12 item and is now also the only way to check the `safe-py-5`
+header. Then open the app on the iPhone and confirm the notch inset is still
+being added rather than replaced.
+
+**Touched** — `src/styles.css`, `AGENTS.md`, `BUILD-PLAN.md`,
+`src/app/core/{session,task,settings}.store.ts`,
+`src/app/shared/{shell,toasts}.ts`,
+`src/app/features/{today/today,today/task-detail,upcoming/upcoming,calendar/calendar,calendar/day-detail,reporting/reporting,settings/settings,welcome/welcome}.ts`
+
+
 ## 2026-08-26 · claude-code · type migration finished
 
 **Did**

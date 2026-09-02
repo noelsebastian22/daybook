@@ -221,12 +221,49 @@ body {
   transform: translateY(0);
 }
 
-/* Respect the notch on an installed iOS PWA. */
-.safe-top {
-  padding-top: env(safe-area-inset-top);
+/* ------------------------------------------------------------------
+   Respect the notch on an installed iOS PWA.
+
+   These **add** the inset to the element's own padding. The previous
+   pair set `padding-top: env(safe-area-inset-top)` flat, which looked
+   right on an iPhone and silently zeroed the padding everywhere else:
+   these rules are unlayered, so they beat Tailwind's `py-*` in the
+   cascade no matter the specificity, and `env(safe-area-inset-top)`
+   resolves to 0px on every browser without a notch. Every header in
+   the app was sitting flush against the top of the desktop viewport.
+
+   The two rules genuinely conflict on one property, so no amount of
+   layering fixes it — the value has to be a sum. That is why the step
+   is baked into the name: `safe-py-6` owns both paddings for that
+   element and there is no `py-6` beside it to drift out of sync.
+
+   Steps are the documented scale. `safe-py-5` is the exception and
+   exists for one element, the /welcome header, which was already off
+   the scale before this — see AGENTS.md and the §12 spacing cleanup.
+   ------------------------------------------------------------------ */
+.safe-py-2 {
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+  padding-bottom: 0.5rem;
 }
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+.safe-py-4 {
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: 1rem;
+}
+.safe-py-5 {
+  padding-top: calc(1.25rem + env(safe-area-inset-top));
+  padding-bottom: 1.25rem;
+}
+.safe-py-6 {
+  padding-top: calc(1.5rem + env(safe-area-inset-top));
+  padding-bottom: 1.5rem;
+}
+
+/* Bottom-only: these sit beside a `p-*`/`py-*` that keeps the top. */
+.safe-pb-4 {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+.safe-pb-8 {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
 
 /* ------------------------------------------------------------------

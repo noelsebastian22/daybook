@@ -42,7 +42,7 @@ const LIST_SIZE = 5;
   imports: [RouterLink],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
-      <header class="safe-top py-6">
+      <header class="safe-py-6">
         <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Reporting</p>
         <h1 class="mt-0.5 text-display font-semibold tracking-tight">The last fortnight</h1>
       </header>

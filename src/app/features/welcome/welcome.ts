@@ -41,7 +41,7 @@ import { Mark } from '../../shared/mark';
   template: `
     <div class="min-h-dvh bg-ink-900 text-white">
       <!-- ---------------------------------------------------------------- -->
-      <header class="safe-top mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+      <header class="safe-py-5 mx-auto flex max-w-5xl items-center justify-between px-5">
         <div class="flex items-center gap-2.5">
           <app-mark [size]="28" />
           <span class="text-body font-semibold tracking-tight">Daybook</span>
@@ -273,7 +273,7 @@ import { Mark } from '../../shared/mark';
         </section>
       </main>
 
-      <footer class="safe-bottom border-t border-white/10 py-8 text-center text-caption text-white/50">
+      <footer class="safe-pb-8 border-t border-white/10 py-8 text-center text-caption text-white/50">
         Daybook
       </footer>
     </div>

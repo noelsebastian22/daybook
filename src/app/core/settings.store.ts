@@ -10,6 +10,8 @@ interface SettingsState {
   settings: UserSettings | null;
   loading: boolean;
   loaded: boolean;
+  /** The user id `loaded` refers to. See the same field on `TaskStore`. */
+  loadedFor: string | null;
 }
 
 /**
@@ -23,7 +25,7 @@ interface SettingsState {
  */
 export const SettingsStore = signalStore(
   { providedIn: 'root' },
-  withState<SettingsState>({ settings: null, loading: false, loaded: false }),
+  withState<SettingsState>({ settings: null, loading: false, loaded: false, loadedFor: null }),
 
   withMethods(
     (
@@ -50,7 +52,12 @@ export const SettingsStore = signalStore(
         }
 
         if (data) {
-          patchState(store, { settings: data as UserSettings, loading: false, loaded: true });
+          patchState(store, {
+            settings: data as UserSettings,
+            loading: false,
+            loaded: true,
+            loadedFor: uid,
+          });
           return;
         }
 
@@ -69,7 +76,7 @@ export const SettingsStore = signalStore(
           .select()
           .single();
 
-        patchState(store, { loading: false, loaded: true });
+        patchState(store, { loading: false, loaded: true, loadedFor: uid });
         if (insertError || !created) {
           toast.error('Could not create your settings.');
           return;
@@ -78,7 +85,13 @@ export const SettingsStore = signalStore(
       }
 
       async function ensureLoaded(): Promise<void> {
-        if (store.loaded() || store.loading()) return;
+        if (store.loading()) return;
+        // Same reason as `TaskStore.ensureLoaded`: a second user signing in on
+        // the same page load would otherwise keep the first one's settings row.
+        if (store.loaded() && store.loadedFor() === session.userId()) return;
+        if (store.loaded()) {
+          patchState(store, { settings: null, loaded: false, loadedFor: null });
+        }
         await load();
       }
 

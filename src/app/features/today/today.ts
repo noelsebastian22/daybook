@@ -21,7 +21,7 @@ import type { Task } from '../../core/models';
   imports: [Composer, TaskRow, EmptyState],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
-      <header class="safe-top flex items-start justify-between gap-4 py-6">
+      <header class="safe-py-6 flex items-start justify-between gap-4">
         <div>
           <p class="text-caption font-medium uppercase tracking-wider text-ink-400">
             {{ heading }}

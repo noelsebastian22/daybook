@@ -34,7 +34,7 @@ import type { Task } from '../../core/models';
   imports: [RouterLink, TaskRow, Composer, EmptyState],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
-      <header class="safe-top py-6">
+      <header class="safe-py-6">
         <a
           routerLink="/calendar"
           class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"

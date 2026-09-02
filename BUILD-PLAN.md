@@ -1450,6 +1450,25 @@ directions above is committed.
 **Design tokens come before any visual change.** Repainting on top of ad-hoc
 spacing repaints the ad-hoc spacing. §4.
 
+**The safe-area utilities bake the spacing step into the name.** `safe-py-6`
+means 24px plus the notch inset and owns both paddings on that axis; there is
+no `py-6` beside it to drift out of sync. The alternative — a `safe-pt`
+modifier sitting next to whatever `py-*` the element already had — repeats the
+number in two classes and quietly breaks the day one of them changes. Baking it
+in costs one rule per step actually used (2, 4, 5, 6) and makes a wrong pairing
+unwriteable rather than merely discouraged. `safe-py-5` exists only because the
+`/welcome` header was already off the documented scale; it goes when the §12
+spacing cleanup reaches that file. 2 Sep.
+
+**The sign-out navigation lives in `onAuthStateChange`, not in `signOut()`.**
+Every way a session can end — the button, another tab, a revoked or expired
+token — comes through that one callback, and all of them left the same stale
+page up. Putting it in `signOut()` would have fixed the button and left the
+other two. It is guarded on a real signed-in→signed-out transition because the
+same callback fires `INITIAL_SESSION` with a null session for every signed-out
+visitor, and navigating on that would throw anyone deep-linking to `/login`
+over to `/welcome`. 2 Sep.
+
 ---
 
 ## 11. Backlog
@@ -1637,6 +1656,29 @@ Not core. Revisit once the main app is solid.
   `aria-disabled` over the HTML attribute so the control stays focusable and
   can say why it is inert. Not fixed: `composer.ts`'s focus trap filters on
   `hasAttribute('disabled')` and would need to change with it.
+- ~~Sign-out left the signed-in page up until a manual reload.~~ **Closed
+  2 Sep.** `authGuard` is a `CanActivateFn`, so it only evaluates on a
+  navigation; clearing the session while sitting on `/today` re-ran no guard.
+  The reload appeared to fix it only because it rebuilt every store from cold
+  and re-entered the guard. The navigation is now pushed from
+  `onAuthStateChange` in `session.store.ts`, which covers the button, a
+  sign-out in another tab and a revoked or expired token in one place, guarded
+  on a real signed-in→signed-out transition so `INITIAL_SESSION` does not throw
+  a signed-out visitor off `/login`. Confirmed working by Noel.
+- ~~Every header lost its top padding on desktop.~~ **Closed 2 Sep.** See §13:
+  `.safe-top` was unlayered and beat `py-*`. Replaced by `safe-py-*` /
+  `safe-pb-*`, which own the axis and add the inset. Twelve call sites.
+  Verified on screen at 24px across `/today`, `/upcoming`, `/calendar`,
+  `/reporting`, `/settings` and 16px on the drawer; **the iOS half is
+  unverified on device** — the calc is additive by construction but no notched
+  screen has been looked at since the change.
+- **A second user signing in on the same page load inherits the first one's
+  data.** Latent until 2 Sep, when sign-out started navigating without a
+  reload; before that a reload always sat between two sessions and rebuilt the
+  stores. `TaskStore` and `SettingsStore` now track `loadedFor` (a user id)
+  beside `loaded` and refetch when it changes. RLS meant this was never a data
+  leak on the server, only the wrong rows on screen. **Not verified** — it
+  needs two accounts and one was not to hand.
 
 ## 13. Platform constraints and gotchas
 
@@ -1652,6 +1694,27 @@ purely by documentation, resurrecting classes the code had just retired.
 `src/styles.css` carries `@source not "../**/*.md";` to stop it. If a class
 that no longer exists anywhere in `src/app` turns up in the built CSS, check
 whether a Markdown file mentions it before hunting through components.
+
+
+### Unlayered CSS beats every Tailwind utility
+
+Tailwind v4 emits its utilities inside `@layer utilities`. **Any unlayered rule
+in `src/styles.css` wins against all of them, regardless of specificity** — a
+bare `.safe-top { padding-top: env(safe-area-inset-top) }` overrode `py-6`, and
+because `env(safe-area-inset-top)` is `0px` on anything without a notch, every
+header in the app rendered flush against the top of the desktop viewport while
+looking perfect on the installed iPhone. Live for as long as the class existed;
+found 2 Sep from the screen, not from the code.
+
+No amount of layering fixes a case like this, because the two rules genuinely
+conflict on one property and one of them has to lose. The value has to be a
+sum: `calc(1.5rem + env(safe-area-inset-top))`. See §9 and `AGENTS.md`.
+
+Two consequences worth carrying forward. **`env()` insets are zero on desktop**,
+so any rule built on one is invisible in every browser the app is developed in.
+And a hand-written rule in `styles.css` is not a peer of a utility — it is
+above the whole system, which is why the three that remain (`.skip-link`,
+`.safe-*`, the completion keyframes) are the only ones there.
 
 
 ### pg_cron and pg_net
