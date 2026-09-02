@@ -32,7 +32,8 @@ it turned out wrong, say so in a new one.
   `loaded`. `ensureLoaded()` short-circuited on a boolean that was never reset,
   so a second user signing in on the same page load would have kept the first
   one's rows. Latent until sign-out started navigating without a reload.
-- Build **526.64 kB** initial, up 0.27 kB. **55 tests in 4 files**, passing.
+- Build **526.64 kB** initial, **down 1.25 kB** on the 527.89 kB logged 26 Aug
+  and re-measured from the commit today. **55 tests in 4 files**, passing.
   Schema untouched; live still has 6 migrations to the folder's 4, as expected.
 
 **Decided**
