@@ -1880,6 +1880,20 @@ Not core. Revisit once the main app is solid.
   what keeps someone who has travelled east of their stored timezone
   consistent with the date the app is showing them. Only the irreversible half,
   the snapshot, is strict. Revisit if anyone reports vanished tasks.
+- **Delete the local Supabase Docker volumes when development finishes.**
+  `supabase stop` defaults to `backup: true` and leaves `supabase_db_daybook`
+  and `supabase_edge_runtime_daybook` behind, which is what makes the next
+  `supabase start` fast and keeps the seeded test users around. Once there is
+  nothing left to validate locally, reclaim the disk:
+
+  ```bash
+  supabase stop --no-backup            # or, if the stack is already down:
+  docker volume rm supabase_db_daybook supabase_edge_runtime_daybook
+  ```
+
+  Deliberately deferred, not forgotten — the volumes are the local validation
+  environment and dropping them mid-phase means rebuilding the seeded state by
+  hand. Noel's call, 3 Sep.
 - **`user_settings.push_subscription` still exists**, deprecated and unread,
   as the rollback path for the `push_subscriptions` move. Drop it in `0006`
   once the new table has been seen delivering to a real device.
@@ -2214,6 +2228,33 @@ Never call `toISOString()` to get a calendar date. It converts to UTC first,
 which in Sydney puts anything before 10am on the previous day and silently
 corrupts rollover. Use `toLocalDate()` from `src/app/core/dates.ts`. A "day" in
 this app is always a local `YYYY-MM-DD` string.
+
+### Local Supabase stack
+
+Set up 3 Sep. There had never been a `supabase/config.toml`, so migrations
+could only ever be checked by applying them to the live project — which is
+exactly the thing you do not want to do with a migration you have not checked.
+
+```bash
+supabase start -x realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,mailpit
+docker exec -i supabase_db_daybook psql -U postgres -d postgres   # SQL in
+supabase stop
+```
+
+- **`docker exec` needs `-i`** to accept a heredoc. Without it the command runs
+  and prints nothing at all, which reads like a silent failure.
+- **`auth.users`, `auth.uid()` and the three roles all exist** in the local DB,
+  so `SECURITY DEFINER` functions can be exercised properly. Set the caller
+  with `set local request.jwt.claim.sub = '<uuid>'` inside a transaction.
+- **The `000N_` migration filenames work** despite not being Supabase's
+  timestamp convention — `supabase start` applied all five in order. Do not
+  rename them to "fix" this.
+- **The excluded services are not needed** to validate schema, and skipping
+  them saves a long first-run image pull. `gotrue` is left in because it is
+  what creates `auth.users`.
+- **Validate a migration by reproducing the bug first.** Every fix in `0005`
+  was confirmed by running the pre-fix expression against the same seeded rows
+  and watching it fail. A test that has never failed proves nothing.
 
 ### Tooling
 

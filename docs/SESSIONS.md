@@ -98,7 +98,9 @@ it turned out wrong, say so in a new one.
   irreversible half — the snapshot — is strict.
 - `design_inspirations/drawer-collapse.mov` is untracked and not mine. Ignore
   it or commit it.
-- Local Supabase stack left running. `supabase stop`.
+- Local Supabase stack **stopped**. Its two Docker volumes are kept on
+  purpose, so the next `supabase start` comes back with the seeded test
+  users; deleting them is a §12 item for when development finishes.
 - Unchanged: iOS safe-area unverified on device; `/welcome` and `/login` unseen
   since the type migration; ~8 `disabled:opacity-*` sites; 54 fractional
   spacing sites; `InvalidStateError` on dev-server reload.
