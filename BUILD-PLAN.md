@@ -2256,6 +2256,30 @@ supabase stop
   was confirmed by running the pre-fix expression against the same seeded rows
   and watching it fail. A test that has never failed proves nothing.
 
+### Reading a design reference
+
+Noel drops screen recordings of behaviour he wants into `design_inspirations/`.
+**No agent can read video.** The Read tool takes images, PDFs and notebooks;
+a `.mov` is opaque. Convert first — `ffmpeg` is installed:
+
+```bash
+ffmpeg -y -v error -i design_inspirations/<clip>.mov \
+  -vf "fps=2,scale=440:-1,tile=4x3:padding=6:color=white" /tmp/sheet.png
+```
+
+Then Read the PNG. A 4x3 tile at 2fps covers about six seconds and stays
+legible down to individual nav items and task rows — verified on
+`drawer-collapse.mov`, 3 Sep.
+
+- **Sampling loses the motion.** 2fps shows *what* changed, not the easing or
+  duration. If the movement itself is the point, resample the transition alone
+  at 15–30fps.
+- **Nobody will notice a new file.** Noel has to point at it.
+- **`design_inspirations/` is gitignored** — the clips are local to one machine
+  and invisible to Cowork and Command Code. **A recording is not a record.**
+  Once a clip turns into a decision, the decision belongs in this file as text
+  or it dies with the machine it is sitting on.
+
 ### Tooling
 
 - `@angular/cli@22` hard-requires Node 22.22.3, 24.15.0 or 26+. Check `node -v`

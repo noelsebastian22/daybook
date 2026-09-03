@@ -96,8 +96,15 @@ it turned out wrong, say so in a new one.
 - A fast device clock still pushes tasks a day forward. Deliberate: the `+1`
   upper bound keeps a traveller consistent with what the app shows. Only the
   irreversible half — the snapshot — is strict.
-- `design_inspirations/drawer-collapse.mov` is untracked and not mine. Ignore
-  it or commit it.
+- **Queued for next session: `design_inspirations/drawer-collapse.mov`.** Noel
+  gitignored the folder and is using it for screen recordings of behaviour he
+  wants. Read as a contact sheet (see §13 — agents cannot read video). This one
+  is Todoist collapsing its sidebar: nav strips away, content column re-centres
+  and widens, header falls back to `Display` plus the overflow menu, then
+  expands again. **Daybook's shell has no equivalent** — the sidebar is fixed at
+  240px behind `lg:` with no collapse, and `toasts.ts`/`composer.ts` both carry
+  `lg:left-60` hard-coded against that width, so a collapsible sidebar moves
+  three files, not one. Deferred by Noel, 3 Sep; no design decision taken yet.
 - Local Supabase stack **stopped**. Its two Docker volumes are kept on
   purpose, so the next `supabase start` comes back with the seeded test
   users; deleting them is a §12 item for when development finishes.
