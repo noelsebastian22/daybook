@@ -12,6 +12,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { Supabase } from './supabase';
 import { ToastStore } from './toast.store';
 import { browserTimezone } from './dates';
+import { Push } from './push';
 
 type AuthStatus = 'unknown' | 'signed-in' | 'signed-out';
 
@@ -46,9 +47,25 @@ export const SessionStore = signalStore(
     }),
   })),
 
-  withMethods((store, sb = inject(Supabase), toast = inject(ToastStore)) => {
+  withMethods((store, sb = inject(Supabase), toast = inject(ToastStore), push = inject(Push)) => {
     /** The user id {@link ensureSetup} has already run for this page load. */
     let setupRanFor: string | null = null;
+
+    /**
+     * Drops this browser's push registration and the row behind it.
+     *
+     * Hand-rolled here rather than delegating to `SettingsStore`, which owns
+     * the same three lines: `SettingsStore` injects `SessionStore`, so calling
+     * back into it would close a dependency cycle. The duplication is two
+     * statements and the alternative is an injector graph that does not
+     * resolve.
+     */
+    async function unregisterDevice(): Promise<void> {
+      const endpoint = await push.currentEndpoint();
+      await push.unsubscribe();
+      if (!endpoint) return;
+      await sb.client.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    }
 
     const apply = (session: Session | null) =>
       patchState(store, {
@@ -117,6 +134,28 @@ export const SessionStore = signalStore(
       },
 
       async signOut(): Promise<void> {
+        // Before `auth.signOut()`, not after: the delete goes through RLS and
+        // needs the session that owns the row. Afterwards there is no
+        // `auth.uid()` and the row simply survives.
+        //
+        // That survival is the bug. A push endpoint identifies a browser
+        // install, not a person, so a row left behind keeps pointing the cron
+        // at this device — and the next person to sign in on it receives the
+        // previous user's reminders, task text and all. RLS cannot help: the
+        // cron sends as `service_role`.
+        //
+        // Best effort by design. It cannot run for the other ways a session
+        // ends — an expired token, a sign-out in another tab — because those
+        // have no usable session either. The server-side half of the defence
+        // is `register_push_subscription`, which reassigns the endpoint to
+        // whoever subscribes next, so a missed cleanup is closed the moment
+        // the new user turns reminders on.
+        try {
+          await unregisterDevice();
+        } catch {
+          // Never block sign-out on it. Failing to sign out is worse than a
+          // stale row that the next registration will take over anyway.
+        }
         await sb.client.auth.signOut();
         apply(null);
       },

@@ -336,14 +336,22 @@ multi-tenancy.
 - ~~**Load a typeface.**~~ **Closed 25 Aug, the other way.** Inter is not
   fetched; `--font-sans` now names the system stack it was always really
   rendering (§9, §12).
-- **Code quality.** No specific list yet. `features/today/capture.ts` at 545
-  lines and `features/welcome/welcome.ts` at 498 are the two obvious candidates
-  to look at first, being roughly double anything else in the repo.
-- **Test coverage.** 55 tests across 4 files as of 22 Aug, against ~4,300 lines
-  of components. The stores and `parse-capture` carry most of it; the
-  components carry almost none. The offline queue — still the one unverified
-  feature — is the highest-value thing to cover, since it is also the hardest
-  to exercise by hand.
+- **Code quality.** No specific list yet. `core/task.store.ts` at 655 lines,
+  `features/today/capture.ts` at 550 and `features/welcome/welcome.ts` at 511
+  are the three obvious candidates. **Corrected 3 Sep** — this said capture and
+  welcome were "roughly double anything else in the repo", which stopped being
+  true when the store outgrew both.
+- **Test coverage.** 55 tests across 4 files, against ~6,300 lines of source.
+  **Corrected 3 Sep: this said "the stores and `parse-capture` carry most of
+  it". The stores carry none of it.** The four spec files are `dates` (12),
+  `install` (13), `offline-queue` (7) and `parse-capture` (23); there is no
+  `session.store.spec.ts`, no `task.store.spec.ts`, no
+  `settings.store.spec.ts` and no `auth.guard.spec.ts`. Every client-side
+  tenant-isolation guarantee — `loadedFor`, `setupRanFor`, the guard's
+  resolve-then-decide — therefore rests on nothing, and `loadedFor` shipped on
+  2 Sep unverified because a second account was not to hand. **That, not the
+  offline queue, is now the highest-value thing to cover**, and it is Phase 7's
+  Gate 1.
 
 ### Not phased, needed before daily use
 
@@ -413,6 +421,26 @@ neither is visible from reading a migration:
   *only* because of the grants. One careless `grant execute … to
   authenticated` turns any of the three into a cross-tenant write.
 
+#### What has landed, 3 Sep
+
+Code and migration only. **Nothing has been applied to the live database and
+nothing has been deployed** — the migration is written and unapplied, and the
+Edge Function change is unreleased. Both need the schema to go first.
+
+- **Written, not applied:** `supabase/migrations/0005_multitenancy_hardening.sql`
+  carries blockers 1 (both ends), C1's `push_subscriptions` table and
+  `register_push_subscription`, item 8, item 9, item 10 and item 13, plus a
+  repair pass over any existing bad timezone.
+- **Client, built and tested:** the `upsert` for blocker 3; per-user offline
+  queue keys for C2, with a one-time adoption of the flat legacy key; push
+  registration moved off `user_settings` onto the new table, with sign-out
+  unregistering the device.
+- **Edge Function, written not deployed:** 4xx made terminal for blocker 2, and
+  the reminder loop grouped per task and fanned out per device for C1.
+- Build 530.59 kB, up 3.95 kB — `SwPush` moves into the eager graph because
+  `signOut()` now needs the endpoint before the session goes. 55 tests still
+  passing, and none of them cover any of this; that is Gate 1.
+
 #### Hard blockers — fix before a second real user exists
 
 1. **One bad timezone string silently kills the digest for every user.**
@@ -456,6 +484,61 @@ neither is visible from reading a migration:
 5. **Turn on leaked-password protection.** One toggle in the Auth dashboard,
    flagged by the security advisor, irrelevant with one owner and not
    irrelevant the moment strangers pick passwords.
+
+#### Hard blockers — the client half
+
+Blockers 1–16 came out of the database audit and stop at the database. The
+Angular side was read separately and has six of its own. They are lettered
+rather than numbered so the audit's numbering, which the rest of this file
+cross-references, stays stable.
+
+**C1. User A's reminders are delivered to user B's phone.** The worst bug
+found on either side, and the only one that crosses tenants at runtime.
+`swPush.requestSubscription()` with a fixed VAPID key returns **the same
+endpoint for the same service-worker registration**, so two accounts used on
+one installed PWA both write that endpoint into their own
+`user_settings.push_subscription`. `signOut()` (`core/session.store.ts`) calls
+`auth.signOut()` and nothing else — it never unsubscribes and never clears the
+stored row — so A's subscription stays live, pointing at a device B is now
+signed in on, and the cron happily pushes A's task text to it. RLS is no
+defence: `notify` sends as `service_role`. Item 14 below describes the same
+column from the other direction (one user, two devices, second silently
+replaces the first); **both are the same root cause** — the subscription is a
+property of a browser install, not of a user — and one table fixes both. That
+retires item 14.
+
+**C2. The offline queue is not namespaced by user, and destroys work.**
+`daybook.queue.v1` in `core/offline-queue.ts` is a single `localStorage` key
+with no user id in it. A signs out with writes queued, B signs in, and
+`init()` runs `queue.flush()` under B's session. Traced end to end: A's queued
+`insert` carries `user_id: A`, RLS rejects it, `isOffline()` returns false, and
+`send()` **drops the write silently** — no toast, no retry. Updates and deletes
+are `.eq('id', …)` only, so RLS scopes them to B, they match nothing, and they
+are dropped too. It fails safe rather than leaking — `applyTo` is skipped when
+`loadTasks` errors, so B never sees A's rows on screen — but A's offline work
+is gone with no trace. Note this is also **the one client path whose safety
+depends on the `with check` the audit verified**: without it, that same flush
+would write into A's account from B's session.
+
+**C3. The redirect allow list carries a preview wildcard.** §9 recorded it as
+costing nothing "for a single-user app". For a multi-tenant one it is an open
+redirect on the auth flow. Moving the app to a custom domain closes it by
+making the list one stable origin instead of a pattern.
+
+**C4. Magic links will die on Supabase's built-in SMTP.** It is rate-limited to
+a handful of emails an hour and is explicitly not for production. Custom SMTP
+is needed, through the same Resend account and sending domain that blocker 2
+needs — one prerequisite, two blockers.
+
+**C5. Signup is already open.** `signInWithMagicLink` calls `signInWithOtp`
+with no `shouldCreateUser: false`, Google OAuth is live, and the Vercel URL is
+public. Strangers can create accounts today, which means C1, C2 and blockers
+1–3 are **live bugs, not hypotheticals**. Closing it is the Auth dashboard's
+"Allow new users to sign up" toggle, not client code: the client flag would
+only cover the magic-link path and would leave Google wide open.
+
+**C6. The stores have no tests.** Covered in §4 under Test coverage. It is
+listed here too because it is what let C1 ship unnoticed.
 
 #### Scale problems — fine at five users, broken at five hundred
 
@@ -509,8 +592,10 @@ neither is visible from reading a migration:
     in principle a `pg_temp.user_settings` could shadow the real one inside a
     definer function. Not exploitable here — that needs arbitrary SQL and
     PostgREST exposes no such RPC — so this is insurance, not a hole.
-14. **`push_subscription` is one JSONB column**, so a second device silently
-    replaces the first. Needs its own table for real multi-device.
+14. ~~**`push_subscription` is one JSONB column**, so a second device silently
+    replaces the first.~~ **Promoted to blocker C1, 3 Sep.** Same root cause
+    seen from the other side, and the cross-user direction is a live delivery
+    leak rather than an inconvenience. One table fixes both.
 15. **Squash the migration drift.** Live has six applied, the folder has four;
     `0002_rpcs.sql` consolidates `daybook_revoke_anon_rpc_execute` and
     `daybook_carry_count_by_days_not_opens`. Confirmed semantically identical —
@@ -527,13 +612,35 @@ neither is visible from reading a migration:
 
 One migration, `0005_multitenancy_hardening.sql`, carries (1) validation and
 defence, (8), (9), (10), (13) and optionally (12) — all schema, all testable
-against a second seeded auth user. One Edge Function change carries (2) and
-(7). One line of client change carries (3). (4), (5) and (6) are dashboard and
-Vault work that no migration can do, and (4) should be done first because
-rotating the key invalidates nothing else.
+against a second seeded auth user — plus the `push_subscriptions` table C1
+needs. One Edge Function change carries (2) and (7), and the fan-out over the
+new table for C1. Client changes carry (3), C1's subscribe/sign-out half and
+C2. (4), (5), (6), C3, C4 and C5 are dashboard, DNS and Vault work that no
+migration can do, and (4) should be done first because rotating the key
+invalidates nothing else.
 
-**The gate for a second real user is 1–5.** Everything from 6 down can wait for
-someone to actually sign up.
+**Signup is invite-only first.** Decided 3 Sep, §9. The isolation work ships
+and gets proven against a real second account before the door opens, which
+keeps the Resend paid plan, the legal pages and abuse rate-limiting out of the
+critical path without deferring anything that actually isolates tenants.
+
+Four gates, in order:
+
+- **Gate 0 — before a second real user.** Blockers 1–5 and C1–C5.
+- **Gate 1 — prove it.** C6: specs for the three stores and the guard covering
+  the two-user transition, then a two-account pass on one device. This is the
+  step that would have caught C1, and it is the only way `loadedFor` gets
+  verified after two sessions of it being unverified.
+- **Gate 2 — production readiness.** Account deletion and export; a privacy
+  page; error visibility on the cron, which today returns HTTP 200 while doing
+  nothing (blocker 1's failure mode is invisible for exactly this reason); and
+  a backup story, since the free tier has no PITR.
+- **Gate 3 — scale.** Items 6–11. These genuinely wait.
+
+Phase 7 goes ahead of the code-quality and test-coverage work agreed 25 Aug.
+That is less of a reordering than it looks: Gate 1 *is* the test-coverage work,
+aimed at the files that carry the isolation logic rather than at the offline
+queue.
 
 ---
 
@@ -1685,6 +1792,33 @@ the general form of the timezone bug and the rule to design against from here:
 unparseable value aborts the lot. Anything the cron reads across all users
 needs either validation at the write or per-row isolation at the read. Both,
 for the timezone.
+
+**The audit stopped at the database, and the client half was worse.** The
+schema came out clean; the Angular side produced C1, a live cross-tenant
+delivery leak. The lesson is not that one audit was better than the other but
+that **"is this multi-tenant" is not a database question.** The three worst
+findings across both halves — C1, C2 and blocker 1 — are all in code that runs
+*outside* RLS: a service-role cron, a `localStorage` key, and a single
+statement over every user's row. RLS answers "can A read B's rows", which was
+never the hard part. Audit the paths where RLS is not in the loop.
+
+**Signup is invite-only until the isolation is proven.** Noel's call, 3 Sep.
+The alternative was opening properly at the same time as fixing, which drags
+the Resend paid plan, ToS and privacy pages, account deletion and abuse
+rate-limiting into Gate 0 and makes the isolation fixes ship later, not sooner.
+Invite-only gets a real second account onto the system — which is the only way
+C1, C2 and `loadedFor` get verified at all — without owing anyone a service.
+The mechanism is the Auth dashboard's "Allow new users to sign up" toggle, not
+`shouldCreateUser: false` in the client: the client flag covers only the
+magic-link path and leaves Google OAuth open, which is the failure mode where
+you believe signup is closed and it is not.
+
+**The app moves to a subdomain of a domain Noel owns**, with a separate
+sending subdomain for Resend. Two blockers collapse into one prerequisite: the
+custom origin retires the redirect wildcard (C3), and the verified sender
+unblocks both the digest (blocker 2) and custom SMTP for magic links (C4). The
+sending subdomain is kept distinct from the app's so a deliverability problem
+can never reach the root domain's reputation.
 
 ---
 

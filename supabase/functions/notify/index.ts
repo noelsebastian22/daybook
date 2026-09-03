@@ -38,7 +38,11 @@ interface ReminderRow {
   user_id: string;
   text: string;
   reminder_at: string;
-  subscription: PushSubscription;
+  /** One row per registered device now, so a task can appear more than once. */
+  subscription_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }
 
 const supabase = createClient(
@@ -78,8 +82,7 @@ async function readDue<T>(fn: 'due_digests' | 'due_reminders'): Promise<T[]> {
 function escapeHtml(value: string): string {
   return value.replace(
     /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
   );
 }
 
@@ -135,17 +138,42 @@ function renderDigest(payload: DigestPayload): { subject: string; html: string }
   };
 }
 
-async function runDigests(): Promise<{ sent: number; failed: number; skipped?: string }> {
+/**
+ * Whether a Resend rejection is worth trying again.
+ *
+ * This distinction is the whole fix for the retry storm. The old code treated
+ * every non-ok response as retryable and skipped `mark_digest_sent`, so
+ * `digest_last_sent_on` never advanced and `due_digests` handed the same user
+ * back on the next five-minute tick — 288 failed sends per user per day, for
+ * ever, burning the Resend quota and drowning the logs.
+ *
+ * Retry-until-success is right for an outage and exactly wrong for a
+ * permanent rejection. A 403 from an unverified sending domain is not going to
+ * become a 200 because we asked 287 more times.
+ *
+ * 429 is the one 4xx that is genuinely transient — it means slow down, not no.
+ */
+function isRetryableSendFailure(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+async function runDigests(): Promise<{
+  sent: number;
+  failed: number;
+  dropped: number;
+  skipped?: string;
+}> {
   const apiKey = Deno.env.get('RESEND_API_KEY');
   const from = Deno.env.get('DIGEST_FROM');
   if (!apiKey || !from) {
-    return { sent: 0, failed: 0, skipped: 'RESEND_API_KEY or DIGEST_FROM not set' };
+    return { sent: 0, failed: 0, dropped: 0, skipped: 'RESEND_API_KEY or DIGEST_FROM not set' };
   }
 
   const due = await readDue<DigestRow>('due_digests');
 
   let sent = 0;
   let failed = 0;
+  let dropped = 0;
 
   for (const row of due) {
     const { data: payload, error: payloadError } = await supabase.rpc('digest_payload', {
@@ -167,8 +195,31 @@ async function runDigests(): Promise<{ sent: number; failed: number; skipped?: s
     });
 
     if (!response.ok) {
-      console.error('resend failed', row.user_id, response.status, await response.text());
-      failed++;
+      const detail = await response.text();
+
+      if (isRetryableSendFailure(response.status)) {
+        // Left unmarked on purpose: a rate limit or a Resend outage should be
+        // retried on the next tick.
+        console.error('resend failed, will retry', row.user_id, response.status, detail);
+        failed++;
+        continue;
+      }
+
+      // Terminal. Mark the day sent so this user leaves the queue rather than
+      // being retried every five minutes until midnight. The digest is lost
+      // for today, which is the honest outcome — the alternative is not
+      // delivering it either, just noisily.
+      console.error(
+        "resend rejected permanently, dropping today's digest",
+        row.user_id,
+        response.status,
+        detail,
+      );
+      await supabase.rpc('mark_digest_sent', {
+        p_user_id: row.user_id,
+        p_local_date: row.local_date,
+      });
+      dropped++;
       continue;
     }
 
@@ -181,30 +232,49 @@ async function runDigests(): Promise<{ sent: number; failed: number; skipped?: s
     sent++;
   }
 
-  return { sent, failed };
+  return { sent, failed, dropped };
 }
 
-async function runReminders(): Promise<{ sent: number; failed: number; skipped?: string }> {
+async function runReminders(): Promise<{
+  sent: number;
+  failed: number;
+  devices_dropped: number;
+  skipped?: string;
+}> {
   const publicKey = Deno.env.get('VAPID_PUBLIC_KEY');
   const privateKey = Deno.env.get('VAPID_PRIVATE_KEY');
   const subject = Deno.env.get('VAPID_SUBJECT');
   if (!publicKey || !privateKey || !subject) {
-    return { sent: 0, failed: 0, skipped: 'VAPID keys or subject not set' };
+    return { sent: 0, failed: 0, devices_dropped: 0, skipped: 'VAPID keys or subject not set' };
   }
   const keys: VapidKeys = { publicKey, privateKey, subject };
 
   const due = await readDue<ReminderRow>('due_reminders');
 
+  // `due_reminders` returns one row per (task, device) since push moved to its
+  // own table, so a user with a phone and a laptop yields the same task twice.
+  // Group first: the notification goes to every device, but `reminder_sent_at`
+  // is a property of the task and must be written once, after the fan-out.
+  // Marking per row would stop at the first device.
+  const byTask = new Map<string, ReminderRow[]>();
+  for (const row of due) {
+    const group = byTask.get(row.task_id);
+    if (group) group.push(row);
+    else byTask.set(row.task_id, [row]);
+  }
+
   let sent = 0;
   let failed = 0;
+  let devicesDropped = 0;
 
-  for (const row of due) {
+  for (const [taskId, rows] of byTask) {
+    const row = rows[0];
     const payload = JSON.stringify({
       notification: {
         title: row.text,
         body: 'Reminder from Daybook',
         // Collapses repeats of the same task into one notification.
-        tag: row.task_id,
+        tag: taskId,
         // `onActionClick` is Angular's ngsw contract, not a Web Push one:
         // the service worker reads it to decide where a tap goes. Plain
         // `data.url` is ignored and the tap does nothing.
@@ -212,43 +282,62 @@ async function runReminders(): Promise<{ sent: number; failed: number; skipped?:
           onActionClick: {
             default: {
               operation: 'navigateLastFocusedOrOpen',
-              url: `/today/${row.task_id}`,
+              url: `/today/${taskId}`,
             },
           },
         },
       },
     });
 
-    try {
-      const result = await sendPush(row.subscription, payload, keys);
+    // Every registered device for this task's owner.
+    let delivered = 0;
+    for (const device of rows) {
+      const subscription: PushSubscription = {
+        endpoint: device.endpoint,
+        keys: { p256dh: device.p256dh, auth: device.auth },
+      };
 
-      if (result.gone) {
-        // The browser threw the subscription away. Clear it, or every tick
-        // from here retries a dead endpoint.
+      try {
+        const result = await sendPush(subscription, payload, keys);
+
+        if (result.gone) {
+          // The browser threw this subscription away. Delete that one row, by
+          // id — not the user's whole push setup, which is what nulling
+          // `user_settings.push_subscription` used to do to anyone with a
+          // second device still working perfectly well.
+          await supabase.from('push_subscriptions').delete().eq('id', device.subscription_id);
+          devicesDropped++;
+          continue;
+        }
+
+        if (!result.ok) {
+          console.error('push failed', taskId, device.subscription_id, result.status);
+          continue;
+        }
+
         await supabase
-          .from('user_settings')
-          .update({ push_subscription: null })
-          .eq('user_id', row.user_id);
-        await supabase.rpc('mark_reminder_sent', { p_task_id: row.task_id });
-        failed++;
-        continue;
+          .from('push_subscriptions')
+          .update({ last_sent_at: new Date().toISOString() })
+          .eq('id', device.subscription_id);
+        delivered++;
+      } catch (cause) {
+        console.error('push threw', taskId, device.subscription_id, cause);
       }
+    }
 
-      if (!result.ok) {
-        console.error('push failed', row.task_id, result.status);
-        failed++;
-        continue;
-      }
-
-      await supabase.rpc('mark_reminder_sent', { p_task_id: row.task_id });
+    // Marked once the task has reached at least one device. Marking on a total
+    // failure would lose the reminder for good, since the grace window in
+    // `due_reminders` is only fifteen minutes; not marking after a partial
+    // success would re-notify the devices that already got it.
+    if (delivered > 0) {
+      await supabase.rpc('mark_reminder_sent', { p_task_id: taskId });
       sent++;
-    } catch (cause) {
-      console.error('push threw', row.task_id, cause);
+    } else {
       failed++;
     }
   }
 
-  return { sent, failed };
+  return { sent, failed, devices_dropped: devicesDropped };
 }
 
 Deno.serve(async (req) => {

@@ -1,15 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Install } from './install';
 
 /** Why the push toggle cannot be offered, in words a person can act on. */
-export type PushBlocker =
-  | 'unconfigured'
-  | 'no-service-worker'
-  | 'not-installed'
-  | 'denied'
-  | null;
+export type PushBlocker = 'unconfigured' | 'no-service-worker' | 'not-installed' | 'denied' | null;
 
 /**
  * Web Push subscription.
@@ -61,6 +57,33 @@ export class Push {
     } catch {
       // Already gone, or the browser dropped it. Either way there is nothing
       // to undo, and the stored subscription is cleared by the caller.
+    }
+  }
+
+  /**
+   * This browser's existing endpoint, without prompting for one.
+   *
+   * The endpoint is the identity of a push target, so it is what tells us
+   * whether *this device* is registered — as opposed to whether the user has
+   * push on somewhere else. Needed both to render the toggle honestly and to
+   * delete the right row on sign-out.
+   *
+   * Returns null rather than throwing when the service worker is disabled,
+   * which is every dev build.
+   */
+  async currentEndpoint(): Promise<string | null> {
+    if (!this.swPush.isEnabled) return null;
+    try {
+      // Bounded, because `subscription` only emits once the service worker
+      // registration resolves and a registration that never settles would
+      // otherwise hang sign-out behind it. Timing out is caught below and
+      // read as "no endpoint", which is the safe answer here.
+      const subscription = await firstValueFrom(
+        this.swPush.subscription.pipe(timeout({ first: 3000 })),
+      );
+      return subscription?.endpoint ?? null;
+    } catch {
+      return null;
     }
   }
 }

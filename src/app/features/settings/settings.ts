@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { SettingsStore } from '../../core/settings.store';
 import { TaskStore } from '../../core/task.store';
 import { ToastStore } from '../../core/toast.store';
@@ -138,7 +132,7 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
               <input
                 type="checkbox"
                 class="h-5 w-9 shrink-0 appearance-none rounded-full bg-ink-200 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:transition-transform checked:bg-brand-600 checked:before:translate-x-[1.125rem]"
-                [checked]="!!s.push_subscription"
+                [checked]="settings.pushSubscribed()"
                 [disabled]="busy()"
                 (change)="togglePush($event)"
               />
@@ -150,8 +144,8 @@ const BLOCKER_TEXT: Record<Exclude<PushBlocker, null>, string> = {
         <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
           <h2 class="text-body font-semibold tracking-tight">Categories</h2>
           <p class="mt-0.5 text-caption text-ink-400">
-            Typing a new <code class="text-caption">#tag</code> creates one. Deleting a
-            category leaves its tasks untagged, not deleted.
+            Typing a new <code class="text-caption">#tag</code> creates one. Deleting a category
+            leaves its tasks untagged, not deleted.
           </p>
 
           <ul class="mt-3 divide-y divide-ink-100">
@@ -219,6 +213,11 @@ export class Settings {
   constructor() {
     void this.settings.ensureLoaded();
     void this.tasks.ensureLoaded();
+    // Separate from ensureLoaded because it answers a different question:
+    // ensureLoaded fetches the user's row, this asks whether the browser in
+    // front of us is one of their registered devices. Only Settings renders
+    // the toggle, so only Settings pays for it.
+    void this.settings.loadPush();
   }
 
   protected blockerText(reason: Exclude<PushBlocker, null>): string {
@@ -259,16 +258,14 @@ export class Settings {
     this.busy.set(true);
     try {
       if (wanted) {
-        const subscription = await this.push.subscribe();
-        if (!subscription) {
-          this.toast.error('Reminders were not turned on.');
-          return;
+        // The store owns the whole registration now: prompt, RPC and
+        // rollback. It reports its own failure, so a false here is already
+        // explained on screen.
+        if (await this.settings.subscribePush()) {
+          this.toast.show('Reminders on for this device.');
         }
-        await this.settings.update({ push_subscription: subscription });
-        this.toast.show('Reminders on for this device.');
       } else {
-        await this.push.unsubscribe();
-        await this.settings.update({ push_subscription: null });
+        await this.settings.unsubscribePush();
       }
     } finally {
       this.busy.set(false);
