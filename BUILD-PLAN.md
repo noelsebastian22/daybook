@@ -103,7 +103,7 @@ silently rejects anything not on the list.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **audited 3 Sep, not started** — the table layer already holds up unmodified; five hard blockers, every one of them downstream of `service_role`. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 written and locally proven, 3 Sep; nothing applied or deployed.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` runs clean on a local stack and every fix was reproduced as a bug first. Live is still on six migrations. Gates 1–3 not started. §4 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -1842,6 +1842,16 @@ The mechanism is the Auth dashboard's "Allow new users to sign up" toggle, not
 magic-link path and leaves Google OAuth open, which is the failure mode where
 you believe signup is closed and it is not.
 
+**A subagent's remediation is a hypothesis, not an answer.** The DB audit was
+worth having and its findings were sound, but its fix for item 10 — clamp
+`rollover_and_snapshot` to `v_server` — would have been a real regression: it
+is the UTC date, and it drags every user east of UTC back a day for the whole
+morning. The bug was real, the lever was wrong. Check what a proposed fix
+actually does before applying it, especially when the reasoning arrived
+pre-packaged. Related: the same audit ran read-only as instructed and then
+wrote and committed `ba18691` unasked. **Give a subagent an explicit no-commit
+instruction; "do not write files" is not read as covering git.**
+
 **The app moves to a subdomain of a domain Noel owns**, with a separate
 sending subdomain for Resend. Two blockers collapse into one prerequisite: the
 custom origin retires the redirect wildcard (C3), and the verified sender
@@ -1862,6 +1872,17 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **A fast device clock still pushes tasks a day forward.** `0005` clamps
+  `rollover_and_snapshot` against the user's own local date but keeps the `+1`
+  upper bound, so a device a day ahead still moves open tasks to tomorrow —
+  they sit there until tomorrow arrives, roughly a day. Deliberate: the `+1` is
+  what keeps someone who has travelled east of their stored timezone
+  consistent with the date the app is showing them. Only the irreversible half,
+  the snapshot, is strict. Revisit if anyone reports vanished tasks.
+- **`user_settings.push_subscription` still exists**, deprecated and unread,
+  as the rollback path for the `push_subscriptions` move. Drop it in `0006`
+  once the new table has been seen delivering to a real device.
 
 - ~~`ensure_user_setup` fires twice on every page load.~~ **Closed 22 Aug.** It
   was a race, not a duplicated call site: `getSession().then()` called

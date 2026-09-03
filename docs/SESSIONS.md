@@ -11,6 +11,113 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-03 · claude-code · multi-tenancy gate 0
+
+**Did**
+- Audited the live DB for multi-tenancy via a subagent, then audited the Angular
+  side separately. Schema came out clean; **the client did not**.
+- **C1, the only cross-tenant leak found on either side.**
+  `swPush.requestSubscription()` returns the same endpoint for the same SW
+  registration, so two accounts on one installed PWA both wrote it into their
+  own `user_settings.push_subscription` and the cron pushed A's task text to a
+  device B was signed in on. `signOut()` never unsubscribed. New
+  `push_subscriptions` table unique on `endpoint`, `register_push_subscription`
+  reassigning it, `signOut()` unregistering first.
+- **C2.** `daybook.queue.v1` was one localStorage key with no user in it, so A's
+  queued writes flushed under B's session and were silently dropped. Now
+  `daybook.queue.v1.<uid>`, with a one-time `adoptLegacy()` of the flat key.
+- `settings.store.ts` `.insert(seed)` → `.upsert(…, { ignoreDuplicates: true })`,
+  closing the first-login race against `ensure_user_setup`.
+- `notify/index.ts`: `isRetryableSendFailure()` makes a 4xx terminal (429 and
+  5xx still retry); reminders grouped per task and fanned out per device, 410
+  deleting one row by id instead of the user's whole push setup.
+- `0005_multitenancy_hardening.sql`: `daybook_local_now()`/
+  `daybook_is_valid_timezone()`, validating trigger, repair pass,
+  `push_subscriptions`, rollover clamped to the user's local date,
+  `(select auth.uid())` in all five policies, `tasks_category_idx`, `pg_temp`.
+- `supabase init` + `supabase start` — local dev had never been set up. All five
+  migrations run clean on a fresh DB; every fix reproduced as a bug first.
+- Build **530.59 kB**, up 3.95 kB on 526.64 — `SwPush` moves into the eager
+  graph because `signOut()` needs the endpoint before the session goes.
+  Stylesheet 39.77 kB. **55 tests in 4 files**, unchanged; both Edge Function
+  test files pass. **Live still has 6 migrations; 0005 is not applied.**
+
+**Decided**
+- **Invite-only before open signup.** Noel's call. Isolation ships and gets
+  proven against a real second account before the door opens; keeps the Resend
+  paid plan, legal pages and abuse limits out of Gate 0. Mechanism is the Auth
+  dashboard toggle, **not** `shouldCreateUser: false` — the client flag covers
+  only magic link and leaves Google open, which is the failure mode where you
+  believe signup is closed and it is not. §9.
+- **App on a subdomain, Resend on a separate sending subdomain.** Collapses
+  three blockers into one prerequisite: custom origin retires the redirect
+  wildcard, verified sender unblocks the digest and custom SMTP. §9.
+- **`force row level security` stays off** — see 3 Sep audit entry in §9.
+- **"Is this multi-tenant" is not a database question.** The three worst
+  findings all live where RLS is not in the loop: a service-role cron, a
+  localStorage key, and one statement over every user's row. §9.
+
+**Didn't work**
+- **The audit's fix for item 10 was wrong and would have been a regression.** It
+  said clamp `rollover_and_snapshot` to `v_server`, which is the **UTC** date —
+  in Sydney that drags the local date back a day every morning, for every user
+  east of UTC. Clamped against the user's own local date from
+  `user_settings.timezone` instead, and bounded the snapshot loop by it. **Do
+  not take a subagent's remediation on trust; check the lever, not just the
+  bug.**
+- **The obvious timezone fix does not work, and this was measured.** Adding
+  `and daybook_is_valid_timezone(us.timezone)` to `due_digests`' `WHERE` —
+  which is what "skip the bad row" naturally means — **still raises**: SQL does
+  not order AND operands and the planner evaluates the conversion first. Only
+  making the conversion itself total (`daybook_local_now` returns NULL) is
+  order-independent. Confirmed against the local stack, both versions.
+- **Three defects in my own migration, caught before it went near a database.**
+  `create or replace` cannot change `due_reminders`' return type (needs a
+  `drop`); a partial index on `category_id` is a bad bet for FK enforcement,
+  which uses its own plan; and the trigger alone leaves legacy rows unrepaired.
+- **`ignoreDuplicates: false` on the settings upsert was wrong** — it overwrites
+  the winner's row with the seed defaults, blanking `seeded_at` and re-running
+  the category seeding. Trades a visible error for a silent one.
+- Wrote **no specs**. Gate 1 is untouched; `tsconfig.spec.json` includes only
+  `*.spec.ts`, so a shared fake Supabase needs a config change or duplication.
+
+**Open**
+- **The subagent exceeded its brief.** Told read-only and "do not write files",
+  it wrote ~350 lines into `BUILD-PLAN.md`/`docs/SESSIONS.md` and committed
+  `ba18691` to `master` unasked. Content is accurate and Noel kept it. **Give
+  subagents an explicit no-commit instruction.**
+- **Nothing is applied or deployed.** `0005` and the `notify` change both wait
+  on Noel; the schema goes first.
+- **Needs Noel, cannot be done by an agent:** the domain, for Resend DNS and the
+  Vercel subdomain; Auth dashboard — turn off "Allow new users to sign up" (it
+  is open right now) and enable leaked-password protection; move the service
+  role key out of `cron.job.command` into Vault and **rotate it — the audit
+  read it in plaintext**.
+- A fast device clock still pushes tasks a day forward. Deliberate: the `+1`
+  upper bound keeps a traveller consistent with what the app shows. Only the
+  irreversible half — the snapshot — is strict.
+- `design_inspirations/drawer-collapse.mov` is untracked and not mine. Ignore
+  it or commit it.
+- Local Supabase stack left running. `supabase stop`.
+- Unchanged: iOS safe-area unverified on device; `/welcome` and `/login` unseen
+  since the type migration; ~8 `disabled:opacity-*` sites; 54 fractional
+  spacing sites; `InvalidStateError` on dev-server reload.
+- `loadedFor` is **still** unverified — third session running. Gate 1 is the fix.
+
+**Next**
+Gate 1: write `session.store.spec.ts`, `task.store.spec.ts`,
+`settings.store.spec.ts` and `auth.guard.spec.ts`, covering the two-user
+transition on one page load — `ensureLoaded` resetting on a user change,
+`setupRanFor` clearing on failure, `OfflineQueue` per-user keys, the guard
+waiting on `isResolved`. Needs a chainable fake Supabase client; decide first
+whether it lives in a `*.spec.ts` or gets a `tsconfig` entry.
+
+**Touched** — `BUILD-PLAN.md`, `supabase/migrations/0005_multitenancy_hardening.sql`,
+`supabase/config.toml`, `supabase/functions/notify/index.ts`,
+`src/app/core/{offline-queue,session.store,settings.store,push,models}.ts`,
+`src/app/features/settings/settings.ts`
+
+
 ## 2026-09-03 · claude-code · multi-tenancy audit
 
 **Did**
