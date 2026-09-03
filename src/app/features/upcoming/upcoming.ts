@@ -72,14 +72,22 @@ const MAX_WEEK = 3;
       <div class="space-y-6">
         @for (day of days(); track day.date) {
           <section>
-            <div class="mb-2 flex items-baseline gap-2 px-1">
+            <!--
+              The rule under the day header is what gives an empty day a shape
+              now that the add row below it is plain text rather than a dashed
+              box. It is the same hairline the task rows carry, so a day with
+              tasks and a day without read as the same list.
+            -->
+            <div
+              class="mb-1 flex items-baseline gap-2 border-b border-ink-200/70 px-2 pb-2"
+            >
               <h2 class="text-body font-semibold tracking-tight">{{ label(day.date) }}</h2>
               @if (day.tasks.length > 0) {
                 <span class="text-caption text-ink-400">{{ day.tasks.length }}</span>
               }
             </div>
 
-            <div class="space-y-2">
+            <div>
               @for (task of day.tasks; track task.id) {
                 <app-task-row
                   [task]="task"
@@ -89,13 +97,26 @@ const MAX_WEEK = 3;
                 />
               }
 
+              <!--
+                Same add row as Today's, so the two lists read as one design.
+                The dashed outline it replaced was the only dashed border in
+                the app and it fought the hairline ruling around it.
+              -->
               <button
                 type="button"
-                class="flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-body font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
+                class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
                 [attr.aria-label]="'Add a task on ' + full(day.date)"
                 (click)="addingOn.set(day.date)"
               >
-                <span aria-hidden="true">+</span> Add task
+                <span
+                  class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" class="h-3 w-3">
+                    <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                Add task
               </button>
             </div>
           </section>

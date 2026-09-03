@@ -210,10 +210,14 @@ than not, and the order was set on 18 Aug against the Todoist captures.
    with the task's `#tag` and `!energy` spelled back out and its day held in
    the picker. Delete lives here, with an Undo that reinserts under the same
    id. Row text is now a link.
-4. **Floating composer.** **Built, 21 Aug**, `features/today/composer.ts`.
-   Anchored to the bottom of the viewport at every width, opened by `Add task`,
-   with explicit Cancel and Add. Its `day` input presets the date chip, which
-   is what Upcoming's per-day add rows use. Replaced the Magic Plus FAB — §10.
+4. **Composer.** **Built 21 Aug, re-placed 3 Sep**,
+   `features/today/composer.ts`. A modal dialog everywhere — scrim, Escape,
+   explicit Cancel, trapped Tab — **centred near the top on a desktop, a
+   bottom sheet below `lg`**, which keeps §10's thumb-reach argument where it
+   applies. One presentation for all three callers; the `placement` input that
+   existed for half an hour on 3 Sep is gone. It centres on the **viewport**,
+   not the content column, so it carries no sidebar inset at all. Its `day`
+   input presets the date chip. Replaced the Magic Plus FAB — §10.
 5. **Nav shell.** **Built, 21 Aug**, `shared/shell.ts`, as a layout route so
    the drawer mounts once. Four destinations, not three: Today / Upcoming /
    Calendar / Reporting, with Settings and Sign out pinned below. Calendar was
@@ -1018,6 +1022,78 @@ wish list, not a plan.
 ## 9. Decisions made during the build
 
 Not in the original Notion brief. Made while getting Phases 1 and 2 working.
+
+**The shell reads from `add task.mov` and `drawer-collapse.mov`, 3 Sep.** Four
+changes, all from Todoist, all taken deliberately rather than wholesale.
+
+- **The drawer collapses, from a button at its own top right.** Folded away it
+  leaves the content column to re-centre and widen; a single button at the top
+  left of the content brings it back, placed once in `shell.ts` rather than
+  copied into five page headers. Desktop only — below `lg` the drawer is an
+  overlay sheet the scrim already dismisses. The state is a **device**
+  preference in `daybook.nav.v1`, deliberately without a uid: unlike the
+  offline queue (C2) it holds nothing worth isolating, and two accounts on one
+  laptop should share it.
+- **`Add task` moves from Today's header to the top of the drawer.** It is the
+  app's primary action and it existed on exactly one page. From anywhere else
+  it routes to Today and opens the composer there — Upcoming and a past day
+  both schedule by position, and guessing which day was meant would be wrong
+  more often than not.
+- **The composer went inline, and it was wrong. Reverted the same day.** The
+  reasoning held — thumb reach is a phone argument that does not survive a
+  mouse — but it ignored what the flat rows had just done to the list. Todoist
+  can put a card inline because its rows are cards; Daybook's are flat with a
+  hairline between, so an inline card of roughly row width read as **one more
+  task**, which is precisely what a box for writing a task must not look like.
+  It is now a **centred dialog over a scrim** on a desktop and the original
+  bottom sheet on a phone. **The lesson is that a borrowed pattern carries its
+  host's assumptions**: the inline composer depends on the list being visually
+  busier than the composer, and flattening the rows had inverted that.
+- **The composer's scrim is `z-50`, not `z-40`.** The drawer is `z-50`, so at
+  `z-40` the scrim dimmed the entire page except the one element standing in
+  front of it and the drawer stayed lit beside a dimmed list. It ties with the
+  drawer and wins on DOM order, the outlet coming after the nav in the shell.
+- **Task rows go flat: no card, no ring, no shadow, one hairline between.**
+  The row background stays **opaque and equal to the page**, because it is the
+  lid over the swipe action layer — the "Done" and "Tomorrow" labels behind it
+  would otherwise show through every row at rest. Hover lifts to white rather
+  than dimming to `ink-100`, which also takes the completed row's `ink-400`
+  text from 4.74:1 up to 5.08:1 instead of down under AA.
+
+**The page is white and the drawer is tinted, 3 Sep — the inverse of what it
+was.** Measured off `add task.mov`: Todoist's sidebar is `#faf7f6` and its
+content `#fdfdfd`. Daybook had it exactly backwards — a pure white drawer
+against an `ink-50` page — so the brightest surface on screen was the chrome
+nobody looks at.
+
+**Flattening the task rows is what exposed it.** While rows were white cards on
+an `ink-50` page, the content you actually read *was* white and the grey was
+only the gap between cards; removing the cards left the whole content column
+grey with white surviving only in the nav. So: `body` is white, the drawer is
+`ink-50`, rows are white and hover **dims** to `ink-50` rather than lifting.
+
+Two things were deliberately **not** taken from Todoist. Its accent is crimson,
+and red is reserved here for overdue — spending it on brand chrome would cost
+the one colour that means something. And its tint is warm (`#faf7f6`, R>G>B)
+where the ink scale is cool (`#f6f7fb`, B>G>R); a warm drawer against cool ink
+text and cool `ink-200` hairlines reads as a bug, and would need a warm neutral
+fighting the existing scale. Only which surface gets which token changed, not
+the palette.
+
+Card surfaces on the four panel pages stayed white and now read as outlined
+rather than raised, `shadow-sm` having gone invisible against white while
+`ring-ink-200/60` carries them. Checked on screen: reporting, calendar,
+settings and day detail all hold. Settings reads **better** — its `ink-50`
+inputs are now recessed inside a white section instead of matching the page
+behind their own card.
+
+**One consequence, and it was predicted.** The 3 Sep log entry said a
+collapsible sidebar moves three files, not one, because `toasts.ts` and
+`composer.ts` both hard-coded `lg:left-60` against a fixed 240px drawer. Both
+were touched. `toasts.ts` now tracks `Nav.collapsed()`. `composer.ts` dropped
+the inset altogether once it became a dialog: a modal centres on the viewport,
+not on the content column, so it has no sidebar to clear. Toasts do not get
+that escape — they belong to the content they report on.
 
 **`categories` table added.** `tasks.category_id` referenced a table that did
 not exist anywhere in the brief.
@@ -1873,6 +1949,20 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **The 3 Sep shell pass is unverified below `lg`.** Everything in it was
+  checked on screen at desktop width, but the Chrome extension driving the
+  browser would not resize the viewport below 1274px, so three things have
+  never been seen narrow: the composer falling back to a bottom sheet, the
+  drawer as an overlay sheet with the new Add task button in it, and the flat
+  hairline rows on a phone. All are the paths the app already had or a plain
+  media-query branch, which is why this is a gap and not a blocker. **Needs a
+  real iPhone, not a narrower window** — the safe-area padding wants checking
+  in the same pass (§13).
+- **`welcome.ts` was left out of the surface inversion.** It carries its own
+  `bg-ink-50` band at line 141, put there to contrast against white cards on
+  what was then an `ink-50` page. With `body` now white that band still
+  contrasts, but nobody has looked at the page since. `login.ts` is in the same
+  position and has its own dark ink field, so it is likely fine.
 - **A fast device clock still pushes tasks a day forward.** `0005` clamps
   `rollover_and_snapshot` against the user's own local date but keeps the `+1`
   upper bound, so a device a day ahead still moves open tasks to tomorrow —
@@ -2270,6 +2360,20 @@ ffmpeg -y -v error -i design_inspirations/<clip>.mov \
 Then Read the PNG. A 4x3 tile at 2fps covers about six seconds and stays
 legible down to individual nav items and task rows — verified on
 `drawer-collapse.mov`, 3 Sep.
+
+**A long clip needs a coarser sample and more than one sheet.** `add task.mov`
+is 43s at 2290x1290; `fps=1,scale=560:-1,tile=4x4` gives three sheets that
+between them cover the whole interaction. Sheets answer *what happens*; for
+anatomy — stroke weights, where a rule starts, what a chip actually says —
+pull one frame at full resolution and crop it:
+
+```bash
+ffmpeg -y -v error -ss 40 -i "design_inspirations/<clip>.mov" \
+  -frames:v 1 -vf "crop=1500:800:280:80" /tmp/detail.png
+```
+
+That crop is what settled the separator alignment on the task row, which no
+contact sheet was legible enough to show.
 
 - **Sampling loses the motion.** 2fps shows *what* changed, not the easing or
   duration. If the movement itself is the point, resample the transition alone

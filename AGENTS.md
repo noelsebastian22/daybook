@@ -48,7 +48,7 @@ that symlink is load-bearing. Edit the `.agents/` copy.
 
 ## State
 
-Four stores and one service, all `providedIn: 'root'`:
+Four stores and two services, all `providedIn: 'root'`:
 
 | Store | File | Owns |
 |---|---|---|
@@ -57,6 +57,13 @@ Four stores and one service, all `providedIn: 'root'`:
 | `SettingsStore` | `core/settings.store.ts` | the `user_settings` row |
 | `ToastStore` | `core/toast.store.ts` | transient messages and undo |
 | `OfflineQueue` | `core/offline-queue.ts` | writes made with no connection |
+| `Nav` | `core/nav.ts` | drawer collapsed, composer open |
+
+`Nav` holds chrome, not data, and it is a plain service rather than a store
+because there is nothing to load or roll back. It exists because three
+components that are nowhere near each other in the tree need the same two
+booleans: the drawer collapses, `toasts.ts` has to move with it, and the
+drawer's `Add task` button opens a composer that renders inside `Today`.
 
 Rules:
 
@@ -102,6 +109,19 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 - Stores end in `Store`, services do not carry a `Service` suffix
 
 ## Colour
+
+**The page is white; the drawer is `ink-50`.** Content is the brightest
+surface in the app and chrome recedes behind it — the reverse was true until
+3 Sep and it put the brightest thing on screen in the nav. Consequences:
+
+- A **task row's background must equal the page's and be opaque.** The row is
+  the lid over the swipe action layer; anything translucent or off-white shows
+  the "Done" and "Tomorrow" labels through every row at rest.
+- Row and chip hovers **dim** (`ink-50`, `ink-100`), they do not lift to white.
+  There is nowhere lighter to go.
+- Overlays — composer, popover, date picker, toasts, install hint — stay
+  **white** and keep their shadow. They float above both surfaces and must
+  separate from each other.
 
 Green and red are reserved. Green means completed, red means overdue or
 badly avoided. Nothing else may use them, or they stop carrying meaning.

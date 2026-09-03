@@ -11,6 +11,98 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-03 · claude-code · shell, composer, surfaces
+
+**Did**
+- Read `drawer-collapse.mov` and `add task.mov` as contact sheets per §13.
+  43s clip needed `fps=1,scale=560:-1,tile=4x4` and three sheets; the row
+  anatomy came from a full-res `-ss 40` crop, not from any sheet.
+- **Drawer collapses.** Button at its top right, re-open button at the content's
+  top left, both desktop-only. New `core/nav.ts` (`Nav`, plain service) holds
+  `collapsed` and `composerOpen` — three components far apart need them.
+  Persisted in `daybook.nav.v1`, **no uid**: device preference, nothing to
+  isolate. `navClass()` emits both halves of the transform because
+  `lg:translate-x-0` and `lg:-translate-x-full` tie on specificity.
+- **`Add task` moved from Today's header to the top of the drawer.** Routes to
+  Today and opens the composer from any page.
+- **Task rows went flat** — no card, ring or shadow; `border-b border-ink-200/70`
+  on the *wrapper*, not the row that swipes. `+ Add task` at the end of the
+  list, same row style adopted in `upcoming.ts` and `day-detail.ts`, which also
+  lost their dashed-border buttons and their `space-y-2`.
+- **Composer became a centred dialog.** `placement` input added and removed the
+  same session — see Didn't work. One presentation now: centred over a scrim at
+  `lg`, bottom sheet below.
+- **Surfaces inverted.** `body` white, drawer `ink-50`, rows white, hovers dim
+  instead of lifting, Today's filter chips `ink-50`.
+- Build **532.51 kB**, stylesheet **40.95 kB**. **55 tests in 4 files**,
+  unchanged — nothing here is under test. No schema change; live still on six
+  migrations with `0005` unapplied.
+
+**Decided**
+- **Page white, drawer `ink-50` — the inverse of what it was.** Measured off
+  the clip: Todoist is `#faf7f6` sidebar / `#fdfdfd` content, Daybook was
+  exactly backwards. §9, and the rule now lives in `AGENTS.md`.
+- **Keep indigo, keep the cool neutrals.** Todoist's accent is crimson and red
+  is reserved for overdue; its tint is warm (R>G>B) against our cool ink scale.
+  Only which surface gets which token changed.
+- **`Nav` is a service, not a store** — chrome, nothing to load or roll back.
+  `AGENTS.md` state table updated in the same commit.
+- **The composer is modal at every width**, and centres on the viewport rather
+  than the content column, which is what keeps it out of the sidebar-inset
+  problem `toasts.ts` still has.
+
+**Didn't work**
+- **The inline composer, and this is the one worth reading.** Placed at the top
+  of the list to match the clip; Noel's first look was "why is it coming in
+  like a task item". The reasoning was sound and the premise was not —
+  **Todoist can put a card inline because its rows are cards**, and flattening
+  Daybook's rows to hairlines in the same session had removed exactly the
+  contrast the pattern depends on. A borrowed pattern carries its host's
+  assumptions. Reverted to a dialog within the hour.
+- **The composer's scrim at `z-40` left the drawer lit.** The drawer is `z-50`,
+  so the scrim dimmed the whole page except the one element in front of it.
+  `z-50` and DOM order fixes it — the outlet comes after the nav.
+- **`hover:bg-ink-100` on a task row was wrong** and was caught before it
+  shipped: it drops the completed row's `ink-400` text under AA. White (later
+  `ink-50`, once the page inverted) raises contrast instead.
+- **Backtick inside `template:` cost two builds, in `shell.ts` and
+  `task-row.ts`.** Both times inside an HTML comment, both times writing a
+  class name in backticks. `AGENTS.md` warns about this in bold and it still
+  happened twice in one session.
+- **Window resize could not test the phone branch.** `resize_window` reports
+  success but `innerWidth` floors at 1274, so `lg` never goes false. §12.
+
+**Open**
+- **Nothing below `lg` has been seen.** Composer sheet, drawer sheet, flat rows
+  on a phone — all unverified. §12. Needs a device, and the iOS safe-area check
+  is still outstanding from before, so one pass covers both.
+- `welcome.ts` left out of the inversion and unreviewed; it has its own
+  `ink-50` band. `login.ts` likely fine. §12.
+- The four panel pages now read as **outlined** rather than raised, since
+  `shadow-sm` is invisible on white. Checked on screen and they hold, but that
+  was my judgement, not Noel's.
+- Noel asked for a logo brief (abstract, futuristic) and got one — a prompt for
+  Claude Design, grounded in the tokens and the maskable safe zone. **Not run,
+  no logo produced**, `public/icon.svg` untouched. The brief is in the
+  conversation only, which by §13's own rule means it does not exist.
+- **Unchanged and still Noel's:** `0005` unapplied; signup **open** in the Auth
+  dashboard; leaked-password protection off; service role key in plaintext in
+  `cron.job.command`, needs Vault and rotation. Gate 1 specs untouched, so
+  `loadedFor` is unverified a fourth session running.
+
+**Next**
+Open the app on the iPhone and walk the four surfaces this session changed —
+composer as a bottom sheet, drawer as a sheet with the new Add task button,
+flat hairline rows, and the white page — checking the safe-area padding at the
+same time. It is the only part of the pass with no evidence behind it.
+
+**Touched** — `src/app/core/nav.ts` (new), `src/app/shared/{shell,toasts}.ts`,
+`src/app/features/today/{composer,task-row,today}.ts`,
+`src/app/features/upcoming/upcoming.ts`,
+`src/app/features/calendar/day-detail.ts`, `src/styles.css`, `AGENTS.md`,
+`BUILD-PLAN.md`, `.gitignore`
+
+
 ## 2026-09-03 · claude-code · multi-tenancy gate 0
 
 **Did**

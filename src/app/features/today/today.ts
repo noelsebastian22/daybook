@@ -12,6 +12,7 @@ import { type CaptureSubmit } from './capture';
 import { TaskRow } from './task-row';
 import { EmptyState } from '../../shared/empty-state';
 import { withViewTransition } from '../../core/view-transition';
+import { Nav } from '../../core/nav';
 import { addDays, friendlyDate, today } from '../../core/dates';
 import type { Task } from '../../core/models';
 
@@ -21,7 +22,11 @@ import type { Task } from '../../core/models';
   imports: [Composer, TaskRow, EmptyState],
   template: `
     <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
-      <header class="safe-py-6 flex items-start justify-between gap-4">
+      <!--
+        No Add task button here any more. It lives at the top of the drawer,
+        where it is reachable from every page instead of only this one.
+      -->
+      <header class="safe-py-6">
         <div>
           <p class="text-caption font-medium uppercase tracking-wider text-ink-400">
             {{ heading }}
@@ -39,14 +44,6 @@ import type { Task } from '../../core/models';
             <p class="mt-1 text-body text-done-700">{{ tasks.completedCount() }} done today</p>
           }
         </div>
-
-        <button
-          type="button"
-          class="rounded-card bg-brand-600 px-4 py-2 text-body font-medium text-white shadow-sm transition hover:bg-brand-700"
-          (click)="composerOpen.set(true)"
-        >
-          <span aria-hidden="true">+</span> Add task
-        </button>
       </header>
 
       <!-- energy -->
@@ -58,7 +55,7 @@ import type { Task } from '../../core/models';
             [class]="
               tasks.filter() === f.value
                 ? 'bg-ink-900 text-white'
-                : 'bg-white text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50'
+                : 'bg-ink-50 text-ink-600 ring-1 ring-ink-200 hover:bg-ink-100'
             "
             [attr.aria-pressed]="tasks.filter() === f.value"
             (click)="tasks.setFilter(f.value)"
@@ -82,7 +79,7 @@ import type { Task } from '../../core/models';
               [class]="
                 tasks.categoryFilter() === c.id
                   ? 'bg-ink-900 text-white'
-                  : 'bg-white text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50'
+                  : 'bg-ink-50 text-ink-600 ring-1 ring-ink-200 hover:bg-ink-100'
               "
               [attr.aria-pressed]="tasks.categoryFilter() === c.id"
               (click)="toggleCategory(c.id)"
@@ -95,7 +92,7 @@ import type { Task } from '../../core/models';
       }
 
       <!-- what is left -->
-      <div class="mt-4 space-y-2">
+      <div class="mt-4">
         @for (task of tasks.openTasks(); track task.id) {
           <app-task-row
             [task]="task"
@@ -130,6 +127,34 @@ import type { Task } from '../../core/models';
             <app-empty-state scene="blank" title="Write the first thing down." />
           }
         }
+
+        <!--
+          The end of the list is the other place an add belongs, and it is the
+          one that reads as "and then". It opens the same dialog the drawer
+          button does — the composer is modal, so where it was triggered from
+          no longer changes where it appears.
+
+          Not shown against an empty list: the three empty states each already
+          make their own invitation, and a second one under them would be the
+          app asking twice.
+        -->
+        @if (tasks.openTasks().length > 0) {
+          <button
+            type="button"
+            class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
+            (click)="open.set(true)"
+          >
+            <span
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" class="h-3 w-3">
+                <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            Add task
+          </button>
+        }
       </div>
 
       <!--
@@ -156,7 +181,7 @@ import type { Task } from '../../core/models';
           </button>
 
           @if (doneOpen()) {
-            <div class="mt-2 space-y-2">
+            <div class="mt-2">
               @for (task of tasks.doneTasks(); track task.id) {
                 <app-task-row
                   [task]="task"
@@ -198,7 +223,7 @@ import type { Task } from '../../core/models';
                   <p class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-ink-400">
                     {{ label(day.date) }}
                   </p>
-                  <div class="space-y-2">
+                  <div>
                     @for (task of day.tasks; track task.id) {
                       <app-task-row
                         [task]="task"
@@ -216,16 +241,22 @@ import type { Task } from '../../core/models';
       }
     </div>
 
-    @if (composerOpen()) {
-      <app-composer (submitted)="add($event)" (cancelled)="composerOpen.set(false)" />
+    @if (open()) {
+      <app-composer (submitted)="add($event)" (cancelled)="close()" />
     }
   `,
 })
 export class Today implements OnInit {
   protected readonly tasks = inject(TaskStore);
   private readonly appRef = inject(ApplicationRef);
+  private readonly nav = inject(Nav);
 
-  protected readonly composerOpen = signal(false);
+  /**
+   * Owned by `Nav`, because the drawer's Add task button opens it from a page
+   * this component is not mounted on yet.
+   */
+  protected readonly open = this.nav.composerOpen;
+
 
   /** Open by default so a completing row is seen travelling into it. */
   protected readonly doneOpen = signal(true);
@@ -248,8 +279,12 @@ export class Today implements OnInit {
 
   protected label = friendlyDate;
 
+  protected close(): void {
+    this.open.set(false);
+  }
+
   protected add(submit: CaptureSubmit): void {
-    this.composerOpen.set(false);
+    this.close();
     void this.tasks.addFromCapture(submit.text, submit.scheduling);
   }
 

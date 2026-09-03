@@ -174,7 +174,7 @@ body {
 }
 
 body {
-  @apply bg-ink-50 text-ink-900 antialiased;
+  @apply bg-white text-ink-900 antialiased;
   font-family: var(--font-sans);
   /* iOS: stop the whole page rubber-banding behind the app shell. */
   overscroll-behavior-y: none;

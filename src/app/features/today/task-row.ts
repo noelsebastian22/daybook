@@ -14,7 +14,16 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
  * The fade was never one of the four beats of the completion choreography
  * anyway (`styles.css`): the box fills, the tick pops, the strike draws and
  * the row re-sorts. Those still do all the work — a struck-through line in
- * ink-400 on a white card is 5.08:1 and still plainly reads as finished.
+ * ink-400 is 4.74:1 against the ink-50 the row now sits on and 5.08:1 against
+ * the white it lifts to on hover, so it clears AA either way.
+ *
+ * The row is flat: no card, no ring, no shadow, one hairline underneath.
+ * Its background still has to be **opaque**, though, and has to match the
+ * page — it is the lid over the swipe action layer, and the "Done" and
+ * "Tomorrow" labels behind it would otherwise be legible through every row
+ * at rest. That is why hover lifts to white rather than dimming to ink-100:
+ * white is opaque, and it raises the done row's contrast instead of lowering
+ * it.
  */
 @Component({
   selector: 'app-task-row',
@@ -26,7 +35,15 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
     '[style.view-transition-name]': '"task-" + task().id',
   },
   template: `
-    <div class="relative overflow-hidden rounded-card">
+    <!--
+      The separator is on the wrapper, not on the row that moves. A swipe
+      translates the row over the action layer beneath it; a border on that
+      row would slide away with it and take the list's ruling with it.
+
+      Every row carries one, including the last — the rule under the final
+      task is what the add row beneath it sits against.
+    -->
+    <div class="relative overflow-hidden border-b border-ink-200/70">
       <!--
         The action revealed under the row. Which side shows follows the
         direction of travel: a row moving right uncovers its left edge.
@@ -66,7 +83,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         #swipe="appSwipe"
         [appSwipeDisabled]="done()"
         (swiped)="onSwipe($event)"
-        class="group relative flex items-start gap-3 rounded-card bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/60 transition"
+        class="group relative flex items-start gap-3 bg-white px-2 py-3 transition hover:bg-ink-50"
       >
         <!--
           mt-0.5 is the one sanctioned 2px step: it optically centres the
@@ -173,7 +190,7 @@ import { addDays, friendlyDate, friendlyTime, shortWeekday } from '../../core/da
         @if (!done()) {
           <button
             type="button"
-            class="shrink-0 rounded-control px-2 py-1 text-caption font-medium text-ink-400 transition hover:bg-ink-50 hover:text-ink-600 group-hover:text-ink-600"
+            class="shrink-0 rounded-control px-2 py-1 text-caption font-medium text-ink-400 transition hover:bg-ink-100 hover:text-ink-600 group-hover:text-ink-600"
             [attr.aria-label]="'Move to ' + pushTargetDate()"
             (click)="pushed.emit()"
           >

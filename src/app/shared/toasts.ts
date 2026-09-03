@@ -1,12 +1,19 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ToastStore } from '../core/toast.store';
+import { Nav } from '../core/nav';
 
 @Component({
   selector: 'app-toasts',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!--
+      The left inset tracks the drawer so a toast stays centred on the content
+      column rather than on the viewport. It has to follow the collapse: pinned
+      at 240px it would sit that far off centre the moment the drawer folds.
+    -->
     <div
-      class="safe-pb-4 pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 lg:left-60"
+      class="safe-pb-4 pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4"
+      [class]="nav.collapsed() ? 'lg:left-0' : 'lg:left-60'"
       role="status"
       aria-live="polite"
     >
@@ -40,4 +47,5 @@ import { ToastStore } from '../core/toast.store';
 })
 export class Toasts {
   protected readonly toasts = inject(ToastStore);
+  protected readonly nav = inject(Nav);
 }

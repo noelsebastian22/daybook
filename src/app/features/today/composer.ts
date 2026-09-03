@@ -17,20 +17,27 @@ import { Capture, type CaptureSeed, type CaptureSubmit } from './capture';
 const FOCUSABLE = 'a[href],button,input,textarea,select,[tabindex]';
 
 /**
- * The floating composer: capture lifted off the page and over the list,
- * opened by an `Add task` button with explicit cancel and commit.
+ * The composer: capture lifted off the page as a modal dialog, opened by an
+ * `Add task` button with explicit cancel and commit.
  *
- * Replaced the always-visible box at the top of Today, and the Magic Plus
- * draggable FAB before that (BUILD-PLAN §10). It anchors to the bottom of the
- * viewport at every width — on a phone that is where the thumb already is,
- * and on a desktop it keeps the list from jumping when the box opens.
+ * **A centred dialog on a desktop, a bottom sheet on a phone.** Both are the
+ * same modal — scrim, Escape, explicit Cancel, trapped Tab — differing only in
+ * where the box sits. On a phone the bottom edge is where the thumb already
+ * is (BUILD-PLAN §10); on a desktop there is no thumb, and the centre is where
+ * a dialog belongs.
+ *
+ * It was briefly inline in the list, matching Todoist, and that was wrong
+ * here — see §9, 3 Sep. Todoist's rows are cards; Daybook's are flat with a
+ * hairline between, so an inline card of roughly row width read as one more
+ * task rather than as a box for writing one.
+ *
+ * The dialog centres on the **viewport**, not on the content column, and so
+ * carries no sidebar inset at all. A modal is not part of the page behind it,
+ * which is what lets this file stay out of the drawer-collapse problem that
+ * `toasts.ts` still has to track.
  *
  * `day` presets the date chip, which is what the per-day `+ Add task` rows in
  * Upcoming use to schedule by position rather than by typing a weekday.
- *
- * It is modal — a scrim, Escape and an explicit Cancel — so it traps Tab. The
- * page behind is dimmed but was still fully tabbable, which walked a keyboard
- * user out into a list they could not see they had reached.
  */
 @Component({
   selector: 'app-composer',
@@ -40,25 +47,39 @@ const FOCUSABLE = 'a[href],button,input,textarea,select,[tabindex]';
     '(keydown)': 'onKeydown($event)',
   },
   template: `
-    <!-- scrim and click-outside target; a button so Escape and focus behave -->
+    <!--
+      Scrim and click-outside target; a button so Escape and focus behave.
+
+      z-50, not z-40, because the drawer is itself z-50 — at z-40 the scrim
+      dimmed the whole page except the one element standing in front of it,
+      and the drawer stayed lit beside a dimmed list. It ties with the drawer
+      rather than beating it, and wins on DOM order: the outlet this renders
+      into comes after the nav in the shell. The panel below ties again and
+      wins the same way.
+    -->
     <button
       type="button"
-      class="fixed inset-0 z-40 cursor-default bg-ink-900/20"
+      class="fixed inset-0 z-50 cursor-default bg-ink-900/20"
       tabindex="-1"
       aria-label="Close the composer"
       (click)="cancelled.emit()"
     ></button>
 
     <!--
-      lg:left-60 clears the 240px sidebar. Without it inset-x-0 centres the box
-      on the viewport while the list it belongs to is centred in the space
-      beside the sidebar, putting the two 120px apart on desktop.
+      Pinned to the bottom edge by default, released to a top-anchored centre
+      at lg. Anchored near the top rather than truly centred so the box does
+      not creep upwards as the description and chip rows grow.
     -->
     <div
       #panel
-      class="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:left-60"
+      class="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:bottom-auto lg:top-24 lg:pb-0"
     >
-      <div class="mx-auto max-w-2xl">
+      <!--
+        The radius is repeated here so the shadow is cast in the shape of the
+        card rather than as a rectangle behind its rounded corners. The
+        wrapper has no background of its own; it is only the shadow's shape.
+      -->
+      <div class="mx-auto max-w-2xl rounded-panel lg:shadow-lg">
         <app-capture
           [seed]="seed()"
           [actions]="true"

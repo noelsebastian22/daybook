@@ -65,7 +65,7 @@ import type { Task } from '../../core/models';
               Finished
             </h2>
           }
-          <div class="space-y-2">
+          <div>
             @for (task of onDay(); track task.id) {
               <app-task-row
                 [task]="task"
@@ -120,10 +120,18 @@ import type { Task } from '../../core/models';
       @if (!past()) {
         <button
           type="button"
-          class="mt-4 flex w-full items-center gap-2 rounded-card border border-dashed border-ink-200 px-4 py-2.5 text-left text-body font-medium text-ink-400 transition hover:border-brand-500 hover:bg-white hover:text-brand-700"
+          class="group mt-2 flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
           (click)="composerOpen.set(true)"
         >
-          <span aria-hidden="true">+</span> Add task
+          <span
+            class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" class="h-3 w-3">
+              <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+            </svg>
+          </span>
+          Add task
         </button>
       }
     </div>

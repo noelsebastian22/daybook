@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SessionStore } from '../core/session.store';
 import { OfflineQueue } from '../core/offline-queue';
+import { Nav } from '../core/nav';
 import { InstallHint } from './install-hint';
 
 interface NavItem {
@@ -47,7 +48,7 @@ interface NavItem {
 
     <!-- mobile bar -->
     <div
-      class="safe-py-2 sticky top-0 z-30 flex items-center gap-2 bg-ink-50/80 px-2 backdrop-blur lg:hidden"
+      class="safe-py-2 sticky top-0 z-30 flex items-center gap-2 bg-white/80 px-2 backdrop-blur lg:hidden"
     >
       <button
         type="button"
@@ -87,11 +88,75 @@ interface NavItem {
       and a duplicate landmark for screen readers.
     -->
     <nav
-      class="safe-py-4 fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-ink-200/70 bg-white px-3 transition-transform duration-200 lg:translate-x-0"
-      [class]="menuOpen() ? 'translate-x-0' : '-translate-x-full'"
+      class="safe-py-4 fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-ink-200/70 bg-ink-50 px-3 transition-transform duration-200"
+      [class]="navClass()"
       aria-label="Main"
     >
-      <p class="px-3 pb-4 text-body font-semibold tracking-tight">Daybook</p>
+      <div class="flex items-center justify-between gap-2 px-3 pb-3">
+        <p class="text-body font-semibold tracking-tight">Daybook</p>
+
+        <!--
+          Collapse lives at the drawer's top right, where the thing it acts on
+          is the thing it sits inside. Desktop only: below lg the drawer is an
+          overlay sheet that the scrim and Escape already close, and a second
+          way to dismiss it would just be a smaller tap target for the same
+          job.
+        -->
+        <button
+          type="button"
+          class="hidden h-8 w-8 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 lg:grid"
+          aria-label="Collapse the sidebar"
+          (click)="nav.toggleCollapsed()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              fill="currentColor"
+              fill-rule="evenodd"
+              d="M19 4.001H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2m-15 2a1 1 0 0 1 1-1h4v14H5a1 1 0 0 1-1-1zm6 13h9a1 1 0 0 0 1-1v-12a1 1 0 0 0-1-1h-9z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+        </button>
+      </div>
+
+      <!--
+        Add task sits above the destinations, not among them: it is the only
+        thing here that does something rather than going somewhere. It is also
+        the app's primary action, and it used to be a button in Today's header
+        — which meant it did not exist on any other page.
+
+        It closes the sheet itself rather than leaving that to the navigation
+        handler below. Pressed on a phone while already on Today, the router
+        does not move and no NavigationEnd fires, so the sheet would stay up
+        covering the composer it had just opened.
+      -->
+      <button
+        type="button"
+        class="mb-3 flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-semibold text-brand-700 transition hover:bg-brand-50"
+        (click)="menuOpen.set(false); nav.openComposer()"
+      >
+        <span
+          class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.6"
+            class="h-3 w-3"
+          >
+            <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+        Add task
+      </button>
 
       @if (queue.pending(); as waiting) {
         <p
@@ -183,7 +248,44 @@ interface NavItem {
       browser scrolls to the anchor but leaves focus on the link, and the
       next Tab goes straight back into the drawer.
     -->
-    <main id="content" tabindex="-1" class="outline-none lg:pl-60">
+    <!--
+      The way back in. It only exists while the drawer is folded away, and it
+      is placed rather than inlined into a page header because there are five
+      pages and they would each need their own copy. The content column is
+      centred in a max-w-2xl column, so the top-left of the wide area is
+      empty at
+      every width this button appears at.
+    -->
+    @if (nav.collapsed()) {
+      <button
+        type="button"
+        class="fixed left-2 top-2 z-30 hidden h-9 w-9 place-items-center rounded-card bg-white text-ink-500 shadow-sm ring-1 ring-ink-200/70 transition hover:text-ink-900 lg:grid"
+        aria-label="Expand the sidebar"
+        (click)="nav.toggleCollapsed()"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            fill="currentColor"
+            fill-rule="evenodd"
+            d="M19 4.001H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2m-15 2a1 1 0 0 1 1-1h4v14H5a1 1 0 0 1-1-1zm6 13h9a1 1 0 0 0 1-1v-12a1 1 0 0 0-1-1h-9z"
+            clip-rule="evenodd"
+          ></path>
+        </svg>
+      </button>
+    }
+
+    <main
+      id="content"
+      tabindex="-1"
+      class="outline-none transition-[padding] duration-200"
+      [class]="nav.collapsed() ? 'lg:pl-0' : 'lg:pl-60'"
+    >
       <!--
         In the flow above the outlet, not floating: the composer and the toasts
         both own the bottom of the viewport, and a banner that overlapped
@@ -200,9 +302,27 @@ interface NavItem {
 export class Shell {
   protected readonly session = inject(SessionStore);
   protected readonly queue = inject(OfflineQueue);
+  protected readonly nav = inject(Nav);
   private readonly router = inject(Router);
 
   protected readonly menuOpen = signal(false);
+
+  /**
+   * Two independent axes on one property. Below `lg` the sheet is driven by
+   * `menuOpen`; at `lg` and up it is driven by `collapsed`, and the drawer is
+   * pinned regardless of what the sheet is doing.
+   *
+   * Both halves are emitted from here rather than left as static classes,
+   * because `lg:translate-x-0` and `lg:-translate-x-full` set the same
+   * property at the same specificity — which of them won would come down to
+   * their order in the generated stylesheet, not to anything in this file.
+   * Only ever one of the pair is in the list.
+   */
+  protected readonly navClass = computed(
+    () =>
+      (this.menuOpen() ? 'translate-x-0' : '-translate-x-full') +
+      (this.nav.collapsed() ? ' lg:-translate-x-full' : ' lg:translate-x-0'),
+  );
 
   /**
    * An href jump alone moves the viewport but not focus. Doing it by hand
