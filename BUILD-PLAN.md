@@ -103,6 +103,7 @@ silently rejects anything not on the list.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **audited 3 Sep, not started** — the table layer already holds up unmodified; five hard blockers, every one of them downstream of `service_role`. §4 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -371,6 +372,169 @@ multi-tenancy.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
+### Phase 7, multi-tenancy — audited 3 Sep, not started
+
+The live project was audited end to end on 3 Sep, read-only, against
+`pg_catalog`, the Supabase advisors and this repo. What follows is the ordered
+fix list that came out of it. Every claim was checked against the live
+database rather than taken from these docs, and where the two disagreed the
+live database won.
+
+**The table layer is already multi-tenant and needs no work.** Worth saying
+plainly, because everything after this is a list of problems and none of them
+are in the schema. Verified live: RLS enabled on all four tables; four
+policies, every one of them `for all to authenticated` with both a `using` and
+a `with check` of `auth.uid() = user_id`; every `user_id` predicate covered by
+a `user_id`-leading index; all four foreign keys to `auth.users` cascading on
+delete; `categories` unique on `(user_id, slug)` and not on `slug` alone; both
+user-facing RPCs raising on a null `auth.uid()` and filtering every statement
+they run; the five cron RPCs genuinely revoked from `anon`, `authenticated`
+and `public`, with `service_role` the only grantee; `search_path` pinned on all
+seven functions. **If a hundred people sign up tomorrow, their task data does
+not leak into each other's accounts.** The Supabase security linter agrees —
+no ERROR-level findings and no RLS finding at any level.
+
+What breaks is everything downstream of `service_role`, where there is no RLS
+to be right or wrong about.
+
+Two structural facts to carry forward, because both are load-bearing and
+neither is visible from reading a migration:
+
+- **`force row level security` is off on all four tables, and should stay
+  off.** The tables are owned by `postgres` and so is every `SECURITY DEFINER`
+  function, so **RLS is inert inside all seven of them**. Their correctness
+  rests entirely on hand-written `where user_id = …` clauses. Turning FORCE on
+  would break them rather than protect them. The consequence: editing one of
+  those function bodies is a security change, every time.
+- **Three functions carry no ownership check at all, deliberately.**
+  `mark_reminder_sent` is `update tasks set reminder_sent_at = now() where id =
+  p_task_id` — no `user_id` in it anywhere. `digest_payload` and
+  `mark_digest_sent` take a user id from whoever calls them. They are safe
+  *only* because of the grants. One careless `grant execute … to
+  authenticated` turns any of the three into a cross-tenant write.
+
+#### Hard blockers — fix before a second real user exists
+
+1. **One bad timezone string silently kills the digest for every user.**
+   `user_settings.timezone` is unvalidated `text` (`0001_core_schema.sql`) and
+   any signed-in user can write anything into their own row. `due_digests`
+   (`0003_digest_and_reminders.sql`) evaluates `now() at time zone
+   us.timezone` across **all** rows in one statement, so a single unrecognised
+   zone raises `22023` and aborts the whole query — `readDue` retries three
+   times, throws, `Promise.allSettled` swallows it, and the cron still records
+   HTTP 200. Nobody gets a digest, indefinitely, with no alarm anywhere. This
+   is the worst bug in the system: unbounded blast radius from one tenant's
+   data, invisible from the outside. It is not even an attack — the browser's
+   `Intl` zone set is not Postgres's, so `ensure_user_setup(p_timezone :=
+   browserTimezone())` can plant one through the happy path. Fix both ends: a
+   validating trigger against `pg_timezone_names` on write, **and** make
+   `due_digests` skip a bad row instead of aborting on it.
+2. **A second user's digest becomes a permanent retry storm.** `DIGEST_FROM`
+   is `onboarding@resend.dev`, which Resend delivers only to the account owner
+   — long known, §12, and previously filed as "silently gets nothing". The
+   audit shows it is worse than that. `index.ts` treats any non-`ok` Resend
+   response as retryable and skips `mark_digest_sent`, so `digest_last_sent_on`
+   never advances and `due_digests` returns that user again **on every
+   five-minute tick, all day, every day** — 288 failed sends per non-owner user
+   per day. Two fixes, both needed: verify a real sending domain, and make a
+   4xx terminal (mark it sent, or count failures and disable the digest) while
+   leaving 429 and 5xx retryable. Retry-until-success is right for an outage
+   and exactly wrong for a permanent rejection.
+3. **New users can lose the first-login race and see an error.**
+   `settings.store.ts` uses a bare `.insert(seed)` when it finds no
+   `user_settings` row, which collides with `ensure_user_setup`'s insert on
+   `user_settings_pkey`. Today there is one user and one row, so it never
+   fires; on day one of multi-tenancy some fraction of signups get *"Could not
+   create your settings."* on their very first app open. The fix is one word:
+   `.upsert(seed, { onConflict: 'user_id' })`.
+4. **The service role key sits in plaintext in `cron.job.command`.** The repo
+   copy of `supabase/cron/schedule-notify.sql` is correctly never committed
+   filled in, but the database copy is readable by anything that can query
+   `cron.job` as `postgres` — including the audit, which read it. Move it into
+   Supabase Vault and have the job read it through `vault.decrypted_secrets`,
+   then rotate the current `sb_secret_…` key.
+5. **Turn on leaked-password protection.** One toggle in the Auth dashboard,
+   flagged by the security advisor, irrelevant with one owner and not
+   irrelevant the moment strangers pick passwords.
+
+#### Scale problems — fine at five users, broken at five hundred
+
+6. **Resend's free tier caps the whole feature at 100 emails a day**, with a
+   two-per-second rate limit that a sequential loop will brush. 100 users with
+   the digest on *is* the cap, and every 429 past it becomes the same infinite
+   retry as (2). A paid plan, not a code change — but (2) has to land first or
+   the backlog eats the next day's quota too.
+7. **`notify` sends serially inside one invocation** — one `digest_payload`,
+   one Resend POST and one `mark_digest_sent` per user, awaited in order.
+   Against the 150s free-tier wall clock that is roughly 200–350 users per
+   tick. Digests degrade gracefully, because each user is marked immediately
+   after their own send and the next tick picks up the remainder; **reminders
+   do not** — anything pushed past the 15-minute grace window in
+   `due_reminders` is dropped for good. **Reminder delivery is what breaks
+   first under load**, not the digest. Batch the sends, or shard users across
+   ticks.
+8. **`auth.uid()` is re-evaluated per row in all four policies.** The
+   performance advisor flags it four times. Rewriting as `(select auth.uid()) =
+   user_id` hoists it to an InitPlan evaluated once per query. Four one-line
+   changes and the cheapest win available; invisible at nine tasks, real on a
+   multi-thousand-row range scan.
+9. **`tasks.category_id` has no index**, so `delete from categories` seq-scans
+   `tasks` to enforce `on delete set null` — and that scan is *not* user-
+   scoped, so one user deleting a category reads every user's rows.
+10. **A wrong device clock permanently poisons a day of history.**
+    `rollover_and_snapshot` clamps to `v_server + 1`, so a device a day fast
+    pushes open tasks to tomorrow *and* writes a snapshot for a still-running
+    today with incomplete counts. Because the next run starts at `v_last_snap
+    + 1` and inserts `on conflict do nothing`, that row can never be corrected.
+    Harmless at one careful user; at a hundred, some of them have bad clocks.
+    Clamp the upper bound to `v_server` and exclude today from the snapshot
+    loop by construction.
+11. **`day_snapshots` grows one row per user per day forever** and nothing
+    prunes it. Irrelevant at 100 users (~36k rows a year); at 1,000 it is
+    50–100MB a year against a 500MB free-tier database. The database is 13MB
+    today, so this is a watch item, not work.
+
+#### Nice-to-haves
+
+12. **A task can reference another user's category.** `tasks_category_id_fkey`
+    is a plain FK to `categories(id)` with no `user_id` component and there are
+    no triggers anywhere, and FK checks are not subject to the caller's RLS. It
+    leaks nothing readable — RLS still blocks the read, and the client never
+    uses an embedded join — but it is an existence oracle for UUIDs, and user
+    B deleting a category nulls user A's task. Fix with a composite FK on
+    `(user_id, category_id)`, which needs a unique index on `categories
+    (user_id, id)`. **Inferred, not verified**: confirming it needs a write.
+13. **Append `, pg_temp` to `search_path` on all seven functions.** Postgres
+    searches the temp schema first for relation names when it is not listed, so
+    in principle a `pg_temp.user_settings` could shadow the real one inside a
+    definer function. Not exploitable here — that needs arbitrary SQL and
+    PostgREST exposes no such RPC — so this is insurance, not a hole.
+14. **`push_subscription` is one JSONB column**, so a second device silently
+    replaces the first. Needs its own table for real multi-device.
+15. **Squash the migration drift.** Live has six applied, the folder has four;
+    `0002_rpcs.sql` consolidates `daybook_revoke_anon_rpc_execute` and
+    `daybook_carry_count_by_days_not_opens`. Confirmed semantically identical —
+    the only textual difference is that the live `rollover_and_snapshot` body
+    lost its inline comments — but it makes `supabase db diff` useless as a
+    check.
+16. **Housekeeping.** A partial index on `user_settings (digest_enabled) where
+    digest_enabled` once the seq scan every five minutes stops being free; a
+    retention purge on `cron.job_run_details`, which holds all 3,439 runs since
+    21 Aug and grows ~105k rows a year; and `pg_net` moved out of the `public`
+    schema, per the security advisor.
+
+#### Shape of the work
+
+One migration, `0005_multitenancy_hardening.sql`, carries (1) validation and
+defence, (8), (9), (10), (13) and optionally (12) — all schema, all testable
+against a second seeded auth user. One Edge Function change carries (2) and
+(7). One line of client change carries (3). (4), (5) and (6) are dashboard and
+Vault work that no migration can do, and (4) should be done first because
+rotating the key invalidates nothing else.
+
+**The gate for a second real user is 1–5.** Everything from 6 down can wait for
+someone to actually sign up.
+
 ---
 
 ## 5. Features
@@ -568,7 +732,8 @@ create table tasks (
   reminder_at        timestamptz,
   carried_over_count int not null default 0, -- automatic rollover only
   reschedule_count   int not null default 0, -- manual pushes only
-  created_at         timestamptz not null default now()
+  created_at         timestamptz not null default now(),
+  reminder_sent_at   timestamptz             -- added 0003, cron idempotency
 );
 
 create index on tasks (user_id, scheduled_date) where completed_at is null;
@@ -606,13 +771,31 @@ login.
 ### user_settings
 
 `user_id` PK, `timezone`, `digest_enabled`, `digest_send_at`,
-`push_subscription jsonb`, `seeded_at`. Nothing reads `timezone` yet.
+`push_subscription jsonb`, `seeded_at`, plus `digest_last_sent_on` from 0003.
+
+`timezone` is read by `due_digests`, and it is the only thing telling a cron
+running in UTC when 7am is for a given person. It is also unvalidated `text`
+that any signed-in user can write, and one bad value takes the digest down for
+everyone — see §4 Phase 7, blocker 1.
 
 ### Security
 
 RLS is enabled on all four tables, owner-only, all four verbs, via
-`auth.uid() = user_id`. Both RPCs are `SECURITY DEFINER`, raise on a null
-`auth.uid()`, and are revoked from `anon` and `public`.
+`auth.uid() = user_id`. Both user-facing RPCs are `SECURITY DEFINER`, raise on
+a null `auth.uid()`, and are revoked from `anon` and `public`. The five cron
+RPCs in 0003 are locked the other way: revoked from `anon`, `authenticated`
+and `public`, granted to `service_role` alone.
+
+**All of that was verified against the live database on 3 Sep**, policy text
+and grants read out of `pg_policies` and `pg_proc.proacl` rather than assumed
+from these migrations. It holds. What does not hold is the cron path — §4
+Phase 7.
+
+One thing that is not obvious and matters every time a function is edited:
+`force row level security` is off, the tables are owned by `postgres`, and so
+are all seven `SECURITY DEFINER` functions — so **RLS does nothing inside
+them**. Every one of those bodies is its own access-control boundary, enforced
+only by the `where user_id = …` its author remembered to write.
 
 ---
 
@@ -1469,6 +1652,40 @@ same callback fires `INITIAL_SESSION` with a null session for every signed-out
 visitor, and navigating on that would throw anyone deep-linking to `/login`
 over to `/welcome`. 2 Sep.
 
+### The multi-tenancy audit, 3 Sep
+
+**The schema was audited before anything was built on top of it, not after.**
+Multi-tenancy had been deferred four times with "RLS covers it" as the reason,
+which was a claim nobody had checked against the live database. Checking it
+first turned out to be the cheap move: the claim was true, so no schema work is
+needed, and the day was spent finding the four things that are actually broken
+instead of rewriting policies that were already correct.
+
+**Nothing was changed during the audit, deliberately.** Read-only throughout —
+`execute_sql` for inspection, no migration, no deploy. A schema audit that
+fixes as it goes cannot say what the state *was*, and the whole value here is a
+trustworthy baseline to plan against. The fixes are Phase 7's job.
+
+**The live database is the source of truth, not these migrations.** Every
+finding was read from `pg_catalog` and the advisors. It agreed with the repo
+everywhere except the six-vs-four migration count, which is a known
+consolidation, and the live `rollover_and_snapshot` body having lost its inline
+comments to a `create or replace`. Worth repeating as a habit: `0002_rpcs.sql`
+is a *reconstruction* of what ran, not a record of it.
+
+**`force row level security` stays off.** It is the obvious hardening reflex
+and it is wrong here. The tables and all seven `SECURITY DEFINER` functions are
+owned by `postgres`, so FORCE would break every function rather than protect
+any of them. The real mitigation is to treat those seven bodies as
+access-control code — see §4 Phase 7 and §6.
+
+**One tenant's data must never be able to break another tenant's job.** That is
+the general form of the timezone bug and the rule to design against from here:
+`due_digests` evaluates every user's row inside a single statement, so one
+unparseable value aborts the lot. Anything the cron reads across all users
+needs either validation at the write or per-row isolation at the read. Both,
+for the timezone.
+
 ---
 
 ## 11. Backlog
@@ -1528,6 +1745,11 @@ Not core. Revisit once the main app is solid.
   not urgent while Daybook has one user. **Deliberately left, 22 Aug** — but
   note it is a **hard blocker for multi-tenancy**, not a nicety: a second user
   would silently never receive a digest. Raise it again there.
+  **Worse than logged, 3 Sep.** It is not a silent nothing. `index.ts` skips
+  `mark_digest_sent` on any failed send, so a rejected user is re-selected by
+  `due_digests` on every five-minute tick for the rest of their local day, for
+  ever — 288 failed sends a day, each one burning the Resend quota. §4 Phase 7,
+  blocker 2.
 - ~~The digest's "Yesterday you finished" section has never rendered.~~
   **Closed 22 Aug.** The 07:00 digest arrived with subject `Daybook — 2 on
   today, 1 done yesterday` and rendered `Yesterday you finished 1 · call
@@ -1679,6 +1901,25 @@ Not core. Revisit once the main app is solid.
   beside `loaded` and refetch when it changes. RLS meant this was never a data
   leak on the server, only the wrong rows on screen. **Not verified** — it
   needs two accounts and one was not to hand.
+- **`user_settings.timezone` is unvalidated text, and one bad value stops the
+  digest for every user.** Found 3 Sep. Not deferred by choice — it was not
+  known. The full mechanism is in §4 Phase 7, blocker 1; it is the highest
+  priority thing in the repo.
+- **The service role key is stored in plaintext in `cron.job.command`.** Found
+  3 Sep. Readable by anything that can query `cron.job` as `postgres`. Vault
+  plus a rotation is the fix. §4 Phase 7, blocker 4.
+- **`SettingsStore.load()` races `ensure_user_setup` on a brand-new account.**
+  Found 3 Sep. A bare `.insert(seed)` against `user_settings_pkey`; the loser
+  toasts *"Could not create your settings."* Cannot fire with one existing
+  user, will fire on real signups. §4 Phase 7, blocker 3.
+- **A device clock a day fast permanently corrupts that day's history.** Found
+  3 Sep. `rollover_and_snapshot` clamps to `v_server + 1` and then snapshots a
+  still-running today, which `on conflict do nothing` can never correct.
+  Per-user, no cross-tenant effect. §4 Phase 7, item 10.
+- **A task can point at another user's category.** Found 3 Sep, and left: the
+  FK carries no `user_id`, so the reference is accepted, but RLS still blocks
+  the read and nothing leaks. §4 Phase 7, item 12. **Inferred, not verified** —
+  confirming it needs a write, and the audit was read-only.
 
 ## 13. Platform constraints and gotchas
 
@@ -1735,12 +1976,22 @@ above the whole system, which is why the three that remain (`.skip-link`,
 - **The cron sends its `sb_secret_` key on `Authorization: Bearer`, against
   Supabase's own advice, and it works. Do not "fix" it.** The migration guide
   says secret keys are not JWTs and must go on the `apikey` header instead,
-  because the platform tries to parse a `Bearer` value as a JWT. That applies
-  when `verify_jwt` is on; `notify` has it off and authorises in code at
-  `auth.ts:57`, which matches the bearer token against
-  `SUPABASE_SERVICE_ROLE_KEY`. Moving the key to `apikey` would leave that
-  match with nothing to read and 401 every tick. Verified working after the
-  legacy keys were disabled, 22 Aug.
+  because the platform tries to parse a `Bearer` value as a JWT. It works
+  anyway: the gateway accepts an `sb_secret_` key on `Bearer`, and `notify`
+  then authorises again in code at `auth.ts:57`, matching the bearer token
+  against `SUPABASE_SERVICE_ROLE_KEY`. Moving the key to `apikey` would leave
+  that match with nothing to read and 401 every tick. Verified working after
+  the legacy keys were disabled, 22 Aug.
+- **`notify` has `verify_jwt` ON, not off. This bullet said off until 3 Sep and
+  was wrong.** The live API reports `verify_jwt: true` for `notify` version 8.
+  It matters: `hasServiceRoleClaim` in `auth.ts` reads the `role` claim out of
+  a JWT **without verifying its signature**, which is only safe because the
+  gateway has already verified it. The function's own comment says exactly that
+  — "that holds only while `verify_jwt` stays true" — so the code and this file
+  had been contradicting each other for a fortnight. **Do not turn `verify_jwt`
+  off.** Doing so would make the second half of `isServiceRole` forgeable by
+  anyone who can write a JWT, and the exact-match branch against
+  `SUPABASE_SERVICE_ROLE_KEY` is the only thing that would still hold.
 - **To run the job by hand without printing its key**, execute the stored
   command instead of selecting it:
   `do $$ declare c text; begin select command into c from cron.job where
@@ -1749,7 +2000,9 @@ above the whole system, which is why the three that remain (`.skip-link`,
 - **`cron.job.command` contains the service role key in plain text**, since it
   is baked into the job definition. Never `select *` from that table into
   somewhere the key should not be. Select the columns you need, or test with
-  `command like '%…%'`.
+  `command like '%…%'`. The 3 Sep audit read it despite the warning, which is
+  the argument for moving it into Vault rather than restating the warning —
+  §4 Phase 7, blocker 4.
 - **A newly created API key can be rejected as "JWT issued at future"** for the
   first minute or two, while its `iat` is ahead of some validators' clocks. Seen
   on 21 Aug: at the same millisecond, `due_digests` got a 401 and

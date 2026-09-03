@@ -11,6 +11,92 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-03 · claude-code · multi-tenancy audit
+
+**Did**
+- **Read-only audit of the live project** against `pg_catalog` and both advisor
+  sets. No DDL, no migration, no deploy, no writes — `execute_sql` for
+  inspection only.
+- **RLS is sound and needs no work.** All four policies read verbatim out of
+  `pg_policies`: every one `for all to authenticated`, both `using` and
+  `with check` on `auth.uid() = user_id`. Every `user_id` predicate has a
+  `user_id`-leading index, all four FKs to `auth.users` cascade, `categories`
+  is unique on `(user_id, slug)`. No cross-tenant read or write path exists.
+- Grants confirmed from `pg_proc.proacl`: the five cron RPCs are
+  `service_role`-only, the two user RPCs are `authenticated` + `service_role`,
+  `search_path` pinned on all seven. The documented story is exactly true.
+- **Found: `user_settings.timezone` is unvalidated text and one bad value stops
+  the digest for everyone.** `due_digests` evaluates every row in one
+  statement; confirmed `select now() at time zone 'Not/AZone'` raises `22023`.
+  The cron still logs HTTP 200 while nobody gets mail.
+- **Found: the `DIGEST_FROM` gap is a retry storm, not a silent nothing.**
+  `index.ts` skips `mark_digest_sent` on any failed send, so `due_digests`
+  re-selects the rejected user every tick — 288 failed sends per day per
+  non-owner user.
+- Found: `settings.store.ts` uses a bare `.insert(seed)` that races
+  `ensure_user_setup` on first login; the service role key sits in plaintext in
+  `cron.job.command`; `rollover_and_snapshot` clamping to `v_server + 1`
+  snapshots a still-running today that `on conflict do nothing` can never
+  correct.
+- **Corrected `BUILD-PLAN.md` §13: `notify` has `verify_jwt` ON.** The file
+  said off. The live API reports `true` for version 8, and `auth.ts`'s own
+  comment assumes on. Two repo files had contradicted each other for a
+  fortnight.
+- Migration drift confirmed: 6 applied vs 4 on disk. Pulled both extras'
+  statements out of `supabase_migrations.schema_migrations` — semantically
+  identical to `0002_rpcs.sql`; the only textual difference is the live
+  `rollover_and_snapshot` body having lost its inline comments.
+- Wrote **§4 Phase 7** (16 items, three tiers), a **§9** decisions block, a
+  refreshed **§6** security and data model, and five new **§12** gaps.
+- Build **526.64 kB**, unchanged. **55 tests in 4 files**, passing. No source
+  changed this session.
+
+**Decided**
+- **Audit before building.** Multi-tenancy had been deferred four times on an
+  unchecked "RLS covers it". Checking it first proved it true, so no schema
+  rewrite is needed and the day went on the four things that are actually
+  broken.
+- **Read-only throughout.** An audit that fixes as it goes cannot say what the
+  baseline was, and the baseline is the deliverable.
+- **`force row level security` stays off.** Tables and all seven definer
+  functions are owned by `postgres`, so FORCE would break them rather than
+  protect them. The mitigation is to treat those seven bodies as access-control
+  code.
+- **One tenant's data must never break another tenant's job.** The general form
+  of the timezone bug, and the rule to design the cron against from here.
+- **The gate for a second real user is blockers 1–5.** Item 6 down waits for
+  someone to actually sign up.
+
+**Didn't work**
+- **Trusting the docs over the platform.** §13 said `verify_jwt` was off,
+  `auth.ts` assumed on, live said on. Nothing caught it because both files read
+  plausibly on their own. Read the platform, not the note about the platform.
+- **"RLS covers it" as an answer to multi-tenancy.** It is true, and it covers
+  none of the real blockers — every one of them is downstream of `service_role`,
+  where RLS does not run at all.
+- **`list_tables` summaries are not enough.** They omit `relforcerowsecurity`,
+  which is the single fact that determines whether RLS means anything inside
+  the definer functions. Queried `pg_catalog` directly instead.
+
+**Open**
+- Nothing was built. All of Phase 7 is open.
+- The cross-user category FK (§4 item 12) is **inferred, not verified** —
+  confirming it needs a write.
+- `DIGEST_FROM` needs a verified domain, which needs DNS. Noel's call.
+- Whether to rotate the service role key now — the audit read it out of
+  `cron.job` — or fold it into the Vault move.
+
+**Next**
+- Write `supabase/migrations/0005_multitenancy_hardening.sql`: validating
+  trigger on `user_settings.timezone` against `pg_timezone_names`,
+  `due_digests` made per-row safe so one bad row cannot abort it, the four RLS
+  policies rewritten to `(select auth.uid()) = user_id`, an index on
+  `tasks (category_id)`, `, pg_temp` appended to all seven `search_path`
+  settings, and the rollover clamp upper bound dropped to `v_server`. Verify
+  against a second seeded auth user before anything else in Phase 7.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-09-02 · claude-code · sign-out nav, safe-area padding
 
 **Did**
