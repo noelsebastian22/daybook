@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseCapture, toCaptureText, writeToken } from './parse-capture';
 import { today } from './dates';
 
@@ -176,5 +176,45 @@ describe('writeToken', () => {
     expect(parsed.text).toBe('call physio');
     expect(parsed.energy).toBe('quick');
     expect(parsed.scheduled_date).toBe('2026-08-20');
+  });
+});
+
+describe('only the first date wins', () => {
+  /**
+   * The clock is pinned rather than a fixed `ref` being passed.
+   *
+   * The bug lived in a guard comparing `scheduled_date` against `today()`.
+   * `today()` reads the wall clock, while the `REF` above is frozen in Aug
+   * 2026, so under a fixed ref the two could never be equal and the broken
+   * branch was unreachable — a spec built on REF cannot see this bug at all.
+   * Reproducing it needs `today()` and the parse reference to be the same day,
+   * which is what production always does and what `setSystemTime` recreates.
+   *
+   * Pinned to Monday 17 Aug 2026 so "today" and "friday" are four days apart.
+   * Picking the day matters: on a real Friday the two phrases resolve to the
+   * same date and the assertion passes against the bug.
+   */
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 17, 9, 0, 0));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('keeps a first date that resolves to today', () => {
+    // Before the fix this returned Friday: scheduled_date is initialised to
+    // today(), so the guard read "already today" as "nothing claimed it yet"
+    // and let the second date overwrite a deliberate one.
+    expect(parseCapture('call mum today then friday').scheduled_date).toBe('2026-08-17');
+    expect(today()).toBe('2026-08-17');
+  });
+
+  it('still lets a non-today first date win, which always worked', () => {
+    expect(parseCapture('call mum tomorrow then friday').scheduled_date).toBe('2026-08-18');
+  });
+
+  it('keeps the first date and its time when a bare date follows', () => {
+    const r = parseCapture('call mum today at 2pm then friday');
+    expect(r.scheduled_date).toBe('2026-08-17');
+    expect(new Date(r.reminder_at!).getHours()).toBe(14);
   });
 });

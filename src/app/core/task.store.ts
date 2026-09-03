@@ -175,11 +175,19 @@ export const TaskStore = signalStore(
           .gte('scheduled_date', addDays(today(), LOAD_WINDOW_BACK_DAYS))
           .lte('scheduled_date', addDays(today(), LOAD_WINDOW_FORWARD_DAYS))
           .order('created_at');
-        patchState(store, { loading: false, loaded: true, loadedFor: session.userId() });
         if (error) {
+          // `loaded` deliberately stays false. Latching it here would mark the
+          // store loaded for this user, and `ensureLoaded()` returns early on
+          // that flag — so one failed load (opening the app with no
+          // connection) left an empty list that no later navigation could
+          // repair, until a manual reload. That also skipped the
+          // `queue.applyTo` below, which is the line that stops offline writes
+          // looking like they never happened.
+          patchState(store, { loading: false });
           toast.error('Could not load tasks.');
           return;
         }
+        patchState(store, { loading: false, loaded: true, loadedFor: session.userId() });
         // Anything still queued is layered back over the server's answer, or
         // opening the app offline would look like the last session's writes
         // never happened.

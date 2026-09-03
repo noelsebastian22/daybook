@@ -150,6 +150,18 @@ export function parseCapture(input: string, ref: Date = new Date()): ParsedCaptu
 
   let scheduled_date = today();
   let reminder_at: string | null = null;
+  /**
+   * Whether a date token has claimed the schedule yet.
+   *
+   * This is a flag rather than a `scheduled_date === today()` check, which is
+   * what it used to be. `scheduled_date` is *initialised* to today, so that
+   * test could not tell "nothing has claimed it" from "the first token
+   * resolved to today" — and a later token then overrode a deliberate one.
+   * `call mum today then friday` scheduled Friday; `call mum tomorrow then
+   * friday` correctly kept tomorrow. Same sentence shape, different answer,
+   * depending only on whether the first date happened to be today.
+   */
+  let dateClaimed = false;
 
   const results = chrono.parse(input, ref, { forwardDate: true });
   for (const r of results) {
@@ -165,7 +177,8 @@ export function parseCapture(input: string, ref: Date = new Date()): ParsedCaptu
     tokens.push(token);
 
     // Only the first usable date drives scheduling.
-    if (reminder_at === null && scheduled_date === today()) {
+    if (!dateClaimed) {
+      dateClaimed = true;
       const date = r.start.date();
       scheduled_date = toLocalDate(date);
       if (r.start.isCertain('hour')) {
