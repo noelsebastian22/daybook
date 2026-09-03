@@ -427,6 +427,35 @@ Code and migration only. **Nothing has been applied to the live database and
 nothing has been deployed** — the migration is written and unapplied, and the
 Edge Function change is unreleased. Both need the schema to go first.
 
+**0005 has been proven against a local stack**, not just written. `supabase
+init` then `supabase start` (the project had no `config.toml` — local dev had
+never been set up) builds the schema from 0001 to 0005 on a clean database, and
+every claim below was then exercised by hand against it with two seeded auth
+users and forged `request.jwt.claim.sub`:
+
+- A legacy bad timezone is **skipped** by `due_digests`, and the other user
+  still gets their row. The pre-0005 query shape, against the same two rows,
+  still raises `22023` — the bug reproduced before the fix was confirmed.
+- The validating trigger rejects a bad zone on write; the repair pass and
+  `ensure_user_setup`'s coercion cover the rows the trigger cannot.
+- `register_push_subscription` called by user B for an endpoint user A owns
+  leaves **one** row, owned by B, with B's keys. Two rows there would be C1
+  still open. It still raises on a null `auth.uid()`.
+- A device claiming tomorrow rolls its tasks but **does not** snapshot today —
+  newest snapshot 09-02 with a Sydney today of 09-03. A correct client is
+  unaffected.
+- `due_reminders` returns one row per device for a single task, and no rows at
+  all for a user with no registered device.
+
+**The obvious version of the timezone fix does not work, and this was measured,
+not guessed.** Adding `and daybook_is_valid_timezone(us.timezone)` to the
+`WHERE` clause — which is what "make `due_digests` skip a bad row" naturally
+means — **still raises**, because SQL does not order AND operands and the
+planner evaluates the time conversion first. That is why the conversion itself
+is total (`daybook_local_now` returns NULL rather than raising) instead. A
+guard that appears to work until the plan changes would have been worse than no
+guard, because it would have been believed. §9.
+
 - **Written, not applied:** `supabase/migrations/0005_multitenancy_hardening.sql`
   carries blockers 1 (both ends), C1's `push_subscriptions` table and
   `register_push_subscription`, item 8, item 9, item 10 and item 13, plus a
