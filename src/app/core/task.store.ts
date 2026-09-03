@@ -1,20 +1,31 @@
 import { computed, inject } from '@angular/core';
-import {
-  signalStore,
-  withState,
-  withComputed,
-  withMethods,
-  patchState,
-} from '@ngrx/signals';
+import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
 import { Supabase } from './supabase';
 import { SessionStore } from './session.store';
 import { ToastStore } from './toast.store';
 import { isOffline, OfflineQueue } from './offline-queue';
 import { parseCapture } from './parse-capture';
 import { addDays, sentenceDate, today } from './dates';
-import type { Category, DaySnapshot, Energy, Scheduling, Task } from './models';
+import type { Category, DaySnapshot, Scheduling, Task } from './models';
+import { LOAD_WINDOW_BACK_DAYS, LOAD_WINDOW_FORWARD_DAYS, UPCOMING_DAYS } from './task.constants';
+import {
+  countOpenBetween,
+  countOpenByDate,
+  fieldsOf,
+  filterTasks,
+  groupUpcoming,
+  mergeSnapshots,
+  mergeTasksById,
+  resolveScheduling,
+  rolledCount,
+  tasksForDay,
+  type EnergyFilter,
+} from './task.helpers';
 
-export type EnergyFilter = 'all' | Energy;
+// Defined in `task.helpers.ts` so the pure filter can be typed without
+// importing the store, and re-exported here because this is where every
+// consumer has always imported it from.
+export type { EnergyFilter } from './task.helpers';
 
 interface TaskState {
   tasks: Task[];
@@ -37,16 +48,6 @@ interface TaskState {
   snapshots: DaySnapshot[];
 }
 
-const UPCOMING_DAYS = 7;
-
-/** Open tasks first, then completed, newest completion last. */
-function sortForDay(a: Task, b: Task): number {
-  if (!a.completed_at && b.completed_at) return -1;
-  if (a.completed_at && !b.completed_at) return 1;
-  if (a.completed_at && b.completed_at) return a.completed_at.localeCompare(b.completed_at);
-  return a.created_at.localeCompare(b.created_at);
-}
-
 export const TaskStore = signalStore(
   { providedIn: 'root' },
   withState<TaskState>({
@@ -63,26 +64,26 @@ export const TaskStore = signalStore(
   }),
 
   withComputed((store) => {
-    const todaysTasks = computed(() =>
-      store
-        .tasks()
-        .filter((t) => t.scheduled_date === today())
-        .sort(sortForDay),
+    const todaysTasks = computed(() => tasksForDay(store.tasks(), today()));
+
+    const visibleTasks = computed(() =>
+      filterTasks(todaysTasks(), store.filter(), store.categoryFilter()),
     );
 
     /**
-     * Energy and category filter together, as an AND. They answer different
-     * questions — "how much focus have I got" and "which part of my life" —
-     * so making them exclusive would force a pointless choice between them.
+     * Tomorrow through the end of the Upcoming horizon, so the strip and its
+     * count cannot disagree about where the week ends.
+     *
+     * A plain function rather than a `computed`, deliberately. `today()` is
+     * not a signal, so a computed over it would depend on nothing, cache its
+     * first answer and never recompute — leaving a tab open across midnight
+     * would keep the old window forever. Called inside the two computeds
+     * below, it is re-evaluated whenever they are, which is what the inlined
+     * version did.
      */
-    const visibleTasks = computed(() => {
-      const energy = store.filter();
-      const category = store.categoryFilter();
-      return todaysTasks().filter(
-        (t) =>
-          (energy === 'all' || t.energy === energy) &&
-          (category === null || t.category_id === category),
-      );
+    const upcomingWindow = () => ({
+      start: addDays(today(), 1),
+      end: addDays(today(), UPCOMING_DAYS),
     });
 
     return {
@@ -119,28 +120,13 @@ export const TaskStore = signalStore(
 
       /** Next 7 days, only days that actually have something on them. */
       upcoming: computed(() => {
-        const start = addDays(today(), 1);
-        const end = addDays(today(), UPCOMING_DAYS);
-        const byDay = new Map<string, Task[]>();
-        for (const t of store.tasks()) {
-          if (t.completed_at) continue;
-          if (t.scheduled_date < start || t.scheduled_date > end) continue;
-          const bucket = byDay.get(t.scheduled_date) ?? [];
-          bucket.push(t);
-          byDay.set(t.scheduled_date, bucket);
-        }
-        return [...byDay.entries()]
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, tasks]) => ({ date, tasks }));
+        const { start, end } = upcomingWindow();
+        return groupUpcoming(store.tasks(), start, end);
       }),
 
       upcomingCount: computed(() => {
-        const start = addDays(today(), 1);
-        const end = addDays(today(), UPCOMING_DAYS);
-        return store
-          .tasks()
-          .filter((t) => !t.completed_at && t.scheduled_date >= start && t.scheduled_date <= end)
-          .length;
+        const { start, end } = upcomingWindow();
+        return countOpenBetween(store.tasks(), start, end);
       }),
 
       categoryById: computed(() => new Map(store.categories().map((c) => [c.id, c]))),
@@ -151,14 +137,7 @@ export const TaskStore = signalStore(
       snapshotByDate: computed(() => new Map(store.snapshots().map((s) => [s.date, s]))),
 
       /** Scheduled, still-open task count per day. The calendar's future half. */
-      openCountByDate: computed(() => {
-        const counts = new Map<string, number>();
-        for (const t of store.tasks()) {
-          if (t.completed_at) continue;
-          counts.set(t.scheduled_date, (counts.get(t.scheduled_date) ?? 0) + 1);
-        }
-        return counts;
-      }),
+      openCountByDate: computed(() => countOpenByDate(store.tasks())),
     };
   }),
 
@@ -179,10 +158,7 @@ export const TaskStore = signalStore(
         patchState(store, { tasks: store.tasks().filter((t) => t.id !== id) });
 
       async function loadCategories(): Promise<void> {
-        const { data, error } = await sb.client
-          .from('categories')
-          .select('*')
-          .order('sort_order');
+        const { data, error } = await sb.client.from('categories').select('*').order('sort_order');
         if (error) {
           toast.error('Could not load categories.');
           return;
@@ -190,17 +166,14 @@ export const TaskStore = signalStore(
         patchState(store, { categories: (data ?? []) as Category[] });
       }
 
-      /**
-       * Window: a fortnight back for history context, a month ahead for
-       * scheduling. The full history view loads its own range in Phase 4.
-       */
+      /** The window is `task.constants.ts`; the reasoning for it lives there. */
       async function loadTasks(): Promise<void> {
         patchState(store, { loading: true });
         const { data, error } = await sb.client
           .from('tasks')
           .select('*')
-          .gte('scheduled_date', addDays(today(), -14))
-          .lte('scheduled_date', addDays(today(), 30))
+          .gte('scheduled_date', addDays(today(), LOAD_WINDOW_BACK_DAYS))
+          .lte('scheduled_date', addDays(today(), LOAD_WINDOW_FORWARD_DAYS))
           .order('created_at');
         patchState(store, { loading: false, loaded: true, loadedFor: session.userId() });
         if (error) {
@@ -215,9 +188,7 @@ export const TaskStore = signalStore(
 
       /** Merges by id, so a range load never drops what another view is showing. */
       function mergeTasks(incoming: Task[]): void {
-        const byId = new Map(store.tasks().map((t) => [t.id, t]));
-        for (const t of incoming) byId.set(t.id, t);
-        patchState(store, { tasks: [...byId.values()] });
+        patchState(store, { tasks: mergeTasksById(store.tasks(), incoming) });
       }
 
       /**
@@ -254,10 +225,8 @@ export const TaskStore = signalStore(
           toast.error('Could not load your history.');
           return;
         }
-        const byDate = new Map(store.snapshots().map((s) => [s.date, s]));
-        for (const s of (data ?? []) as DaySnapshot[]) byDate.set(s.date, s);
         patchState(store, {
-          snapshots: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
+          snapshots: mergeSnapshots(store.snapshots(), (data ?? []) as DaySnapshot[]),
         });
       }
 
@@ -284,7 +253,7 @@ export const TaskStore = signalStore(
           if (!isOffline(error)) toast.error('Could not carry unfinished tasks over.');
           return;
         }
-        const rolled = Array.isArray(data) ? (data[0]?.rolled_count ?? 0) : 0;
+        const rolled = rolledCount(data);
         patchState(store, { lastRolledCount: rolled });
         if (rolled > 0) {
           toast.show(`${rolled} task${rolled === 1 ? '' : 's'} carried over from before today.`);
@@ -334,10 +303,7 @@ export const TaskStore = signalStore(
        * captured from the task the caller already holds rather than re-read.
        */
       async function update(task: Task, patch: Partial<Task>): Promise<boolean> {
-        const before: Partial<Task> = {};
-        for (const key of Object.keys(patch) as Array<keyof Task>) {
-          Object.assign(before, { [key]: task[key] });
-        }
+        const before = fieldsOf(task, patch);
 
         replace(task.id, patch);
 
@@ -355,19 +321,13 @@ export const TaskStore = signalStore(
 
       /** Rename or recolour, from Settings. The slug is left alone — it is what
        *  `#tag` matches on, and changing it would orphan every tag already typed. */
-      async function updateCategory(
-        category: Category,
-        patch: Partial<Category>,
-      ): Promise<void> {
+      async function updateCategory(category: Category, patch: Partial<Category>): Promise<void> {
         const before = store.categories();
         patchState(store, {
           categories: before.map((c) => (c.id === category.id ? { ...c, ...patch } : c)),
         });
 
-        const { error } = await sb.client
-          .from('categories')
-          .update(patch)
-          .eq('id', category.id);
+        const { error } = await sb.client.from('categories').update(patch).eq('id', category.id);
         if (error) {
           patchState(store, { categories: before });
           toast.error('Could not save that category.');
@@ -466,8 +426,7 @@ export const TaskStore = signalStore(
 
       return {
         setFilter: (filter: EnergyFilter) => patchState(store, { filter }),
-        setCategoryFilter: (categoryFilter: string | null) =>
-          patchState(store, { categoryFilter }),
+        setCategoryFilter: (categoryFilter: string | null) => patchState(store, { categoryFilter }),
         clearFilters: () => patchState(store, { filter: 'all', categoryFilter: null }),
         toggleUpcoming: () => patchState(store, { upcomingOpen: !store.upcomingOpen() }),
 
@@ -504,20 +463,18 @@ export const TaskStore = signalStore(
           }
 
           const category_id = await resolveCategory(parsed.categorySlug);
+          const { scheduled_date, reminder_at } = resolveScheduling(parsed, scheduling);
           const tempId = crypto.randomUUID();
           const optimistic: Task = {
             id: tempId,
             user_id: uid,
             text: parsed.text,
             created_date: today(),
-            // The picker wins over the text when it was used, and it carries
-            // the reminder with it, so a picked day is never paired with a
-            // time left behind on the day that was typed.
-            scheduled_date: scheduling?.scheduled_date ?? parsed.scheduled_date,
+            scheduled_date,
             completed_at: null,
             energy: parsed.energy,
             category_id,
-            reminder_at: scheduling ? scheduling.reminder_at : parsed.reminder_at,
+            reminder_at,
             carried_over_count: 0,
             reschedule_count: 0,
             created_at: new Date().toISOString(),
@@ -529,20 +486,21 @@ export const TaskStore = signalStore(
           // the insert clean up after itself below.
           let saved: Task | null = null;
           let undone = false;
-          const toastId = toast.show(
-            `Added to ${sentenceDate(optimistic.scheduled_date)}.`,
-            () => {
-              undone = true;
-              if (saved) void removeTask(saved);
-              else removeLocal(tempId);
-            },
-          );
+          const toastId = toast.show(`Added to ${sentenceDate(optimistic.scheduled_date)}.`, () => {
+            undone = true;
+            if (saved) void removeTask(saved);
+            else removeLocal(tempId);
+          });
 
           // The client id goes to the server rather than being stripped. It
           // makes the optimistic row and the stored row the same row, which is
           // what lets an offline edit of an offline-created task queue up
           // against an id that will still be valid when both are replayed.
-          const { data, error } = await sb.client.from('tasks').insert(optimistic).select().single();
+          const { data, error } = await sb.client
+            .from('tasks')
+            .insert(optimistic)
+            .select()
+            .single();
 
           if (error || !data) {
             if (error && isOffline(error)) {
@@ -593,14 +551,14 @@ export const TaskStore = signalStore(
           }
 
           const category_id = await resolveCategory(parsed.categorySlug);
-          const scheduled_date = scheduling?.scheduled_date ?? parsed.scheduled_date;
+          const { scheduled_date, reminder_at } = resolveScheduling(parsed, scheduling);
 
           const patch: Partial<Task> = {
             text: parsed.text,
             energy: parsed.energy,
             category_id,
             scheduled_date,
-            reminder_at: scheduling ? scheduling.reminder_at : parsed.reminder_at,
+            reminder_at,
           };
 
           if (scheduled_date > task.scheduled_date) {

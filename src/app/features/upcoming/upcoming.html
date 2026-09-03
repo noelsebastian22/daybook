@@ -1,0 +1,91 @@
+<div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
+  <header class="safe-py-6 flex items-center justify-between gap-4">
+    <div>
+      <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Upcoming</p>
+      <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ range() }}</h1>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+        [disabled]="week() === 0"
+        aria-label="Previous week"
+        (click)="week.set(week() - 1)"
+      >
+        <span aria-hidden="true">&lsaquo;</span>
+      </button>
+      <button
+        type="button"
+        class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+        [disabled]="week() >= maxWeek"
+        aria-label="Next week"
+        (click)="week.set(week() + 1)"
+      >
+        <span aria-hidden="true">&rsaquo;</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="space-y-6">
+    @for (day of days(); track day.date) {
+      <section>
+        <!--
+          The rule under the day header is what gives an empty day a shape
+          now that the add row below it is plain text rather than a dashed
+          box. It is the same hairline the task rows carry, so a day with
+          tasks and a day without read as the same list.
+        -->
+        <div class="mb-1 flex items-baseline gap-2 border-b border-ink-200/70 px-2 pb-2">
+          <h2 class="text-body font-semibold tracking-tight">{{ label(day.date) }}</h2>
+          @if (day.tasks.length > 0) {
+            <span class="text-caption text-ink-400">{{ day.tasks.length }}</span>
+          }
+        </div>
+
+        <div>
+          @for (task of day.tasks; track task.id) {
+            <app-task-row
+              [task]="task"
+              [categories]="tasks.categoryById()"
+              (toggled)="complete(task)"
+              (pushed)="pushOneDay(task)"
+            />
+          }
+
+          <!--
+            Same add row as Today's, so the two lists read as one design.
+            The dashed outline it replaced was the only dashed border in
+            the app and it fought the hairline ruling around it.
+          -->
+          <button
+            type="button"
+            class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
+            [attr.aria-label]="'Add a task on ' + full(day.date)"
+            (click)="addingOn.set(day.date)"
+          >
+            <span
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.6"
+                class="h-3 w-3"
+              >
+                <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            Add task
+          </button>
+        </div>
+      </section>
+    }
+  </div>
+</div>
+
+@if (addingOn(); as day) {
+  <app-composer [day]="day" (submitted)="add($event)" (cancelled)="addingOn.set(null)" />
+}

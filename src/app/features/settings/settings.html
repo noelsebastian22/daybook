@@ -1,0 +1,140 @@
+<div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
+  <header class="safe-py-6">
+    <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Settings</p>
+    <h1 class="mt-0.5 text-display font-semibold tracking-tight">Preferences</h1>
+  </header>
+
+  @if (settings.settings(); as s) {
+    <!-- digest -->
+    <section class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <h2 class="text-body font-semibold tracking-tight">Daily digest</h2>
+      <p class="mt-0.5 text-caption text-ink-400">
+        What you finished yesterday and what is on today, by email.
+      </p>
+
+      <label class="mt-3 flex items-center justify-between gap-4">
+        <span class="text-body">Send me the digest</span>
+        <input
+          type="checkbox"
+          class="h-5 w-9 shrink-0 appearance-none rounded-full bg-ink-200 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:transition-transform checked:bg-brand-600 checked:before:translate-x-[1.125rem]"
+          [checked]="s.digest_enabled"
+          (change)="setDigest($event)"
+        />
+      </label>
+
+      @if (s.digest_enabled) {
+        <label class="mt-3 flex items-center justify-between gap-4">
+          <span class="text-body">Send at</span>
+          <input
+            type="time"
+            class="rounded-control bg-ink-50 px-2 py-1.5 text-body outline-none focus:ring-2 focus:ring-brand-500"
+            [value]="sendAt()"
+            (change)="setSendAt($event)"
+          />
+        </label>
+      }
+    </section>
+
+    <!-- timezone -->
+    <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <h2 class="text-body font-semibold tracking-tight">Timezone</h2>
+      <p class="mt-0.5 text-caption text-ink-400">
+        When the server thinks your day starts. Your device says
+        {{ detectedZone }}.
+      </p>
+
+      <!--
+        The selection lives on the <option>, not as [value] on the <select>.
+        A [value] binding on the select runs before @for has rendered the
+        options, so the assignment finds no matching child and the element
+        falls back to selectedIndex 0 — which, because zones() is sorted,
+        is America/Los_Angeles. It renders a zone the user never chose.
+      -->
+      <select
+        class="mt-3 w-full rounded-control bg-ink-50 px-3 py-2 text-body outline-none focus:ring-2 focus:ring-brand-500"
+        aria-label="Timezone"
+        (change)="setTimezone($event)"
+      >
+        @for (zone of zones(); track zone) {
+          <option [value]="zone" [selected]="zone === s.timezone">{{ zone }}</option>
+        }
+      </select>
+
+      @if (s.timezone !== detectedZone) {
+        <button
+          type="button"
+          class="mt-2 text-caption font-medium text-brand-700 transition hover:text-brand-600"
+          (click)="settings.update({ timezone: detectedZone })"
+        >
+          Use {{ detectedZone }}
+        </button>
+      }
+    </section>
+
+    <!-- reminders -->
+    <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <h2 class="text-body font-semibold tracking-tight">Reminders</h2>
+      <p class="mt-0.5 text-caption text-ink-400">A push when a task's reminder time arrives.</p>
+
+      @if (blocker(); as reason) {
+        <p class="mt-3 rounded-control bg-ink-50 px-3 py-2 text-caption text-ink-600">
+          {{ blockerText(reason) }}
+        </p>
+      } @else {
+        <label class="mt-3 flex items-center justify-between gap-4">
+          <span class="text-body">Push reminders on this device</span>
+          <input
+            type="checkbox"
+            class="h-5 w-9 shrink-0 appearance-none rounded-full bg-ink-200 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-white before:transition-transform checked:bg-brand-600 checked:before:translate-x-[1.125rem]"
+            [checked]="settings.pushSubscribed()"
+            [disabled]="busy()"
+            (change)="togglePush($event)"
+          />
+        </label>
+      }
+    </section>
+
+    <!-- categories -->
+    <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+      <h2 class="text-body font-semibold tracking-tight">Categories</h2>
+      <p class="mt-0.5 text-caption text-ink-400">
+        Typing a new <code class="text-caption">#tag</code> creates one. Deleting a category leaves
+        its tasks untagged, not deleted.
+      </p>
+
+      <ul class="mt-3 divide-y divide-ink-100">
+        @for (c of tasks.categories(); track c.id) {
+          <li class="flex items-center gap-3 py-2">
+            <input
+              type="color"
+              class="h-7 w-7 shrink-0 cursor-pointer rounded-control border-0 bg-transparent p-0"
+              [value]="c.colour"
+              [attr.aria-label]="'Colour for ' + c.name"
+              (change)="setColour(c, $event)"
+            />
+            <input
+              type="text"
+              class="min-w-0 flex-1 rounded-control bg-transparent px-2 py-1 text-body outline-none focus:bg-ink-50 focus:ring-2 focus:ring-brand-500"
+              [value]="c.name"
+              [attr.aria-label]="'Name for ' + c.name"
+              (change)="setName(c, $event)"
+            />
+            <span class="shrink-0 text-caption text-ink-400">#{{ c.slug }}</span>
+            <button
+              type="button"
+              class="shrink-0 rounded-control px-2 py-1 text-caption font-medium text-late-700 transition hover:bg-late-100"
+              [attr.aria-label]="'Delete ' + c.name"
+              (click)="tasks.removeCategory(c)"
+            >
+              Delete
+            </button>
+          </li>
+        } @empty {
+          <li class="py-2 text-body text-ink-400">No categories yet.</li>
+        }
+      </ul>
+    </section>
+  } @else {
+    <div class="h-32 animate-pulse rounded-panel bg-ink-100"></div>
+  }
+</div>

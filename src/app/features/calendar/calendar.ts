@@ -18,6 +18,7 @@ import {
   today,
   weekdayIndex,
 } from '../../core/dates';
+import { HEAT, WEEKDAY_HEADINGS } from './calendar.constants';
 
 interface Cell {
   date: string;
@@ -31,9 +32,6 @@ interface Cell {
   /** Past only. No row in day_snapshots — the app was never opened that day. */
   unrecorded: boolean;
 }
-
-/** Green steps for the heat map. Four is enough to read; more is noise. */
-const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', 'rgba(16,185,129,0.55)', 'rgba(16,185,129,0.78)'];
 
 /**
  * The bidirectional calendar. One grid, with today as the boundary: behind it
@@ -52,119 +50,13 @@ const HEAT = ['transparent', 'rgba(16,185,129,0.16)', 'rgba(16,185,129,0.34)', '
   selector: 'app-calendar',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
-  template: `
-    <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
-      <header class="safe-py-6 flex items-center justify-between gap-4">
-        <div>
-          <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Calendar</p>
-          <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ label() }}</h1>
-        </div>
-
-        <div class="flex items-center gap-1">
-          <button
-            type="button"
-            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
-            aria-label="Previous month"
-            (click)="step(-1)"
-          >
-            <span aria-hidden="true">&lsaquo;</span>
-          </button>
-          <button
-            type="button"
-            class="rounded-card px-3 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
-            (click)="month.set(startOfThisMonth)"
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
-            aria-label="Next month"
-            (click)="step(1)"
-          >
-            <span aria-hidden="true">&rsaquo;</span>
-          </button>
-        </div>
-      </header>
-
-      <div class="rounded-panel bg-white p-3 shadow-sm ring-1 ring-ink-200/60">
-        <div class="grid grid-cols-7 gap-1 pb-1 text-center text-caption font-medium text-ink-400">
-          @for (d of weekdayHeadings; track $index) {
-            <span aria-hidden="true">{{ d }}</span>
-          }
-        </div>
-
-        <div class="grid grid-cols-7 gap-1">
-          @for (cell of cells(); track $index) {
-            @if (cell) {
-              <a
-                [routerLink]="['/calendar', cell.date]"
-                class="relative grid aspect-square place-items-center rounded-control text-body transition hover:ring-2 hover:ring-brand-500"
-                [style.background]="cell.past ? heat(cell) : null"
-                [class]="cellClass(cell)"
-                [attr.aria-label]="describe(cell)"
-              >
-                <span [class.font-semibold]="cell.isToday">{{ cell.day }}</span>
-
-                @if (!cell.past && cell.count > 0) {
-                  <span
-                    class="absolute bottom-1 text-caption font-medium tabular-nums text-ink-400"
-                    >{{ cell.count }}</span
-                  >
-                }
-
-                <!-- red is reserved for badly avoided, which is exactly this -->
-                @if (cell.carried > 0) {
-                  <span
-                    class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-late-500"
-                    aria-hidden="true"
-                  ></span>
-                }
-
-                @if (cell.unrecorded) {
-                  <span
-                    class="absolute inset-x-3 bottom-1.5 h-px bg-ink-200"
-                    aria-hidden="true"
-                  ></span>
-                }
-              </a>
-            } @else {
-              <span></span>
-            }
-          }
-        </div>
-      </div>
-
-      <!-- legend -->
-      <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-caption text-ink-400">
-        <span class="inline-flex items-center gap-1.5">
-          Done
-          @for (step of heatSteps; track $index) {
-            <span
-              class="h-3 w-3 rounded-sm ring-1 ring-ink-200/70"
-              [style.background]="step"
-              aria-hidden="true"
-            ></span>
-          }
-          more
-        </span>
-        <span class="inline-flex items-center gap-1.5">
-          <span class="h-1.5 w-1.5 rounded-full bg-late-500" aria-hidden="true"></span>
-          carried off
-        </span>
-        <span class="inline-flex items-center gap-1.5">
-          <span class="h-px w-3 bg-ink-200" aria-hidden="true"></span>
-          app not opened
-        </span>
-      </div>
-    </div>
-  `,
+  templateUrl: './calendar.html',
 })
 export class Calendar {
   private readonly tasks = inject(TaskStore);
 
   protected readonly startOfThisMonth = startOfMonth(today());
-  protected readonly weekdayHeadings = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  protected readonly weekdayHeadings = WEEKDAY_HEADINGS;
   protected readonly heatSteps = HEAT.slice(1);
 
   protected readonly month = signal(this.startOfThisMonth);

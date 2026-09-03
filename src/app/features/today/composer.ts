@@ -8,13 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Capture, type CaptureSeed, type CaptureSubmit } from './capture';
-
-/**
- * Everything that can hold focus. `[tabindex]` is filtered by value below
- * rather than by selector, because the scrim and the popover backdrop are
- * both real buttons parked at -1.
- */
-const FOCUSABLE = 'a[href],button,input,textarea,select,[tabindex]';
+import { FOCUSABLE } from './today.constants';
 
 /**
  * The composer: capture lifted off the page as a modal dialog, opened by an
@@ -46,50 +40,7 @@ const FOCUSABLE = 'a[href],button,input,textarea,select,[tabindex]';
   host: {
     '(keydown)': 'onKeydown($event)',
   },
-  template: `
-    <!--
-      Scrim and click-outside target; a button so Escape and focus behave.
-
-      z-50, not z-40, because the drawer is itself z-50 — at z-40 the scrim
-      dimmed the whole page except the one element standing in front of it,
-      and the drawer stayed lit beside a dimmed list. It ties with the drawer
-      rather than beating it, and wins on DOM order: the outlet this renders
-      into comes after the nav in the shell. The panel below ties again and
-      wins the same way.
-    -->
-    <button
-      type="button"
-      class="fixed inset-0 z-50 cursor-default bg-ink-900/20"
-      tabindex="-1"
-      aria-label="Close the composer"
-      (click)="cancelled.emit()"
-    ></button>
-
-    <!--
-      Pinned to the bottom edge by default, released to a top-anchored centre
-      at lg. Anchored near the top rather than truly centred so the box does
-      not creep upwards as the description and chip rows grow.
-    -->
-    <div
-      #panel
-      class="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:bottom-auto lg:top-24 lg:pb-0"
-    >
-      <!--
-        The radius is repeated here so the shadow is cast in the shape of the
-        card rather than as a rectangle behind its rounded corners. The
-        wrapper has no background of its own; it is only the shadow's shape.
-      -->
-      <div class="mx-auto max-w-2xl rounded-panel lg:shadow-lg">
-        <app-capture
-          [seed]="seed()"
-          [actions]="true"
-          [autoFocus]="true"
-          (submitted)="submitted.emit($event)"
-          (cancelled)="cancelled.emit()"
-        />
-      </div>
-    </div>
-  `,
+  templateUrl: './composer.html',
 })
 export class Composer {
   /** Preset day for the date chip. Null lets the text decide, as capture does. */

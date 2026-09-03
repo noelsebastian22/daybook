@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="fixed inset-0 z-40 cursor-default"
+  tabindex="-1"
+  [attr.aria-label]="dismissLabel()"
+  (click)="closed.emit()"
+></button>
+
+<div
+  #panel
+  class="relative z-50 min-w-44 rounded-panel bg-white p-1 shadow-lg ring-1 ring-ink-200"
+  role="dialog"
+  [attr.aria-label]="label()"
+>
+  <ng-content />
+</div>

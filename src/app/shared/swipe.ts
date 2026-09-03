@@ -1,24 +1,8 @@
 import { Directive, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import { prefersReducedMotion } from '../core/view-transition';
+import { COMMIT_PX, ENGAGE_PX, RESISTANCE, SNAP_BACK_MS } from './swipe.constants';
 
 export type SwipeDirection = 'left' | 'right';
-
-/**
- * How far a row has to travel before the action commits, in px.
- *
- * **These four numbers are unvalidated.** BUILD-PLAN blocks swipe on Todoist
- * iOS captures that were never taken, and they are what would settle the
- * feel — how far Todoist makes you drag, whether it fires on release or on
- * crossing, how much it resists. Until those exist these are reasoned
- * defaults, not measured ones, and they are gathered here rather than
- * scattered through the code so replacing them is a one-place edit.
- */
-const COMMIT_PX = 96;
-/** Horizontal intent: past this, the gesture is a swipe and not a scroll. */
-const ENGAGE_PX = 12;
-/** Past the commit point the row keeps moving, but at a fifth of the speed. */
-const RESISTANCE = 0.2;
-const SNAP_BACK_MS = 180;
 
 /**
  * Swipe right to complete, left to reschedule. Touch only.

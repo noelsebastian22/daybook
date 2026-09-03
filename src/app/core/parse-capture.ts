@@ -1,6 +1,7 @@
 import * as chrono from 'chrono-node';
 import type { Energy } from './models';
 import { toLocalDate, today } from './dates';
+import { CATEGORY_RE, ENERGY_RE } from './parse-capture.data';
 
 export type TokenKind = 'date' | 'category' | 'energy';
 
@@ -108,9 +109,6 @@ export function writeToken(
 
   return { text, caret: Math.max(0, Math.min(next, text.length)) };
 }
-
-const CATEGORY_RE = /#([\p{L}\p{N}_-]+)/gu;
-const ENERGY_RE = /!(quick|deep)\b/giu;
 
 const overlaps = (a: CaptureToken, b: CaptureToken) => a.start < b.end && b.start < a.end;
 

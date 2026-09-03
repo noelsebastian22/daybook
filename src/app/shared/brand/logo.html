@@ -1,0 +1,73 @@
+<!--
+  One copy of the geometry, fills varied by tone.
+
+  Four tones x two layouts written out longhand would be eight copies of the
+  same four shapes in the bundle. The mark is drawn once and the tone only
+  chooses what goes behind it and what colour it is painted, so adding a tone
+  costs a fill string rather than another mark.
+
+  Accessibility: the mark is decorative in the lockup, because the word
+  "Daybook" is sitting right beside it as real text and a screen reader that
+  announced both would say the name twice. Standing on its own it IS the name,
+  so it takes role="img" and the label instead.
+-->
+<svg
+  [attr.viewBox]="box()"
+  [attr.width]="size()"
+  [attr.height]="size()"
+  [attr.role]="variant() === 'mark' ? 'img' : null"
+  [attr.aria-label]="variant() === 'mark' ? 'Daybook' : null"
+  [attr.aria-hidden]="variant() === 'mark' ? null : true"
+  class="block shrink-0"
+>
+  @switch (tone()) {
+    <!--
+      Only 'primary' wears the tile. light, dark and mono are flat by
+      definition — they exist to sit on a surface somebody else owns, and a
+      plate under them would fight it.
+    -->
+    @case ('primary') {
+      <defs>
+        <linearGradient [attr.id]="gradientId" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4338ca" />
+          <stop offset="1" stop-color="#6366f1" />
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="112" [attr.fill]="'url(#' + gradientId + ')'" />
+    }
+  }
+
+  <!--
+    Three task lines and the sweep that carries them forward. The lines are
+    the same 42-unit rhythm as the sweep's tail, which starts on the fourth
+    line's baseline and leaves the frame — the unfinished one moving on.
+  -->
+  <g [attr.fill]="ink()">
+    <rect x="132" y="119" width="164" height="42" rx="21" />
+    <rect x="132" y="195" width="108" height="42" rx="21" />
+    <rect x="132" y="271" width="140" height="42" rx="21" />
+    <path
+      d="M153 389H250C401.8 389 369 245 369 166H359C359 224.3 339.6 288.4 319.3 317.5C308 333.9 293.3 347 250 347H153A21 21 0 0 1 153 389Z"
+    />
+  </g>
+</svg>
+
+@switch (variant()) {
+  @case ('lockup') {
+    <!--
+      The wordmark is live text, not outlines. The brand file draws it as
+      paths, which is right for a file handed to a printer and wrong here: it
+      would be ten kilobytes of letterforms in a PWA that ships no webfont on
+      purpose, and it would freeze one more typeface into an app whose whole
+      type system is the system stack. Set from the same stack, at the
+      cap-height and tracking the reference lockup uses.
+    -->
+    <span
+      class="font-semibold tracking-tight"
+      [style.font-size.px]="wordPx()"
+      [style.line-height]="1"
+      [style.color]="wordColor()"
+      >Daybook</span
+    >
+  }
+}

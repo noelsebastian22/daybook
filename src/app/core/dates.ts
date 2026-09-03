@@ -169,10 +169,19 @@ export function comingMonday(from: string = today()): string {
   return addDays(from, (8 - day) % 7 || 7);
 }
 
+/**
+ * Where the app was written and where its user is. Only ever reached when the
+ * browser cannot answer — an Intl implementation that returns an empty zone,
+ * or one that throws. It is a real place rather than UTC on purpose: this
+ * value seeds `user_settings.timezone`, which is what the digest cron and
+ * every reminder are scheduled against, so a wrong guess sends mail at 5pm.
+ */
+export const DEFAULT_TIMEZONE = 'Australia/Sydney';
+
 export function browserTimezone(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Australia/Sydney';
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
   } catch {
-    return 'Australia/Sydney';
+    return DEFAULT_TIMEZONE;
   }
 }

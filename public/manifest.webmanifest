@@ -6,7 +6,7 @@
   "orientation": "portrait",
   "scope": "./",
   "start_url": "./today",
-  "background_color": "#f6f7fb",
+  "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "icons": [
     { "src": "icons/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "maskable any" },

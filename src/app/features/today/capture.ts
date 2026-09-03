@@ -17,6 +17,8 @@ import { friendlyClock, friendlyDate, timeOfDay, toTimestamp } from '../../core/
 import { DatePicker, type PickedDate } from '../../shared/date-picker';
 import { Popover } from '../../shared/popover';
 import { TaskStore } from '../../core/task.store';
+import { CAPTURE_LAYER_HEIGHT } from './today.constants';
+import { ENERGY_OPTIONS, ENERGY_TONE } from './today.data';
 import type { Energy, Scheduling } from '../../core/models';
 
 export interface CaptureSubmit {
@@ -52,249 +54,7 @@ export interface CaptureSeed {
   selector: 'app-capture',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePicker, Popover],
-  template: `
-    <div class="rounded-panel bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500">
-      <div class="relative">
-        <!-- The mirror and the textarea must share an identical line box or the
-             highlight drifts off the text by a fraction of a line per row.
-             text-subtitle carries a unitless 1.4, so leading-6 stays here to pin
-             both to an integer 24px. This is the one place a leading-* beside a
-             type token is deliberate rather than a mistake. -->
-        <!-- mirror -->
-        <div
-          class="pointer-events-none px-4 py-3 text-subtitle leading-6 whitespace-pre-wrap break-words"
-          aria-hidden="true"
-        >
-          @for (s of parts(); track $index) {
-            @switch (s.kind) {
-              @case ('date') {
-                <span class="rounded-control bg-brand-100 text-brand-700">{{ s.text }}</span>
-              }
-              @case ('category') {
-                <span class="rounded-control bg-ink-100 text-ink-600">{{ s.text }}</span>
-              }
-              @case ('energy') {
-                <!-- quick and deep have their own scales; the mirror used to
-                     paint both amber, which put an amber "!deep" beside a
-                     purple deep chip -->
-                <span class="rounded-control" [class]="energyTokenClass(s.text)">{{ s.text }}</span>
-              }
-              @default {
-                <span>{{ s.text }}</span>
-              }
-            }
-          }
-          @if (!value()) {
-            <span class="text-ink-400">Add a task. Try "call physio thursday 2pm #physio !quick"</span>
-          }
-          <!-- keeps the box from collapsing on an empty last line -->
-          <span>&nbsp;</span>
-        </div>
-
-        <!-- real input -->
-        <textarea
-          #input
-          rows="1"
-          class="absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-subtitle leading-6 text-transparent caret-ink-900 outline-none"
-          [value]="value()"
-          (input)="onInput($event)"
-          (keydown)="onKeydown($event)"
-          aria-label="Add a task"
-        ></textarea>
-      </div>
-
-      <div #chipRow class="flex flex-wrap items-center gap-2 px-4 pb-3 text-caption">
-        <div class="relative">
-          <button
-            #dateChip
-            type="button"
-            class="rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700 transition hover:bg-brand-100"
-            [attr.aria-expanded]="pickerOpen()"
-            [attr.aria-label]="'Scheduled for ' + when() + '. Change the date'"
-            (click)="toggle(pickerOpen)"
-          >
-            {{ when() }}
-          </button>
-
-          @if (pickerOpen()) {
-            <app-date-picker
-              [class]="layerClass()"
-              [date]="scheduledDate()"
-              [time]="reminderTime()"
-              (picked)="onPicked($event)"
-              (closed)="closePicker()"
-            />
-          }
-        </div>
-
-        @if (reminderTime(); as t) {
-          <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700">
-            <button
-              type="button"
-              class="font-medium"
-              [attr.aria-label]="'Reminder at ' + clock(t) + '. Change the time'"
-              (click)="open(pickerOpen)"
-            >
-              {{ clock(t) }}
-            </button>
-            <button
-              type="button"
-              class="text-brand-700/60 transition hover:text-brand-700"
-              [attr.aria-label]="'Clear the ' + clock(t) + ' reminder'"
-              (click)="clearReminder()"
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </span>
-        } @else {
-          <button
-            type="button"
-            class="rounded-full bg-ink-50 px-2 py-1 font-medium text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
-            aria-label="Add a reminder time"
-            (click)="open(pickerOpen)"
-          >
-            Add time
-          </button>
-        }
-
-        <!-- category -->
-        <div class="relative">
-          <span class="inline-flex items-center gap-1 rounded-full font-medium"
-                [class]="parsed().categorySlug ? 'bg-ink-100 text-ink-600' : ''">
-            <button
-              #categoryChip
-              type="button"
-              class="rounded-full px-2 py-1 transition"
-              [class]="parsed().categorySlug ? 'hover:text-ink-700' : 'bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-600'"
-              [attr.aria-expanded]="categoryOpen()"
-              [attr.aria-label]="
-                parsed().categorySlug
-                  ? 'Category ' + parsed().categorySlug + '. Change it'
-                  : 'Choose a category'
-              "
-              (click)="toggle(categoryOpen)"
-            >
-              {{ parsed().categorySlug ? '#' + parsed().categorySlug : '#Category' }}
-            </button>
-            @if (parsed().categorySlug) {
-              <button
-                type="button"
-                class="pr-2 text-ink-400 transition hover:text-ink-700"
-                aria-label="Clear the category"
-                (click)="chooseCategory(null)"
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            }
-          </span>
-
-          @if (categoryOpen()) {
-            <app-popover
-              [class]="layerClass()"
-              label="Choose a category"
-              dismissLabel="Close the category list"
-              (closed)="closeCategory()"
-            >
-              @for (c of categories(); track c.id) {
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
-                  [class]="c.slug === parsed().categorySlug ? 'font-semibold text-brand-700' : 'text-ink-900'"
-                  [attr.aria-pressed]="c.slug === parsed().categorySlug"
-                  (click)="chooseCategory(c.slug)"
-                >
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    [style.background-color]="c.colour"
-                    aria-hidden="true"
-                  ></span>
-                  <span class="truncate">{{ c.name }}</span>
-                </button>
-              }
-              @if (!categories().length) {
-                <p class="px-3 py-2 text-body text-ink-400">
-                  No categories yet. Add them in Settings.
-                </p>
-              }
-            </app-popover>
-          }
-        </div>
-
-        <!-- energy -->
-        <div class="relative">
-          <span class="inline-flex items-center gap-1 rounded-full font-medium" [class]="energyChipClass()">
-            <button
-              #energyChip
-              type="button"
-              class="rounded-full px-2 py-1 transition"
-              [class]="parsed().energy ? '' : 'bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-600'"
-              [attr.aria-expanded]="energyOpen()"
-              [attr.aria-label]="
-                parsed().energy ? 'Energy ' + parsed().energy + '. Change it' : 'Choose an energy'
-              "
-              (click)="toggle(energyOpen)"
-            >
-              {{ parsed().energy ?? 'Energy' }}
-            </button>
-            @if (parsed().energy) {
-              <button
-                type="button"
-                class="pr-2"
-                aria-label="Clear the energy"
-                (click)="chooseEnergy(null)"
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            }
-          </span>
-
-          @if (energyOpen()) {
-            <app-popover
-              [class]="layerClass()"
-              label="Choose an energy"
-              dismissLabel="Close the energy list"
-              (closed)="closeEnergy()"
-            >
-              @for (e of energies; track e) {
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
-                  [class]="e === parsed().energy ? 'font-semibold text-brand-700' : 'text-ink-900'"
-                  [attr.aria-pressed]="e === parsed().energy"
-                  (click)="chooseEnergy(e)"
-                >
-                  <span>{{ e === 'quick' ? 'Quick' : 'Deep' }}</span>
-                  <span class="text-caption text-ink-400">{{ e === 'quick' ? '!quick' : '!deep' }}</span>
-                </button>
-              }
-            </app-popover>
-          }
-        </div>
-
-        @if (actions()) {
-          <div class="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              class="rounded-control px-3 py-1.5 font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
-              (click)="cancelled.emit()"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="rounded-control bg-brand-600 px-3 py-1.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-40"
-              [disabled]="!value().trim()"
-              (click)="commit()"
-            >
-              {{ commitLabel() }}
-            </button>
-          </div>
-        } @else if (value().trim()) {
-          <span class="ml-auto text-ink-400">Enter to add</span>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './capture.html',
 })
 export class Capture {
   /** Seeds an edit. Null, the default, is a blank add box. */
@@ -323,7 +83,7 @@ export class Capture {
   protected readonly energyOpen = signal(false);
 
   protected readonly categories = this.tasks.categories;
-  protected readonly energies: Energy[] = ['quick', 'deep'];
+  protected readonly energies = ENERGY_OPTIONS;
 
   /**
    * What the picker chose, if it was used. Null means the text decides.
@@ -373,24 +133,20 @@ export class Capture {
   private readonly dropUp = signal(false);
 
   protected readonly layerClass = computed(() =>
-    this.dropUp()
-      ? 'absolute left-0 bottom-full z-50 mb-2'
-      : 'absolute left-0 top-full z-50 mt-2',
+    this.dropUp() ? 'absolute left-0 bottom-full z-50 mb-2' : 'absolute left-0 top-full z-50 mt-2',
   );
 
   protected readonly energyChipClass = computed(() => {
     const energy = this.parsed().energy;
     if (!energy) return '';
-    return energy === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700';
+    return ENERGY_TONE[energy];
   });
 
   protected clock = friendlyClock;
 
   /** Colours an energy token in the mirror to match its chip. */
   protected energyTokenClass(raw: string): string {
-    return raw.toLowerCase().includes('deep')
-      ? 'bg-deep-100 text-deep-700'
-      : 'bg-quick-100 text-quick-700';
+    return ENERGY_TONE[raw.toLowerCase().includes('deep') ? 'deep' : 'quick'];
   }
 
   constructor() {
@@ -421,18 +177,10 @@ export class Capture {
     el.style.height = 'auto';
   }
 
-  /**
-   * The tallest layer is the date picker: shortcut rows, a month grid and the
-   * time field. Sized generously — being wrong costs an upward panel where a
-   * downward one would have fitted, which is merely unusual, while the other
-   * way round puts the control off-screen.
-   */
-  private static readonly LAYER_HEIGHT = 380;
-
   /** Opens one layer, closing the others, with the side measured first. */
   protected open(layer: WritableSignal<boolean>): void {
     const below = window.innerHeight - this.chipRow().nativeElement.getBoundingClientRect().bottom;
-    this.dropUp.set(below < Capture.LAYER_HEIGHT);
+    this.dropUp.set(below < CAPTURE_LAYER_HEIGHT);
 
     for (const other of [this.pickerOpen, this.categoryOpen, this.energyOpen]) {
       if (other !== layer) other.set(false);

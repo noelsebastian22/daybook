@@ -23,7 +23,10 @@ const MAC_CHROME =
  */
 function install(
   nav: Partial<FakeNav>,
-  { standaloneMedia = false, dismissed = false }: { standaloneMedia?: boolean; dismissed?: boolean } = {},
+  {
+    standaloneMedia = false,
+    dismissed = false,
+  }: { standaloneMedia?: boolean; dismissed?: boolean } = {},
 ): Install {
   vi.stubGlobal('navigator', {
     userAgent: MAC_CHROME,
@@ -71,7 +74,12 @@ describe('isIos', () => {
 
 describe('isStandalone', () => {
   it('reads the legacy WebKit flag, which is the one iOS sets', () => {
-    const svc = install({ userAgent: IPHONE, platform: 'iPhone', maxTouchPoints: 5, standalone: true });
+    const svc = install({
+      userAgent: IPHONE,
+      platform: 'iPhone',
+      maxTouchPoints: 5,
+      standalone: true,
+    });
     expect(svc.isStandalone).toBe(true);
   });
 

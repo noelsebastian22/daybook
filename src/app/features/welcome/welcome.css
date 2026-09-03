@@ -1,0 +1,227 @@
+/* --------------------------------------------------------------------
+   The carry animation.
+
+   The row is absolutely positioned in the stack rather than sitting in
+   either card's flow, because it has to be over both of them at once
+   mid-flight and a card that clipped it would cut it in half. That makes
+   the travel distance a hard-coded number: 116px, the gap between the
+   slot it leaves at y=88 and the slot it lands in at y=204. Change any
+   card padding or row height below and that number changes with it.
+   -------------------------------------------------------------------- */
+.stack {
+  position: relative;
+  height: 300px;
+}
+
+.card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  color: #171a2b;
+  box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.55);
+}
+
+.card--today {
+  top: 160px;
+}
+
+.card-date {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #676d8b;
+  line-height: 18px;
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+/* the space the traveller occupies while it is still on Tue 19 */
+.row-gap {
+  height: 36px;
+  margin-top: 8px;
+}
+
+.row--done .row-text {
+  color: #676d8b;
+  text-decoration: line-through;
+}
+
+.row-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 6px;
+  border: 1.8px solid #d6dae9;
+}
+
+.tickbox {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 6px;
+  background: #10b981;
+  display: grid;
+  place-items: center;
+}
+
+.tickbox svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* where the traveller is going to land */
+.slot {
+  height: 36px;
+  border-radius: 12px;
+  border: 1.5px dashed #d6dae9;
+  margin-bottom: 8px;
+  animation: slot-clear 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.flyer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 88px;
+  background: #fff;
+  color: #171a2b;
+  animation: carry 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.badge {
+  position: relative;
+  flex: none;
+  display: grid;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stacked in one grid cell so the swap cannot nudge the row's width. */
+.badge-one,
+.badge-two {
+  grid-area: 1 / 1;
+  border-radius: 999px;
+  background: #eceef6;
+  color: #4a5070;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.badge-one {
+  animation: was-one 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.badge-two {
+  opacity: 0;
+  animation: now-two 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes carry {
+  0%,
+  14% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 rgb(23 26 43 / 0);
+  }
+  26%,
+  48% {
+    transform: translateY(-8px) scale(1.04);
+    box-shadow: 0 18px 30px -12px rgb(23 26 43 / 0.45);
+  }
+  62% {
+    transform: translateY(116px) scale(1.04);
+    box-shadow: 0 18px 30px -12px rgb(23 26 43 / 0.45);
+  }
+  72%,
+  100% {
+    transform: translateY(116px) scale(1);
+    box-shadow: 0 0 0 0 rgb(23 26 43 / 0);
+  }
+}
+
+@keyframes was-one {
+  0%,
+  58% {
+    opacity: 1;
+  }
+  66%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes now-two {
+  0%,
+  58% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  78%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slot-clear {
+  0%,
+  48% {
+    opacity: 1;
+  }
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/*
+  styles.css already flattens every duration globally under reduced
+  motion, but a 0.01ms infinite loop is a spinning compositor rather
+  than a still frame. Stop these outright and hold the finished state —
+  the row landed, counted twice — which is the frame that carries the
+  idea anyway.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .flyer {
+    animation: none;
+    transform: translateY(116px);
+  }
+  .slot {
+    animation: none;
+    opacity: 0;
+  }
+  .badge-one {
+    animation: none;
+    opacity: 0;
+  }
+  .badge-two {
+    animation: none;
+    opacity: 1;
+  }
+}

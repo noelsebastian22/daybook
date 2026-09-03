@@ -4,6 +4,13 @@ import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Install } from './install';
 
+/**
+ * How long to wait for the service worker registration to hand over this
+ * browser's existing subscription. Bounded because sign-out waits on it; see
+ * {@link Push.currentEndpoint}.
+ */
+const SUBSCRIPTION_TIMEOUT_MS = 3000;
+
 /** Why the push toggle cannot be offered, in words a person can act on. */
 export type PushBlocker = 'unconfigured' | 'no-service-worker' | 'not-installed' | 'denied' | null;
 
@@ -79,7 +86,7 @@ export class Push {
       // otherwise hang sign-out behind it. Timing out is caught below and
       // read as "no endpoint", which is the safe answer here.
       const subscription = await firstValueFrom(
-        this.swPush.subscription.pipe(timeout({ first: 3000 })),
+        this.swPush.subscription.pipe(timeout({ first: SUBSCRIPTION_TIMEOUT_MS })),
       );
       return subscription?.endpoint ?? null;
     } catch {

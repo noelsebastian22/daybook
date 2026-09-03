@@ -12,30 +12,20 @@ import {
 import {
   addDays,
   addMonths,
-  comingMonday,
-  comingSaturday,
   daysInMonth,
   friendlyDate,
   monthLabel,
-  shortWeekday,
   startOfMonth,
   today,
-  weekdayAndDate,
   weekdayIndex,
 } from '../core/dates';
+import { shortcutsFor, WEEKDAY_HEADINGS, type Shortcut } from './date-picker.data';
 
 export interface PickedDate {
   /** Local YYYY-MM-DD. */
   date: string;
   /** Local "HH:MM", or null for no reminder. */
   time: string | null;
-}
-
-interface Shortcut {
-  label: string;
-  date: string;
-  /** The resolved day, printed beside the label so the choice can be checked. */
-  hint: string;
 }
 
 /**
@@ -56,113 +46,7 @@ interface Shortcut {
   host: {
     '(document:keydown.escape)': 'closed.emit()',
   },
-  template: `
-    <!-- click-outside target; sits under the panel -->
-    <button
-      type="button"
-      class="fixed inset-0 z-40 cursor-default"
-      tabindex="-1"
-      aria-label="Close the date picker"
-      (click)="closed.emit()"
-    ></button>
-
-    <div
-      class="relative z-50 w-72 rounded-panel bg-white p-2 shadow-lg ring-1 ring-ink-200"
-      role="dialog"
-      aria-label="Choose a date"
-    >
-      <!-- shortcuts -->
-      <div class="flex flex-col">
-        @for (s of shortcuts(); track s.date; let first = $first) {
-          <button
-            #option
-            type="button"
-            class="flex items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
-            [class]="s.date === date() ? 'font-semibold text-brand-700' : 'text-ink-900'"
-            [attr.aria-label]="s.label + ', ' + full(s.date)"
-            (click)="choose(s.date)"
-          >
-            <span>{{ s.label }}</span>
-            <span class="text-caption text-ink-400">{{ s.hint }}</span>
-          </button>
-        }
-      </div>
-
-      <!-- month grid -->
-      <div class="mt-1 border-t border-ink-100 pt-2">
-        <div class="flex items-center justify-between px-2 pb-1">
-          <p class="text-body font-semibold">{{ label() }}</p>
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600 disabled:opacity-30 disabled:hover:bg-transparent"
-              [disabled]="atFirstMonth()"
-              aria-label="Previous month"
-              (click)="stepMonth(-1)"
-            >
-              <span aria-hidden="true">&lsaquo;</span>
-            </button>
-            <button
-              type="button"
-              class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
-              aria-label="Next month"
-              (click)="stepMonth(1)"
-            >
-              <span aria-hidden="true">&rsaquo;</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-7 gap-0.5 px-1 pb-1 text-center text-caption font-medium text-ink-400">
-          @for (d of weekdayHeadings; track $index) {
-            <span aria-hidden="true">{{ d }}</span>
-          }
-        </div>
-
-        <div class="grid grid-cols-7 gap-0.5 px-1">
-          @for (cell of cells(); track $index) {
-            @if (cell) {
-              <button
-                type="button"
-                class="grid h-8 place-items-center rounded-control text-body transition disabled:text-ink-200 disabled:hover:bg-transparent"
-                [class]="dayClass(cell)"
-                [disabled]="cell < todayDate"
-                [attr.aria-label]="full(cell)"
-                [attr.aria-pressed]="cell === date()"
-                (click)="choose(cell)"
-              >
-                {{ +cell.slice(8) }}
-              </button>
-            } @else {
-              <span></span>
-            }
-          }
-        </div>
-      </div>
-
-      <!-- reminder time -->
-      <div class="mt-1 flex items-center gap-2 border-t border-ink-100 px-2 pt-2">
-        <span class="text-caption text-ink-400" aria-hidden="true">&#9200;</span>
-        <input
-          type="time"
-          class="min-w-0 flex-1 rounded-control bg-ink-50 px-2 py-1.5 text-body outline-none focus:ring-2 focus:ring-brand-500"
-          [value]="time() ?? ''"
-          aria-label="Reminder time"
-          (change)="onTime($event)"
-        />
-        @if (time()) {
-          <button
-            type="button"
-            class="grid h-7 w-7 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
-            aria-label="Clear the reminder time"
-            (click)="picked.emit({ date: date(), time: null })"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './date-picker.html',
 })
 export class DatePicker {
   readonly date = input.required<string>();
@@ -174,7 +58,7 @@ export class DatePicker {
   readonly closed = output<void>();
 
   protected readonly todayDate = today();
-  protected readonly weekdayHeadings = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  protected readonly weekdayHeadings = WEEKDAY_HEADINGS;
 
   private readonly firstOption = viewChild<ElementRef<HTMLButtonElement>>('option');
 
@@ -186,19 +70,7 @@ export class DatePicker {
     () => this.viewMonth() <= startOfMonth(this.todayDate),
   );
 
-  protected readonly shortcuts = computed<Shortcut[]>(() => {
-    const t = this.todayDate;
-    const all: Shortcut[] = [
-      { label: 'Today', date: t, hint: shortWeekday(t) },
-      { label: 'Tomorrow', date: addDays(t, 1), hint: shortWeekday(addDays(t, 1)) },
-      { label: 'This weekend', date: comingSaturday(t), hint: shortWeekday(comingSaturday(t)) },
-      { label: 'Next week', date: comingMonday(t), hint: weekdayAndDate(comingMonday(t)) },
-    ];
-    // On a Friday "This weekend" is Tomorrow, and on a weekend it is Today.
-    // Two rows landing on the same day is noise, so the earlier one wins.
-    const seen = new Set<string>();
-    return all.filter((s) => (seen.has(s.date) ? false : (seen.add(s.date), true)));
-  });
+  protected readonly shortcuts = computed<Shortcut[]>(() => shortcutsFor(this.todayDate));
 
   /** Leading blanks then every day of the month, laid out Monday first. */
   protected readonly cells = computed<Array<string | null>>(() => {

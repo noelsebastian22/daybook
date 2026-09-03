@@ -1,14 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Daybook">
   <!--
-    The Daybook mark. Two pages and a tick: yesterday's page sitting behind
-    today's, because the whole idea of the app is that the page you did not
-    finish comes with you. Green on the tick is the reserved completion
-    colour (AGENTS.md) and a tick is a completion, so it is entitled to it.
+    The Daybook mark: three task lines and a sweep carrying the unfinished one
+    forward out of the frame, because the whole idea of the app is that the
+    page you did not finish comes with you. Direction 01 of the brand
+    exploration in docs/reference/brand/ — see NOTES.md there for why the
+    other three were dropped.
+
+    No green anywhere. The tick this replaced used the reserved completion
+    colour (AGENTS.md) and spent it on an app icon, which is the one surface
+    that never completes anything.
 
     Everything sits inside the maskable safe zone — a circle of 80% diameter,
-    which for a 512 box is the square from 111 to 401. The manifest declares
-    "maskable any", so the indigo runs full bleed and Android may crop it to
-    any shape it likes without taking a bite out of the artwork.
+    which for a 512 box is the square from 111 to 401. The artwork runs
+    x 132..369 and y 119..389, so it clears that square on every side and the
+    circle by a further margin. The manifest declares "maskable any", so the
+    indigo runs full bleed and Android may crop it to any shape it likes
+    without taking a bite out of the artwork. That full bleed is also why
+    there is no rx here and there is one in shared/brand/logo.ts: the tile in
+    the app is a tile, this one is a canvas somebody else rounds.
   -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -19,18 +28,12 @@
 
   <rect width="512" height="512" fill="url(#bg)" />
 
-  <!-- yesterday -->
-  <rect x="126" y="118" width="196" height="244" rx="32" fill="#ffffff" opacity="0.36" />
-
-  <!-- today -->
-  <rect x="190" y="150" width="196" height="244" rx="32" fill="#ffffff" />
-
-  <path
-    d="M236 274 L272 310 L342 226"
-    fill="none"
-    stroke="#10b981"
-    stroke-width="30"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+  <g fill="#f6f7fb">
+    <rect x="132" y="119" width="164" height="42" rx="21" />
+    <rect x="132" y="195" width="108" height="42" rx="21" />
+    <rect x="132" y="271" width="140" height="42" rx="21" />
+    <path
+      d="M153 389H250C401.8 389 369 245 369 166H359C359 224.3 339.6 288.4 319.3 317.5C308 333.9 293.3 347 250 347H153A21 21 0 0 1 153 389Z"
+    />
+  </g>
 </svg>
