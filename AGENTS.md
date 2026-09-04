@@ -39,12 +39,20 @@ that symlink is load-bearing. Edit the `.agents/` copy.
 - **Components are `ChangeDetectionStrategy.OnPush`** without exception.
 - `input()` / `output()` functions, not the decorators.
 - `inject()`, not constructor parameter injection.
-- **Never put a backtick inside a `template:` string**, including in an HTML
-  comment. It closes the template literal, and the compiler then reports a
-  dozen errors pointing at the decorator and the last line of the file rather
-  than at the comment. Write `inset-x-0`, not the quoted form. This has cost
-  five builds across three sessions. If a component suddenly will not parse,
-  grep it for a backtick before reading anything else.
+- **Templates live in a sibling `.html` file**, never inline. `task-row.ts`
+  holds the class, `task-row.html` holds the markup, joined by
+  `templateUrl: './task-row.html'`. Same for the one component with styles:
+  `welcome.ts` / `welcome.css` via `styleUrl`.
+
+  This retired a footgun rather than a preference. An inline `template:` is a
+  template literal, so **a single backtick anywhere inside it — including in an
+  HTML comment — closes it**, and the compiler then reports a dozen errors
+  pointing at the decorator and the last line of the file rather than at the
+  comment. It cost five builds across three sessions, twice in `shell.ts`
+  alone. In a `.html` file there is no literal left to close, so write a class
+  name in backticks in a comment if you like.
+
+  A host-only directive with no markup needs no file — `swipe.ts` has none.
 
 ## State
 
@@ -58,12 +66,20 @@ Four stores and two services, all `providedIn: 'root'`:
 | `ToastStore` | `core/toast.store.ts` | transient messages and undo |
 | `OfflineQueue` | `core/offline-queue.ts` | writes made with no connection |
 | `Nav` | `core/nav.ts` | drawer collapsed, composer open |
+| `Theme` | `core/theme.ts` | light / dark / system, and what that resolves to |
 
-`Nav` holds chrome, not data, and it is a plain service rather than a store
-because there is nothing to load or roll back. It exists because three
-components that are nowhere near each other in the tree need the same two
+`Nav` and `Theme` hold chrome, not data, and are plain services rather than
+stores because there is nothing to load or roll back. `Nav` exists because
+three components that are nowhere near each other in the tree need the same two
 booleans: the drawer collapses, `toasts.ts` has to move with it, and the
 drawer's `Add task` button opens a composer that renders inside `Today`.
+
+Both persist to `localStorage` under a key with **no uid** — `daybook.nav.v1`,
+`daybook.theme.v1`. That is deliberate and it is the opposite of
+`daybook.queue.v1.<uid>`. A device preference is a property of the screen and
+two accounts sharing a laptop should share it; the offline queue holds one
+account's pending writes, and leaking those across accounts was a real bug
+(§9, C2). **Preference against data is the line.**
 
 Rules:
 
@@ -102,26 +118,109 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 - **There is no `status` column and there will not be one.** See
   `BUILD-PLAN.md`.
 
-## Naming
+## Naming and file layout
 
 - Files kebab-case: `task-row.ts`, `parse-capture.ts`
 - Components are nouns without a suffix: `Today`, `Login`, `TaskRow`
 - Stores end in `Store`, services do not carry a `Service` suffix
 
+One subject, one basename, siblings in the same folder:
+
+| Suffix | Holds |
+|---|---|
+| `.ts` | the class, and only the class |
+| `.html` | the template |
+| `.css` | component styles — there is exactly one, `welcome.css` |
+| `.constants.ts` | tuning values, with the comment that explains them |
+| `.data.ts` | static tables and lists |
+| `.helpers.ts` | pure functions, no injection, no clock |
+| `.spec.ts` | the tests |
+
+**Do not create an empty `.css` per component.** This app is utility-first;
+twenty empty stylesheets is cargo cult and the `anyComponentStyle` budget
+exists partly to discourage it.
+
+**No barrel files.** No `index.ts` re-exports — they defeat tree-shaking and
+this app fights for every kilobyte. Import the module directly.
+
+A constant that has a comment explaining *why* it is that value keeps the
+comment when it moves. That comment is what stops the next person silently
+"fixing" a deliberate number — `swipe.constants.ts` is the example to copy.
+
+## Testing
+
+`npx ng test --watch=false`. Vitest through `@angular/build:unit-test`, jsdom,
+no browser.
+
+`src/testing/` is the harness, and `harness.spec.ts` is its self-test — read
+that first, and check it if the whole suite goes red at once.
+
+- `test-providers.ts` is wired through `providersFile` in `angular.json` and is
+  installed in **every** spec. It supplies `provideZonelessChangeDetection()`
+  (without it, fixture creation throws and blames `NgZone`) and swaps
+  `Supabase` for `FakeSupabase`, so **no spec can reach the network**.
+- `fake-supabase.ts` — `onFrom`, `onRpc`, `emitAuth`, `chainFor`, `calls`,
+  `ok()` / `fail()`. The query builder is chainable and absorbs methods it has
+  not heard of, so adding an `.order()` does not break a spec that never cared.
+- `fakes.ts` — row builders. Name only the field under test:
+  `makeTask({ completed_at: null })`.
+- `render.ts` — `await render(Component, { inputs, providers })`.
+
+Rules that come from real failures here:
+
+- **`await` every interaction.** The app is zoneless; nothing re-renders on its
+  own. A click without an await reads the DOM as it was *before* the click, and
+  the failure looks like the handler never ran.
+- **Pin the clock whenever behaviour depends on `today()`.** It reads the wall
+  clock. `parse-capture.spec.ts` used a `REF` frozen in Aug 2026, so anything
+  compared against `today()` could never be equal — a real bug sat under that
+  spec, unreachable. Use `vi.useFakeTimers()` + `vi.setSystemTime()`.
+- **Check your test can fail.** The first replacement for that same bug still
+  passed, because the real "today" was a Friday and the phrase said "friday".
+  A test that passes either way is worse than no test.
+- **Never assert on a Tailwind class string.** It pins spelling, not behaviour,
+  and dark mode rewrote most of them. Assert on text, ARIA, state and calls.
+- `src/testing/**` is excluded from `tsconfig.app.json`. It was briefly being
+  compiled into the production bundle.
+
 ## Colour
 
-**The page is white; the drawer is `ink-50`.** Content is the brightest
-surface in the app and chrome recedes behind it — the reverse was true until
-3 Sep and it put the brightest thing on screen in the nav. Consequences:
+**Write semantic tokens, not palette shades, for any surface, text or border.**
+`bg-surface`, `bg-surface-sunken`, `bg-surface-raised`, `bg-hover`,
+`text-text`, `text-text-muted`, `text-text-subtle`, `border-border`,
+`text-on-brand`. They are defined twice in `src/styles.css` — once on `:root`,
+once under `.dark` — and that is the whole of dark mode.
+
+The raw ramps (`ink-*`, `brand-*`, `done-*`, `late-*`, `quick-*`, `deep-*`)
+are **palette**. They mean nothing about placement and are identical in both
+themes. Never redefine one per theme: half the app reads `brand-600` to mean
+"the brand", and a brand that changes colour in the dark is a bug.
+
+**`bg-white` is not a token and cannot flip.** It is a Tailwind built-in
+resolving to `#fff`. There were 58 literal `white` call sites before dark mode
+and migrating them was most of the work. The survivors are on `welcome` and
+`login`, which sit on a deliberately dark backdrop in *both* themes.
+
+The rule underneath all of it: **content is the brightest surface, chrome
+recedes behind it, overlays separate from both.** How that is expressed
+inverts with the theme, which is why it is a token and not a class:
+
+- In **light**, the page is white, the drawer is `ink-50`, hovers **dim**, and
+  overlays stay white and lean on their shadow.
+- In **dark**, the page is near-black, the drawer is darker still, hovers
+  **lighten**, and overlays are *lighter* than the page — a shadow does almost
+  nothing on a dark ground, so elevation has to be carried by lightness.
+
+Both are `bg-surface` / `bg-hover` / `bg-surface-raised` at the call site.
 
 - A **task row's background must equal the page's and be opaque.** The row is
-  the lid over the swipe action layer; anything translucent or off-white shows
-  the "Done" and "Tomorrow" labels through every row at rest.
-- Row and chip hovers **dim** (`ink-50`, `ink-100`), they do not lift to white.
-  There is nowhere lighter to go.
-- Overlays — composer, popover, date picker, toasts, install hint — stay
-  **white** and keep their shadow. They float above both surfaces and must
-  separate from each other.
+  the lid over the swipe action layer; anything translucent shows the "Done"
+  and "Tomorrow" labels through every row at rest. `bg-surface` is opaque in
+  both themes; keep it that way.
+- The `100`-level tints (`done`, `late`, `quick`, `deep`, `brand-50`) are pale
+  pastels that glare on a dark surface, so they have `*-tint` / `*-on-tint`
+  token pairs that repoint to a dark wash with the text moving toward the 300
+  step. Use the pair, not the raw shade.
 
 Green and red are reserved. Green means completed, red means overdue or
 badly avoided. Nothing else may use them, or they stop carrying meaning.

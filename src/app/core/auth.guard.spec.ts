@@ -6,7 +6,7 @@ import {
   type CanActivateFn,
   type RouterStateSnapshot,
 } from '@angular/router';
-import type { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/auth-js';
 import type { Observable } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 

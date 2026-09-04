@@ -11,6 +11,100 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-04 · claude-code · restructure, brand, dark mode, performance
+
+**Did**
+- **Every component template moved to a sibling `.html`.** `shell.ts` 358→78,
+  `capture.ts` 550→300, `today.ts` 311→84, `task-detail.ts` 282→121,
+  `task-row.ts` 250→85. Constants and static tables out to 13 new
+  `.constants.ts` / `.data.ts` / `.helpers.ts` files. `welcome.ts`'s `styles:`
+  → `welcome.css`, still the only component stylesheet.
+- **Logo applied** — direction 01 "carry forward". `public/icon.svg` redrawn:
+  ~8 kB of base64 C2PA metadata and a 523-segment flattened polyline replaced
+  by a **129-byte path at 1.27px max deviation** at 512. New
+  `shared/brand/logo.ts` (mark + lockup); `login` and `welcome` stopped
+  hand-setting the wordmark as text. Icons/favicon regenerated, source art
+  moved to `docs/reference/brand/`.
+- **Dark mode**, semantic token layer + light/dark/system toggle top right.
+  §9 for the whole argument.
+- **Bundle 532.51 → 438.64 kB** by dropping `createClient()`. §9.
+- **Tests 55 → 680**, 4 files → 37. New `src/testing` harness: zoneless
+  providers, a chainable `FakeSupabase` no spec can escape, row builders.
+- **Two bugs fixed**: `task.store.ts` latching `loaded: true` before checking
+  the error, and `parse-capture.ts`'s first-date-wins guard.
+- Deleted dead `shared/mark.ts` + `.html`. Removed `@supabase/supabase-js`
+  entirely (`node_modules/@supabase` 19 MB → 4.7 MB).
+
+**Decided**
+- All of it is in `BUILD-PLAN.md` §9, added this session: the token layer, the
+  `bg-white` forcing fact, the tint inversion, the elevation rule inverting,
+  the no-uid theme key, the composed Supabase client, opt-in preloading, and
+  why `@defer` was measured and rejected.
+- **Templates in `.html` is now a rule, not a preference** (`AGENTS.md`). It
+  retires the backtick-in-`template:` footgun that had cost five builds.
+
+**Didn't work**
+- **I re-fitted the logo sweep with a Bézier fitter and lost.** 465 bytes at
+  1.29px deviation; the agent's hand-authored 2-curve version was **129 bytes
+  at 1.27px**. Mine was discarded. Measuring both was the only reason I knew.
+- **My first deviation measurement was wrong and said 40px for both.** It
+  compared points to sampled *vertices*, so a straight `H` run scored ~40px
+  purely for having no intermediate samples. Point-to-segment, not
+  point-to-point.
+- **My first re-authored path silently dropped the left cap.** The extraction
+  regex matched only `M`/`L`; the original closes with `A21,21`. The numeric
+  error metric could not see it — **the side-by-side render could.** Measure
+  *and* look.
+- **The parse-capture regression test took three attempts to be honest.** A
+  frozen `REF` cannot reproduce it (`today()` reads the wall clock, so the two
+  can never be equal — which means the *whole existing spec* cannot see any
+  bug of that shape). Switching to the real clock still passed, because today
+  was a Friday and the phrase said "friday". Only a pinned Monday failed:
+  `expected '2026-08-21' to be '2026-08-17'`.
+- **I nearly reported a phantom bug in the theme toggle.** A coordinate click
+  on "Light" did nothing; a ref-based click worked. It was screenshot scaling,
+  not the app. Ref-clicks over coordinates when a screenshot is scaled.
+- **`@defer` on the install hint made things worse**: +7.94 kB initial to save
+  2.13 kB off a non-initial chunk, because Angular's deferred-block runtime
+  lands in the initial bundle. Reverted.
+- **Five agents hit session limits or connection errors mid-run.** One left a
+  `window.__dev` hook exposing every store in `app.ts`, marked "remove before
+  commit" — caught and removed. **Check the diff of an agent that died.**
+
+**Open**
+- **Four dark surfaces unopened**: date picker, day drill-in, toasts, install
+  hint. Also **no completed row has been seen in dark** — the strike clears AA
+  by measurement only. §12.
+- **Nothing below `lg` has been seen**, dark mode included, and the mobile copy
+  of the theme toggle is unverified. Same viewport limit as 3 Sep. §12.
+- Three bugs found and deliberately **not** fixed: `settings.ts:46` `blocker`
+  is a `computed` over a non-reactive call so it never re-evaluates;
+  `day-detail.ts` asserts "since been deleted" about tasks that may just be
+  outside the 30-day load window; `ensureLoaded()`'s concurrency guard does not
+  guard. §12.
+- ~30 fractional spacing steps survive outside the core surfaces, and `today()`
+  is read at construction on four pages (midnight staleness). §12.
+- `_to_delete/` (976 kB of git tmp objects and three tarballs) is gitignored and
+  still sitting in the repo root. Needs Noel to say whether the tarballs matter.
+- **Unchanged and still Noel's**: `0005` unapplied, signup open in the Auth
+  dashboard, leaked-password protection off, service-role key in plaintext in
+  `cron.job.command`. Gate 1 specs untouched.
+
+**Next**
+Open the app on the iPhone and walk every surface in **both themes** — the
+composer and drawer as sheets, the theme toggle in the mobile topbar, flat
+hairline rows, a completed row's strike, and the safe-area padding. It is the
+only part of this pass with no evidence behind it, and it now covers two
+sessions' worth of unverified narrow-viewport work.
+
+**Touched** — `src/app/**` (every component: `.ts` + new `.html`),
+`src/app/core/{theme,preload,supabase,task.helpers,task.constants}.ts`,
+`src/app/shared/{brand/logo,theme-toggle}.*`, `src/testing/**`,
+`src/styles.css`, `src/index.html`, `public/{icon.svg,manifest.webmanifest}`,
+`public/icons/*`, `angular.json`, `tsconfig.{app,spec}.json`, `package.json`,
+`AGENTS.md`, `BUILD-PLAN.md`, `README.md`
+
+
 ## 2026-09-03 · claude-code · shell, composer, surfaces
 
 **Did**

@@ -1,6 +1,15 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth.guard';
 
+/**
+ * `data: { preload: true }` opts a route into `WarmDrawerDestinations`
+ * (`core/preload.ts`), which fetches its chunk on the first idle period after
+ * the initial navigation. It is opt-in rather than blanket so the list of what
+ * a phone downloads speculatively is visible right here. `today` is not marked
+ * because it is the redirect target and always loads anyway; `settings`,
+ * `login`, `welcome` and `calendar/:date` are not marked because they are
+ * either rare or unreachable for the user who would be doing the downloading.
+ */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'today' },
   {
@@ -39,16 +48,23 @@ export const routes: Routes = [
         // live DOM or the morph silently does nothing.
         path: 'today/:id',
         title: 'Task',
+        // Warmed. This one is not a drawer destination but it is the most
+        // latency-sensitive route in the app: opening a task morphs the row
+        // into the card through a View Transition, and a chunk that is still
+        // in flight means the browser has nothing to snapshot into.
+        data: { preload: true },
         loadComponent: () => import('./features/today/task-detail').then((m) => m.TaskDetail),
       },
       {
         path: 'upcoming',
         title: 'Upcoming',
+        data: { preload: true },
         loadComponent: () => import('./features/upcoming/upcoming').then((m) => m.Upcoming),
       },
       {
         path: 'calendar',
         title: 'Calendar',
+        data: { preload: true },
         loadComponent: () => import('./features/calendar/calendar').then((m) => m.Calendar),
       },
       {
@@ -59,6 +75,7 @@ export const routes: Routes = [
       {
         path: 'reporting',
         title: 'Reporting',
+        data: { preload: true },
         loadComponent: () => import('./features/reporting/reporting').then((m) => m.Reporting),
       },
       {

@@ -105,6 +105,8 @@ silently rejects anything not on the list.
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 written and locally proven, 3 Sep; nothing applied or deployed.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` runs clean on a local stack and every fix was reproduced as a bug first. Live is still on six migrations. Gates 1–3 not started. §4 |
 
+| 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
+
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
 
@@ -751,6 +753,14 @@ tracked.
     `quiet` for both a past day with no record and an unplanned future one.
     Reporting's two empty lists stay as plain sentences: they sit inside a
     card beside other content, and artwork there would be noise.
+17. **Dark mode**, with a light / dark / system toggle at the top right of the
+    content area. State: **done, 4 Sep**, `core/theme.ts`,
+    `shared/theme-toggle.ts`, tokens in `src/styles.css`. Implemented as a
+    semantic token layer over the unchanged palette rather than a repaint —
+    §9 for why that was forced, and for the `bg-white`, tint-inversion and
+    elevation problems it had to solve. Verified on a real signed-in Today in
+    both themes; the toggle is a three-option radiogroup that shows what
+    "system" currently resolves to.
 
 ### 5.1 Signature interactions
 
@@ -1022,6 +1032,158 @@ wish list, not a plan.
 ## 9. Decisions made during the build
 
 Not in the original Notion brief. Made while getting Phases 1 and 2 working.
+
+**`createClient()` was replaced by composing auth-js and postgrest-js, 4 Sep.**
+The initial bundle went **536.04 kB → 438.64 kB** (129.59 → 107.47 kB
+transfer), −18.2%. Nearly all of it was dead code: `SupabaseClient`'s
+constructor builds a `RealtimeClient` and a `StorageClient` as **fields, not
+lazy getters**, so nothing tree-shakes them. Daybook subscribes to no channels
+and uploads no files. Measured out of `main`: realtime-js 31.27 kB, phoenix
+25.29 kB, storage-js 21.40 kB, supabase-js 10.63 kB, iceberg-js 5.25 kB,
+functions-js 2.85 kB.
+
+**This was the session's one genuinely dangerous change** — it is the
+authentication path, and the failure modes are silent. Four things
+`createClient` did are load-bearing and are reproduced verbatim in
+`core/supabase.ts` with the reasoning in place:
+
+1. **The `storageKey` derivation** (`sb-<first URL label>-auth-token`). A
+   mismatch is not an error, it is an empty read: **every already-signed-in
+   browser would be silently signed out on deploy.**
+2. The auth client's `Authorization` + `apikey` headers.
+3. `flowType: 'implicit'`, which the magic-link and Google redirects are
+   issued against.
+4. `fetchWithAuth`, which reads the session on **every** request — so it is
+   also what refreshes an expiring token. Without it every query runs as
+   `anon` and RLS returns an empty set, which looks exactly like "this account
+   has no tasks" rather than like an error.
+
+It was verified by a differential harness rather than by reasoning: both
+clients run side by side against a recording `fetch` and a fake
+`localStorage`, and every observable effect is diffed. Seven requests came out
+byte-identical including headers, `signInWithOAuth` produced the same
+authorize URL, and the `detectSessionInUrl` return path emitted the same
+events and persisted to the same key. Then confirmed by hand against the live
+account: session restored, REST rows returned under RLS, both RPCs fired.
+`@supabase/supabase-js` is no longer a dependency at all.
+
+**Remaining target, if anyone wants one:** `auth-js` is now the largest third
+party in `main` at 97.80 kB, of which roughly 24 kB is unreachable —
+`GoTrueAdminApi` (service-role only, cannot work from a browser) and the
+WebAuthn/MFA modules. They are constructor fields too, so it needs a vendor
+patch or an upstream change.
+
+**Preloading is opt-in per route, not `PreloadAllModules`.** `core/preload.ts`
+warms the four drawer destinations plus `today/:id`, on `requestIdleCallback`
+and skipped on `saveData`/2G. `PreloadAllModules` would drag `login` (39.32 kB)
+and `welcome` — both `guestGuard`ed and unreachable for the signed-in user
+doing the downloading. `today/:id` is included although it is not a drawer
+destination: opening a task morphs the row into the card through a View
+Transition, and a chunk still in flight leaves the browser nothing to snapshot.
+
+**`withViewTransitions({ skipInitialTransition: true })`.** Without it the
+first navigation wraps in `document.startViewTransition`, so the browser
+snapshots and holds the frame before painting, to animate a transition from
+nothing. An unflagged LCP cost.
+
+**`@defer` was measured and deliberately not shipped.** It only moves bytes
+when a block has a deferrable dependency, and the three obvious candidates have
+none — Reporting's charts are inline `@for` markup, Welcome's `Logo` is above
+the fold, and both are already lazy route chunks. The one real component
+boundary, the install hint, was measured: `+7.94 kB` on the **initial** bundle
+(Angular's deferred-block runtime lands there) to save 2.13 kB off a chunk that
+is not initial. A net loss, and it would add a CLS shift on iOS — the exact
+users the hint exists for. Reverted.
+
+**Dark mode is a semantic token layer, not a repaint, 4 Sep.** The note further
+down this section — written when Nocturne was costed and dropped — predicted
+this correctly: *"on a dark field the semantic colours invert: `done-500`
+reaches 6.50:1 while `done-700` falls to 3.01:1 and `late-700` to 2.55:1, and
+the 700 shades are currently the text shades. A dark theme is not a repaint of
+this app."* That is exactly what happened, and it is why the implementation is
+shaped the way it is.
+
+Two layers. The **palette** (`ink-*`, `brand-*`, `done-*`, `late-*`, `quick-*`,
+`deep-*`) is identical in both themes and is never redefined per theme — half
+the app reads `brand-600` to mean "the brand", and a brand that changes colour
+in the dark is a bug. Over it sit **semantic tokens** (`surface`,
+`surface-sunken`, `surface-raised`, `hover`, `border`, `text`, `text-muted`,
+`text-subtle`, `on-brand`) defined once on `:root` and again under `.dark`.
+Call sites use only the semantic layer, so almost nothing in the app knows
+which theme it is in.
+
+The alternative — a `dark:` variant at roughly 250 colour call sites — was
+rejected as unreviewable, and because it puts the theme decision at the call
+site where the next person will forget half of it.
+
+**The forcing fact was `bg-white`.** It is a Tailwind built-in resolving to
+`#fff` and no theme can move it. There were **58 literal `white` call sites**;
+migrating them was most of the work. The survivors are on `welcome` and
+`login`, which sit on a deliberately dark backdrop in *both* themes.
+
+**The 100-level tints needed their own pairs.** `done-100`, `late-100`,
+`quick-100`, `deep-100` and `brand-50` are pale pastels that glare on
+near-black, and their 700-level partners are text shades that fail on it —
+the inversion the Nocturne note predicted. Each gained a `*-tint` /
+`*-on-tint` pair repointing to a dark wash with the text moving toward the 300
+step. **Green still means completed and red still means overdue**; only the
+lightness moves.
+
+**The elevation rule inverts, so it had to become a token.** "Hovers dim, there
+is nowhere lighter to go" was a *light-mode* statement of a deeper rule:
+content is the brightest surface, chrome recedes, overlays separate from both.
+In dark, a shadow does almost nothing on a dark ground, so elevation is carried
+by lightness — `surface-raised` is *lighter* than the page and hovers lighten.
+Same class name at the call site; the token carries the direction. `AGENTS.md`
+§Colour was rewritten to say it that way.
+
+**Three states, and a radiogroup rather than a cycling button.** A three-way
+cycle cannot show what "system" currently resolves to and gives no way back;
+the popover shows `dark` beside "System" when that is what the OS says.
+`system` follows `prefers-color-scheme` **live** — reading it once at boot
+would leave a phone that flips at sunset showing a white page until the next
+cold start, which is the scenario the feature exists for.
+
+**The theme key carries no uid**, following `daybook.nav.v1` and deliberately
+unlike `daybook.queue.v1.<uid>`. A device preference is a property of the
+screen and two accounts sharing a laptop should share it; the queue holds one
+account's pending writes and leaking those was a real bug (C2). Preference
+against data is the line.
+
+**One blocking inline script in `index.html`**, and it is correct. Applying the
+theme after bootstrap flashes white on every cold load of a dark install, which
+on a phone at night is the most noticeable defect the feature could ship with.
+
+**Templates moved out of `template:` strings, 4 Sep.** Every component is now
+`.ts` + a sibling `.html`. This retired a footgun rather than expressing a
+preference: an inline template is a template literal, so one backtick anywhere
+inside it — including in an HTML comment — closes it, and the compiler blames
+the decorator and the last line of the file. It had cost **five builds across
+three sessions**, twice in `shell.ts` alone. `shell.ts` went 358 → 78 lines,
+`capture.ts` 550 → 300, `today.ts` 311 → 84.
+
+No empty `.css` was created per component. The app is utility-first and
+`welcome.css` remains the only component stylesheet in it.
+
+**Tailwind v4 dropped `cursor: pointer` on buttons and nobody noticed.** v3's
+preflight set it; v4's does not. **54 of the app's 56 interactive elements**
+were showing an arrow, including `Add task`. Fixed with one rule in
+`@layer base` beside the global focus ring, for the same reason that ring lives
+there: the next button somebody adds is covered without them knowing.
+
+**The logo is direction 01, "carry forward", 4 Sep.** Three task lines and a
+sweep carrying the unfinished one out of frame. It was the only direction with
+a full variant set, which is what marked it as the pick. Of the rejected three:
+02 was a green tick, and green is reserved for completion — spending it on an
+app icon, the one surface that never completes anything, would have cost the
+reserved meaning; 03 and 04 mush at 48px.
+
+The shipped `public/icon.svg` is redrawn, not copied. The source carried ~8 kB
+of base64 C2PA metadata plus a 523-segment flattened polyline where the artwork
+is three rounded rects and one hooked sweep. The sweep is now a **129-byte
+path, measured at 1.27px maximum deviation** from the original outline at 512 —
+0.12px at 48. A separately fitted 465-byte Bézier chain scored 1.29px and was
+discarded as strictly worse.
 
 **The shell reads from `add task.mov` and `drawer-collapse.mov`, 3 Sep.** Four
 changes, all from Todoist, all taken deliberately rather than wholesale.
@@ -1949,6 +2111,50 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **Dark mode has never been seen below `lg`, and neither has the toggle.** It
+  was verified on a real signed-in Today at desktop width in both themes, and
+  the same viewport limit described in the next item still applies. The mobile
+  topbar copy of the toggle is the specific unknown.
+- **Most surfaces are verified in dark mode; four are not.** Checked against a
+  real signed-in account on 4 Sep: Today (populated), a task row with its
+  category and energy badges, the drawer, the filter chips, the composer,
+  Calendar, Reporting, Settings, Welcome and Login. **The calendar heat map was
+  the specific worry — a four-step green ramp tuned against white — and it
+  holds**: all four legend steps stay distinguishable on near-black and the
+  carried-off red dot still reads.
+
+  Still unopened in dark: the **date picker**, the **day drill-in**, the
+  **toasts**, and the **install hint**. All four are overlays on
+  `surface-raised`, which the composer already exercises, so the risk is low
+  but it is not zero.
+- **A completed row has not been seen in dark.** The strike-through on
+  `text-subtle` against the dark row was computed to clear AA but never looked
+  at — the test account had no completed task on the day it was checked.
+- **The energy and category badges' dark tints are computed, not eyeballed.**
+  The `*-tint` / `*-on-tint` pairs clear AA by measurement, but only the
+  `quick` and `Family` badges have actually been looked at on screen.
+- **`shared/mark.ts` may be dead.** `login` and `welcome` were its only two
+  consumers and both now use `shared/brand/logo.ts`. Its own comment ties it to
+  `public/icon.svg` and the PWA icons, so that link wants checking before
+  anything is deleted.
+- **Fractional spacing steps survive outside the core surfaces.** Roughly 30
+  occurrences of `py-1.5`, `gap-1.5`, `px-2.5`, `mt-0.5` and friends across
+  `task-detail`, `date-picker`, `install-hint`, `login`, `welcome` and the five
+  page-title headers. §Spacing says the eighteen eyeballed values "are gone";
+  that migration evidently covered Today and the shared chrome only. Found
+  during the 4 Sep refactor and deliberately not fixed there — restyling inside
+  a pure-move refactor is unreviewable.
+- **`today()` is read at construction on four pages** — `calendar.ts`,
+  `reporting.ts` (twice) and `upcoming.ts`. It is not a signal, so a tab left
+  open across midnight keeps rendering yesterday as today: the calendar's
+  today-ring stays on the wrong cell and Reporting's last bar stops being
+  today. One systemic issue, four sites. `today.ts`'s `heading` has the same
+  shape.
+- **`ensureLoaded()`'s concurrency guard does not guard.** It checks
+  `store.loading()`, but `loading` is not set until three awaits deep, so two
+  pages mounting in the same tick both pass it and both run `init()` — double
+  flush, double rollover RPC, double select. Harmless (rollover is idempotent
+  server-side) but it spends a round trip against a sub-100ms budget.
 - **The 3 Sep shell pass is unverified below `lg`.** Everything in it was
   checked on screen at desktop width, but the Chrome extension driving the
   browser would not resize the viewport below 1274px, so three things have

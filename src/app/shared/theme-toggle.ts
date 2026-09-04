@@ -47,4 +47,70 @@ export class ThemeToggle {
     this.theme.set(choice);
     this.open.set(false);
   }
+
+  /**
+   * Opens onto the **checked** option, not the first one.
+   *
+   * `Popover` focuses the first button it finds, which is the right default
+   * for a menu but wrong for a radiogroup: focus would land on "Light" while
+   * "Dark" was the checked tab stop, and the first arrow press would then move
+   * the selection from Dark rather than from the option under focus. Focus and
+   * selection have to start on the same option or the group behaves oddly
+   * exactly once, on first open, which is the hardest kind of bug to report.
+   */
+  protected toggle(): void {
+    const opening = !this.open();
+    this.open.set(opening);
+    if (opening) this.focusOption(this.activeIndex());
+  }
+
+  /**
+   * A radiogroup is **one** tab stop, not three.
+   *
+   * Declaring `role="radiogroup"` promises the roving-tabindex contract:
+   * Tab moves past the whole group, and Left/Right (or Up/Down) move the
+   * selection inside it. Three plain buttons are three tab stops, which is
+   * what the markup did before this — the roles and `aria-checked` were
+   * right, so a screen reader announced "radio, 1 of 3" and then the keyboard
+   * did not behave like one, which is worse than not claiming the role.
+   *
+   * Only the checked option is tabbable; the rest are `-1` and reached with
+   * the arrows. See `tabIndexFor`.
+   */
+  protected onKeydown(event: KeyboardEvent): void {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    const jump = { Home: 0, End: this.options.length - 1 }[event.key];
+
+    let next: number;
+    if (step !== undefined) {
+      // Wraps, which is what the pattern specifies for a radiogroup.
+      next = (this.activeIndex() + step + this.options.length) % this.options.length;
+    } else if (jump !== undefined) {
+      next = jump;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    // Selection follows focus, so arrowing previews each theme as you go —
+    // the choice is instantly visible and instantly reversible, which is the
+    // case the pattern intends it for.
+    this.theme.set(this.options[next].value);
+    this.focusOption(next);
+  }
+
+  /** Roving tabindex: the checked option is the group's single tab stop. */
+  protected tabIndexFor(choice: ThemeChoice): number {
+    return choice === this.theme.choice() ? 0 : -1;
+  }
+
+  private focusOption(index: number): void {
+    // The list is re-rendered by the signal write above, so focus has to wait
+    // for that; a microtask is enough because the app is zoneless and the
+    // render is synchronous with the effect flush.
+    queueMicrotask(() => {
+      const group = document.querySelector('[role="radiogroup"][aria-label="Theme"]');
+      group?.querySelectorAll<HTMLElement>('[role="radio"]')[index]?.focus();
+    });
+  }
 }

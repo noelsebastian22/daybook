@@ -12,6 +12,18 @@
     <meta name="theme-color" content="#4f46e5" />
 
     <!--
+      The session check is the first thing the app does and nothing renders
+      until it resolves, so the DNS lookup, TCP handshake and TLS negotiation
+      to Supabase sit directly on the LCP path. Opening the socket here runs
+      them in parallel with parsing and executing the bundle instead of after
+      it. The origin is build-time known (`src/environments/`) — it is the same
+      project for both configurations. `crossorigin` is required: the auth and
+      REST calls are CORS requests, and a preconnect without it warms a
+      separate, unused connection pool.
+    -->
+    <link rel="preconnect" href="https://zzacswfongmzpnhcjiqp.supabase.co" crossorigin />
+
+    <!--
       The one blocking inline script in this app, and it has to be blocking.
 
       The theme class must be on <html> before the first paint. An Angular

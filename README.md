@@ -86,21 +86,66 @@ It is idempotent. Running it twice on the same day does nothing.
 ```bash
 npm start          # dev server
 npm run build      # production build
-npm test           # unit tests (vitest)
+npm test           # unit tests (vitest, jsdom, no browser)
 ```
 
 ## Where things are
 
 ```
-src/app/
-  core/            stores, Supabase client, guards, date and parsing helpers
-  features/
-    login/         Google + magic link
-    today/         Today view, capture box, task row
-  shared/          toasts
+src/
+  app/
+    core/          stores, Supabase client, guards, dates, capture parsing,
+                   nav and theme services
+    features/
+      welcome/     marketing page, the only file exempt from the type scale
+      login/       Google + magic link
+      today/       Today view, capture box, task row, composer, task detail
+      upcoming/    the next seven days
+      calendar/    month grid and the day drill-in
+      reporting/   charts
+      settings/    timezone, digest, reminders
+    shared/        shell, brand/logo, toasts, popover, date picker, swipe,
+                   empty states, install hint, theme toggle
+  testing/         spec harness: zoneless providers, a fake Supabase, row
+                   builders. Excluded from the production compile.
+  styles.css       the theme — palette, semantic tokens, both colour schemes
 supabase/
   migrations/      numbered SQL, never edited once applied
+docs/
+  SESSIONS.md      chronological log, written by the session-handoff skill
+  reference/       Todoist captures and the logo source art
+tools/
+  build-icons.mjs  rasterises public/icon.svg into the PNGs and favicon.ico
 ```
+
+A component is a set of siblings sharing one basename: `task-row.ts` for the
+class, `task-row.html` for the template, `task-row.spec.ts` for the tests, plus
+`.constants.ts` / `.data.ts` / `.helpers.ts` where those exist. Templates are
+never inline — see `AGENTS.md` for why that is a rule and not a preference.
+
+## Theming
+
+Light, dark and system, toggled from the top right. `src/styles.css` defines a
+palette (`ink-*`, `brand-*`, `done-*`…) that is the same in both themes, and a
+layer of semantic tokens (`surface`, `text`, `border`, `hover`…) defined once
+on `:root` and again under `.dark`. Call sites use the semantic tokens, so
+almost nothing in the app knows which theme it is in.
+
+The choice is stored in `daybook.theme.v1` and applied by a small synchronous
+script in `index.html` before first paint, which is what stops a dark install
+flashing white on every cold load.
+
+## Regenerating the icons
+
+`public/icon.svg` is the source. After changing it:
+
+```bash
+node tools/build-icons.mjs
+```
+
+That rewrites `public/icons/*.png`, `favicon.ico` and the apple-touch-icon,
+rendering through headless Chrome so the repo needs no native image toolchain.
+The logo source art and the rejected directions are in `docs/reference/brand/`.
 
 **`BUILD-PLAN.md` is the single source of truth**: what the app is, the full
 feature list with current state, the data model, rollover logic, every locked

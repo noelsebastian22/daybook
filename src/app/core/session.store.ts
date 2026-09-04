@@ -8,7 +8,7 @@ import {
   withHooks,
   patchState,
 } from '@ngrx/signals';
-import type { Session, User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/auth-js';
 import { Supabase } from './supabase';
 import { ToastStore } from './toast.store';
 import { browserTimezone } from './dates';

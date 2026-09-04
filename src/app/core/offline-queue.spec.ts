@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import type { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/auth-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeSupabase, fail, ok } from '../../testing/fake-supabase';
