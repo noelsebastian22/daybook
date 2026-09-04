@@ -2,7 +2,7 @@
   <header class="safe-py-6 flex items-center justify-between gap-4">
     <a
       routerLink="/today"
-      class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+      class="-ml-2 inline-flex items-center gap-1 rounded-control px-2 py-1.5 text-body font-medium text-text-muted transition hover:bg-hover-strong hover:text-text"
     >
       <span aria-hidden="true">&lsaquo;</span> Today
     </a>
@@ -10,7 +10,7 @@
 
   @if (task(); as t) {
     <article
-      class="rounded-panel bg-white p-5 shadow-sm ring-1 ring-ink-200/60"
+      class="rounded-panel bg-surface-raised p-5 shadow-sm ring-1 ring-border"
       [style.view-transition-name]="'task-' + t.id"
     >
       @if (editing()) {
@@ -29,8 +29,8 @@
             class="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-control border-2 transition"
             [class]="
               done()
-                ? 'border-done-500 bg-done-500 text-white'
-                : 'border-ink-200 hover:border-brand-500'
+                ? 'border-done-500 bg-done-500 text-on-brand'
+                : 'border-border-strong hover:border-brand-500'
             "
             [attr.aria-pressed]="done()"
             [attr.aria-label]="done() ? 'Mark as not done' : 'Mark as done'"
@@ -51,8 +51,8 @@
             <span
               class="task-text"
               [class.is-done]="done()"
-              [class.text-ink-400]="done()"
-              [class.text-ink-900]="!done()"
+              [class.text-text-subtle]="done()"
+              [class.text-text]="!done()"
             >
               {{ t.text }}
             </span>
@@ -61,19 +61,19 @@
 
         <!-- chips -->
         <div class="mt-4 flex flex-wrap items-center gap-1.5 text-caption">
-          <span class="rounded-full bg-brand-50 px-2.5 py-1 font-medium text-brand-700">
+          <span class="rounded-full bg-brand-tint px-2.5 py-1 font-medium text-brand-text">
             {{ day() }}
           </span>
 
           @if (t.reminder_at; as at) {
-            <span class="rounded-full bg-brand-50 px-2.5 py-1 font-medium text-brand-700">
+            <span class="rounded-full bg-brand-tint px-2.5 py-1 font-medium text-brand-text">
               {{ time(at) }}
             </span>
           }
 
           @if (category(); as c) {
             <span
-              class="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2.5 py-1 font-medium text-ink-600"
+              class="inline-flex items-center gap-1 rounded-full bg-fill px-2.5 py-1 font-medium text-text-muted"
             >
               <span class="h-1.5 w-1.5 rounded-full" [style.background]="c.colour"></span>
               {{ c.name }}
@@ -83,45 +83,49 @@
           @if (t.energy; as e) {
             <span
               class="rounded-full px-2.5 py-1 font-medium"
-              [class]="e === 'quick' ? 'bg-quick-100 text-quick-700' : 'bg-deep-100 text-deep-700'"
+              [class]="
+                e === 'quick'
+                  ? 'bg-quick-tint text-on-quick-tint'
+                  : 'bg-deep-tint text-on-deep-tint'
+              "
             >
               {{ e }}
             </span>
           }
 
           @if (t.completed_at; as at) {
-            <span class="rounded-full bg-done-100 px-2.5 py-1 font-medium text-done-700">
+            <span class="rounded-full bg-done-tint px-2.5 py-1 font-medium text-on-done-tint">
               done {{ time(at) }}
             </span>
           }
         </div>
 
         <!-- history: the two counts §5 feature 10 exists to answer -->
-        <dl class="mt-5 grid grid-cols-3 gap-3 border-t border-ink-100 pt-4 text-body">
+        <dl class="mt-5 grid grid-cols-3 gap-3 border-t border-border-soft pt-4 text-body">
           <div>
-            <dt class="text-caption text-ink-400">Written</dt>
+            <dt class="text-caption text-text-subtle">Written</dt>
             <dd class="mt-0.5 font-medium">{{ written() }}</dd>
           </div>
           <div>
-            <dt class="text-caption text-ink-400">Carried over</dt>
+            <dt class="text-caption text-text-subtle">Carried over</dt>
             <dd
               class="mt-0.5 font-medium"
-              [class]="t.carried_over_count >= 3 ? 'text-late-700' : 'text-ink-900'"
+              [class]="t.carried_over_count >= 3 ? 'text-late-text' : 'text-text'"
             >
               {{ t.carried_over_count }}&times;
             </dd>
           </div>
           <div>
-            <dt class="text-caption text-ink-400">Pushed</dt>
+            <dt class="text-caption text-text-subtle">Pushed</dt>
             <dd class="mt-0.5 font-medium">{{ t.reschedule_count }}&times;</dd>
           </div>
         </dl>
 
         <!-- actions -->
-        <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4">
+        <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-border-soft pt-4">
           <button
             type="button"
-            class="rounded-control bg-ink-100 px-3 py-1.5 text-body font-medium text-ink-700 transition hover:bg-ink-200"
+            class="rounded-control bg-fill px-3 py-1.5 text-body font-medium text-text transition hover:bg-fill-strong"
             (click)="editing.set(true)"
           >
             Edit
@@ -130,7 +134,7 @@
           @if (!done()) {
             <button
               type="button"
-              class="rounded-control px-3 py-1.5 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+              class="rounded-control px-3 py-1.5 text-body font-medium text-text-muted transition hover:bg-hover-strong hover:text-text"
               (click)="tasks.reschedule(t, tomorrow())"
             >
               <span aria-hidden="true">&rarr;</span> {{ pushLabel() }}
@@ -139,7 +143,7 @@
 
           <button
             type="button"
-            class="ml-auto rounded-control px-3 py-1.5 text-body font-medium text-late-700 transition hover:bg-late-100"
+            class="ml-auto rounded-control px-3 py-1.5 text-body font-medium text-on-late-tint transition hover:bg-late-tint"
             (click)="remove()"
           >
             Delete
@@ -148,13 +152,13 @@
       }
     </article>
   } @else if (tasks.loaded()) {
-    <div class="rounded-panel border-2 border-dashed border-ink-200 px-6 py-12 text-center">
-      <p class="font-medium text-ink-600">That task is gone.</p>
-      <a routerLink="/today" class="mt-2 inline-block text-body font-medium text-brand-700">
+    <div class="rounded-panel border-2 border-dashed border-border-strong px-6 py-12 text-center">
+      <p class="font-medium text-text-muted">That task is gone.</p>
+      <a routerLink="/today" class="mt-2 inline-block text-body font-medium text-brand-text">
         Back to today
       </a>
     </div>
   } @else {
-    <div class="h-24 animate-pulse rounded-panel bg-ink-100"></div>
+    <div class="h-24 animate-pulse rounded-panel bg-fill"></div>
   }
 </div>

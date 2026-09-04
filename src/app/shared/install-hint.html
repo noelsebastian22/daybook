@@ -1,18 +1,18 @@
 @if (install.shouldHint()) {
   <aside
-    class="mx-auto mt-4 max-w-2xl rounded-panel bg-white px-4 py-3 shadow-sm ring-1 ring-ink-200/70"
+    class="mx-auto mt-4 max-w-2xl rounded-panel bg-surface-raised px-4 py-3 shadow-sm ring-1 ring-border"
     aria-labelledby="install-hint-title"
   >
     <div class="flex items-start gap-3">
       <div class="min-w-0 flex-1">
-        <p id="install-hint-title" class="text-body font-semibold text-ink-900">
+        <p id="install-hint-title" class="text-body font-semibold text-text">
           Add Daybook to your Home Screen
         </p>
 
-        <p class="mt-1 text-body text-ink-400">
+        <p class="mt-1 text-body text-text-subtle">
           Tap
           <span
-            class="mx-0.5 inline-flex h-6 w-6 -translate-y-0.5 items-center justify-center rounded-control bg-ink-100 align-middle text-ink-600"
+            class="mx-0.5 inline-flex h-6 w-6 -translate-y-0.5 items-center justify-center rounded-control bg-fill align-middle text-text-muted"
           >
             <svg
               viewBox="0 0 24 24"
@@ -33,7 +33,7 @@
           </span>
           <span class="sr-only">Share</span>
           in the browser toolbar, then choose
-          <span class="font-medium text-ink-600">Add to Home Screen</span>.
+          <span class="font-medium text-text-muted">Add to Home Screen</span>.
         </p>
 
         <!--
@@ -42,7 +42,7 @@
           storage after about a week — which is where the offline queue
           lives. Someone who knows that will bother.
         -->
-        <p class="mt-2 text-caption text-ink-400">
+        <p class="mt-2 text-caption text-text-subtle">
           Reminders only work from the installed app, and installing keeps anything saved offline
           from being cleared.
         </p>
@@ -50,7 +50,7 @@
 
       <button
         type="button"
-        class="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
+        class="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-control text-text-subtle transition hover:bg-hover-strong hover:text-text-muted"
         aria-label="Dismiss the install hint"
         (click)="install.dismiss()"
       >

@@ -88,9 +88,9 @@ export class DatePicker {
   protected full = friendlyDate;
 
   protected dayClass(cell: string): string {
-    if (cell === this.date()) return 'bg-brand-600 font-semibold text-white';
-    if (cell === this.todayDate) return 'font-semibold text-brand-700 hover:bg-brand-50';
-    return 'text-ink-900 hover:bg-ink-100';
+    if (cell === this.date()) return 'bg-brand-600 font-semibold text-on-brand';
+    if (cell === this.todayDate) return 'font-semibold text-brand-text hover:bg-brand-tint';
+    return 'text-text hover:bg-hover-strong';
   }
 
   protected stepMonth(n: number): void {

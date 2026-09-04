@@ -12,6 +12,22 @@
 */
 @source not "../**/*.md";
 
+/*
+  Dark mode is a class on <html>, not a media query.
+
+  A media-only implementation cannot offer a toggle: `prefers-color-scheme`
+  is read-only, so "always light" and "always dark" would be unexpressible
+  and the only honest control would be a link to the OS settings. The class
+  is set before first paint by the inline script in index.html and kept in
+  step afterwards by core/theme.ts, which also follows the media query while
+  the choice is `system`.
+
+  No template uses `dark:` today — the semantic tokens below carry the theme
+  instead — but the variant is declared so the one call site that genuinely
+  needs a per-theme value has somewhere to put it.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ------------------------------------------------------------------
    Daybook palette.
    Bright and energetic without being childish. Green and red are
@@ -166,6 +182,216 @@
      against a line of text, where it is alignment rather than spacing.
      See AGENTS.md.
      ------------------------------------------------------------------ */
+
+  /* ------------------------------------------------------------------
+     Semantic tokens — the only layer that moves between themes.
+
+     Everything above is raw palette. `brand-600` means the brand, and it
+     means the same colour at 3am as it does at midday; half the app reads
+     that shade to mean "the brand" and a brand that changes colour in the
+     dark is a bug. So the palette is identical in both themes and nothing
+     below it is redefined per theme.
+
+     These say what a colour is *for*. A template names the job
+     (`bg-surface-raised`, `text-text-subtle`) and never the shade, so one
+     class string serves both themes and the theme is decided in exactly
+     one file. The alternative — a `dark:` variant at every one of the
+     ~250 colour call sites — doubles every class attribute, is
+     unreviewable, and puts the decision where the next person will
+     remember half of it.
+
+     Declared here with their light values so Tailwind emits the
+     utilities; `.dark` below repoints them. Literal hexes rather than
+     `var(--color-ink-50)` on purpose: the two blocks then read as one
+     table with two columns, and there is no question about whether a
+     theme var may reference another theme var.
+
+     **The elevation rule inverts between themes and this is the part
+     people get wrong.** In light, content is the brightest thing, chrome
+     recedes and overlays stay white; hovers dim because there is nowhere
+     lighter to go. In dark a shadow does almost nothing on a near-black
+     ground, so elevation is carried by lightness instead:
+     `surface-raised` is *lighter* than `surface` and hovers *lighten*.
+     Same class name, opposite direction, because the token holds it.
+     ------------------------------------------------------------------ */
+
+  /* Surfaces. `sunken` is chrome (the drawer, filter fields), `raised` is
+     an overlay (composer, popover, date picker, toasts, install hint). */
+  --color-surface: #ffffff; /* the page, and every task row */
+  --color-surface-sunken: #f6f7fb; /* ink-50 */
+  --color-surface-raised: #ffffff;
+
+  /* Hover. Two steps because the app has always had two: a row dims by
+     one step, a chip that is already tinted dims by two. */
+  --color-hover: #f6f7fb; /* ink-50 */
+  --color-hover-strong: #eceef6; /* ink-100 */
+
+  /* Neutral fills: category chips, counts, the toggle track. */
+  --color-fill: #eceef6; /* ink-100 */
+  --color-fill-strong: #d6dae9; /* ink-200 */
+
+  /* Hairlines. `border` keeps ink-200 at 70%, which is what every rule in
+     the app was written against; `soft` is the lighter divider inside a
+     card and `strong` is a ring or an outline. */
+  --color-border-soft: #eceef6; /* ink-100 */
+  --color-border: #d6dae9b3; /* ink-200 / 70% */
+  --color-border-strong: #d6dae9; /* ink-200 */
+
+  /* Text. `subtle` is the ink-400 job — meta rows and timestamps — and it
+     is the pair that has to be measured, not eyeballed, in both themes. */
+  --color-text: #171a2b; /* ink-900 */
+  --color-text-muted: #4a5070; /* ink-600 */
+  --color-text-subtle: #676d8b; /* ink-400 */
+  --color-text-disabled: #d6dae9; /* ink-200 — disabled dates, exempt from AA */
+
+  /* On a brand/done/late fill. White in *both* themes: the fill under it
+     does not move, so neither may the text. This is why `text-white`
+     could not simply be swept to `text-text`. */
+  --color-on-brand: #ffffff;
+
+  /* The inverted chip: an active filter, a toast, the sign-in submit. It
+     is the one thing that must oppose the page, so it is the one thing
+     that flips hardest — near-black on a light page, near-white on a dark
+     one. */
+  --color-inverse: #171a2b; /* ink-900 */
+  --color-inverse-hover: #4a5070; /* ink-600 */
+  --color-on-inverse: #ffffff;
+  --color-on-inverse-accent: #e0e7ff; /* brand-100 — the Undo in a toast */
+
+  /* Brand as text and as a tint. The fill stays `bg-brand-600`; only the
+     text and the wash need to move, because brand-700 on near-black is
+     2.2:1 and unreadable. */
+  --color-brand-text: #4338ca; /* brand-700 */
+  --color-brand-text-hover: #4f46e5; /* brand-600 */
+  --color-brand-tint: #eef2ff; /* brand-50 */
+  --color-brand-tint-strong: #e0e7ff; /* brand-100 */
+  --color-on-brand-tint: #4338ca; /* brand-700 */
+
+  /* Status text and the 100-level tints.
+
+     Green still means completed and red still means overdue — the hue is
+     reserved and does not move. Only its lightness does. Dropped
+     unchanged onto a near-black surface these pastels glare, and they are
+     on the energy badges, the category chips and the calendar legend, so
+     they would have been the ugliest thing in the app. */
+  --color-done-text: #047857; /* done-700 */
+  --color-done-tint: #d1fae5; /* done-100 */
+  --color-on-done-tint: #047857;
+
+  --color-late-text: #b91c1c; /* late-700 */
+  --color-late-tint: #fee2e2; /* late-100 */
+  --color-on-late-tint: #b91c1c;
+
+  --color-quick-tint: #fef3c7; /* quick-100 */
+  --color-on-quick-tint: #b45309; /* quick-700 */
+
+  --color-deep-tint: #ede9fe; /* deep-100 */
+  --color-on-deep-tint: #6d28d9; /* deep-700 */
+}
+
+/* ------------------------------------------------------------------
+   The dark column of the table above.
+
+   Every value here is the answer to "what is this *for*", asked against a
+   near-black page. Nothing in the palette is touched.
+
+   `color-scheme` is not decoration: it is what makes the native controls
+   this app leans on — `input[type=time]` in the composer and Settings,
+   the timezone `select`, the scrollbars — render dark. Without it they
+   stay bright white rectangles in the middle of a dark panel and no
+   amount of Tailwind fixes them.
+
+   Unlayered, so it beats the `:root` that Tailwind emits for `@theme`
+   inside `@layer theme` no matter what the specificity works out to.
+   ------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Elevation runs the other way here: raised is lighter than the page,
+     sunken is darker, and hover lifts instead of dimming. */
+  --color-surface: #12141f;
+  --color-surface-sunken: #0c0e17;
+  --color-surface-raised: #1a1d2b;
+
+  --color-hover: #1e2233;
+  --color-hover-strong: #272b3e;
+
+  --color-fill: #242839;
+  --color-fill-strong: #333853;
+
+  --color-border-soft: #23273a;
+  --color-border: #2c3145;
+  --color-border-strong: #3b415c;
+
+  --color-text: #eceef7; /* 15.8:1 on surface */
+  --color-text-muted: #b9bed4; /* 9.9:1 */
+  --color-text-subtle: #9ba1bb; /* 7.2:1 on surface, 7.5:1 on sunken */
+  --color-text-disabled: #4d5370;
+
+  --color-on-brand: #ffffff; /* unchanged, and that is the point */
+
+  --color-inverse: #e6e8f2;
+  --color-inverse-hover: #ffffff;
+  --color-on-inverse: #12141f;
+  --color-on-inverse-accent: #4338ca; /* brand-700 reads on a light chip */
+
+  --color-brand-text: #a5b4fc; /* 9.2:1 */
+  --color-brand-text-hover: #c7d2fe;
+  --color-brand-tint: #222a54;
+  --color-brand-tint-strong: #2c3568;
+  --color-on-brand-tint: #c7d2fe; /* 9.2:1 on brand-tint */
+
+  --color-done-text: #34d399; /* 9.5:1 */
+  --color-done-tint: #0f2e23;
+  --color-on-done-tint: #6ee7b7; /* 9.6:1 on done-tint */
+
+  --color-late-text: #f87171; /* 6.6:1 */
+  --color-late-tint: #3a1a1a;
+  --color-on-late-tint: #fca5a5; /* 8.2:1 on late-tint */
+
+  --color-quick-tint: #3a2b0c;
+  --color-on-quick-tint: #fcd34d; /* 9.5:1 on quick-tint */
+
+  --color-deep-tint: #282050;
+  --color-on-deep-tint: #c4b5fd; /* 8.1:1 on deep-tint */
+}
+
+/* ------------------------------------------------------------------
+   The calendar heat map.
+
+   Four steps off `day_snapshots.completed_count`, painted as an inline
+   background by `calendar.ts`, which is why they are plain custom
+   properties rather than `@theme` colours — no utility is generated for
+   them and none is wanted.
+
+   A ramp tuned against white does not survive the move to near-black:
+   the low steps disappear into the page entirely. The alphas are lower
+   here and the top step is deliberately held back, because the day
+   number sits *on* the cell — at the light ramp's top alpha the text
+   drops to 3.3:1, so the dark top step is tuned to 3.74:1, the same as
+   the light ramp's worst case, while separating from the page better
+   than the light one does (2.65:1 against 2.10:1).
+
+   Step 0 is `transparent` in both themes and lives in
+   calendar.constants.ts: a day with a snapshot saying zero is a real
+   record of nothing done, and it should read as the page.
+   ------------------------------------------------------------------ */
+:root {
+  --heat-1: rgba(16, 185, 129, 0.16);
+  --heat-2: rgba(16, 185, 129, 0.34);
+  --heat-3: rgba(16, 185, 129, 0.55);
+  --heat-4: rgba(16, 185, 129, 0.78);
+}
+
+.dark {
+  --heat-1: rgba(16, 185, 129, 0.15);
+  --heat-2: rgba(16, 185, 129, 0.28);
+  --heat-3: rgba(16, 185, 129, 0.4);
+  --heat-4: rgba(16, 185, 129, 0.5);
 }
 
 html,
@@ -174,7 +400,7 @@ body {
 }
 
 body {
-  @apply bg-white text-ink-900 antialiased;
+  @apply bg-surface text-text antialiased;
   font-family: var(--font-sans);
   /* iOS: stop the whole page rubber-banding behind the app shell. */
   overscroll-behavior-y: none;
@@ -201,6 +427,70 @@ body {
   :focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
+  }
+
+  /* ----------------------------------------------------------------
+     The pointer, once.
+
+     Tailwind v4's preflight dropped v3's `cursor: pointer` on buttons,
+     and this app is almost entirely `<button>` — 54 of its 56
+     interactive elements were showing an arrow, including the Add task
+     button, which is the app's primary action. `<a href>` is not
+     restated here: the UA sheet already gives it a pointer and always
+     has.
+
+     One rule in `base` rather than a `cursor-pointer` utility at 54
+     call sites, for the same reason the focus ring lives here: the next
+     button somebody adds is covered without them having to know. A
+     utility still wins over this, which is what the four deliberate
+     `cursor-default` backdrops in the app rely on — those are
+     full-viewport dismiss targets that must not advertise themselves as
+     buttons, and they are still doing real work after this rule.
+
+     `label[for]` and a label wrapping a checkbox are included because
+     both forward their click to the control. A label wrapping a text
+     field is not: the arrow over its words is correct there, and the
+     field keeps its own I-beam.
+     ---------------------------------------------------------------- */
+  button:not(:disabled),
+  [role='button'],
+  label[for],
+  label:has(input[type='checkbox']),
+  summary {
+    cursor: pointer;
+  }
+
+  /*
+    A disabled control is not a dead area of the page — it is a control
+    that exists and is refusing. `not-allowed` says that; `default` would
+    make it indistinguishable from the panel behind it, and leaving the
+    pointer on would promise a click that never lands.
+  */
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /*
+    Double-clicking a button should not select its label. Buttons, and
+    only buttons — the task text beside them is content and stays
+    selectable, which is how a task gets copied out of the app.
+  */
+  button,
+  [role='button'],
+  summary,
+  label:has(input[type='checkbox']) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /*
+    iOS paints a grey block over anything tappable for ~300ms. In a
+    browser tab that reads as a page; in an installed PWA it reads as a
+    rendering fault, and this app is built to be installed. The app's
+    own `transition` on every control is the feedback.
+  */
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

@@ -5,7 +5,7 @@
 -->
 <a
   href="#content"
-  class="skip-link rounded-card bg-ink-900 px-4 py-2 text-body font-medium text-white"
+  class="skip-link rounded-card bg-inverse px-4 py-2 text-body font-medium text-on-inverse"
   (click)="focusContent($event)"
 >
   Skip to content
@@ -13,11 +13,11 @@
 
 <!-- mobile bar -->
 <div
-  class="safe-py-2 sticky top-0 z-30 flex items-center gap-2 bg-white/80 px-2 backdrop-blur lg:hidden"
+  class="safe-py-2 sticky top-0 z-30 flex items-center gap-2 bg-surface/80 px-2 backdrop-blur lg:hidden"
 >
   <button
     type="button"
-    class="grid h-10 w-10 place-items-center rounded-card text-ink-600 transition hover:bg-ink-100"
+    class="grid h-10 w-10 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong"
     aria-label="Open the menu"
     [attr.aria-expanded]="menuOpen()"
     (click)="menuOpen.set(true)"
@@ -34,6 +34,23 @@
     </svg>
   </button>
   <span class="text-body font-semibold tracking-tight">Daybook</span>
+</div>
+
+<!--
+  The theme control. Top right corner, as asked, and one instance for the
+  whole app rather than one per page.
+
+  Fixed rather than placed in a header, for the same reason the expand
+  button opposite it is: there are five pages and each would otherwise need
+  its own copy. It lands at the right end of the mobile topbar below `lg`,
+  and in the empty gutter beside the centred content column above it — the
+  drawer is on the left and the corner the user asked for is not in it.
+
+  The top inset takes the notch rather than a flat `top-2`, which would
+  tuck it under the status bar on an installed iPhone.
+-->
+<div class="fixed right-2 top-[max(0.5rem,env(safe-area-inset-top))] z-30">
+  <app-theme-toggle />
 </div>
 
 <!-- scrim, mobile only -->
@@ -53,7 +70,7 @@
   and a duplicate landmark for screen readers.
 -->
 <nav
-  class="safe-py-4 fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-ink-200/70 bg-ink-50 px-3 transition-transform duration-200"
+  class="safe-py-4 fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border bg-surface-sunken px-3 transition-transform duration-200"
   [class]="navClass()"
   aria-label="Main"
 >
@@ -69,7 +86,7 @@
     -->
     <button
       type="button"
-      class="hidden h-8 w-8 place-items-center rounded-control text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 lg:grid"
+      class="hidden h-8 w-8 place-items-center rounded-control text-text-subtle transition hover:bg-hover-strong hover:text-text lg:grid"
       aria-label="Collapse the sidebar"
       (click)="nav.toggleCollapsed()"
     >
@@ -103,11 +120,11 @@
   -->
   <button
     type="button"
-    class="mb-3 flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-semibold text-brand-700 transition hover:bg-brand-50"
+    class="mb-3 flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-semibold text-brand-text transition hover:bg-brand-tint"
     (click)="menuOpen.set(false); nav.openComposer()"
   >
     <span
-      class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
+      class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-on-brand"
       aria-hidden="true"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" class="h-3 w-3">
@@ -119,7 +136,7 @@
 
   @if (queue.pending(); as waiting) {
     <p
-      class="mx-1 mb-2 rounded-control bg-quick-100 px-2 py-1 text-caption font-medium text-quick-700"
+      class="mx-1 mb-2 rounded-control bg-quick-tint px-2 py-1 text-caption font-medium text-on-quick-tint"
       aria-live="polite"
     >
       {{ waiting }} change{{ waiting === 1 ? '' : 's' }} waiting to sync
@@ -131,10 +148,10 @@
       <li>
         <a
           [routerLink]="item.path"
-          routerLinkActive="bg-brand-50 text-brand-700"
+          routerLinkActive="bg-brand-tint text-brand-text"
           #active="routerLinkActive"
           class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
-          [class]="active.isActive ? '' : 'text-ink-600 hover:bg-ink-100'"
+          [class]="active.isActive ? '' : 'text-text-muted hover:bg-hover-strong'"
           [attr.aria-current]="active.isActive ? 'page' : null"
         >
           <svg
@@ -153,13 +170,13 @@
     }
   </ul>
 
-  <div class="border-t border-ink-100 pt-2">
+  <div class="border-t border-border-soft pt-2">
     <a
       routerLink="/settings"
-      routerLinkActive="bg-brand-50 text-brand-700"
+      routerLinkActive="bg-brand-tint text-brand-text"
       #settingsActive="routerLinkActive"
       class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
-      [class]="settingsActive.isActive ? '' : 'text-ink-600 hover:bg-ink-100'"
+      [class]="settingsActive.isActive ? '' : 'text-text-muted hover:bg-hover-strong'"
     >
       <svg
         viewBox="0 0 24 24"
@@ -180,7 +197,7 @@
     </a>
     <button
       type="button"
-      class="flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+      class="flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-medium text-text-muted transition hover:bg-hover-strong hover:text-text"
       (click)="session.signOut()"
     >
       <svg
@@ -218,7 +235,7 @@
 @if (nav.collapsed()) {
   <button
     type="button"
-    class="fixed left-2 top-2 z-30 hidden h-9 w-9 place-items-center rounded-card bg-white text-ink-500 shadow-sm ring-1 ring-ink-200/70 transition hover:text-ink-900 lg:grid"
+    class="fixed left-2 top-2 z-30 hidden h-9 w-9 place-items-center rounded-card bg-surface-raised text-text-muted shadow-sm ring-1 ring-border transition hover:text-text lg:grid"
     aria-label="Expand the sidebar"
     (click)="nav.toggleCollapsed()"
   >

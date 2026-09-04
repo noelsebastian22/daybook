@@ -22,6 +22,6 @@ export const ENERGY_FILTERS: Array<{ value: EnergyFilter; label: string }> = [
  * purple deep chip in the same row.
  */
 export const ENERGY_TONE: Record<Energy, string> = {
-  quick: 'bg-quick-100 text-quick-700',
-  deep: 'bg-deep-100 text-deep-700',
+  quick: 'bg-quick-tint text-on-quick-tint',
+  deep: 'bg-deep-tint text-on-deep-tint',
 };

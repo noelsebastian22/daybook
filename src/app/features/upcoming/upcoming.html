@@ -1,14 +1,14 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
   <header class="safe-py-6 flex items-center justify-between gap-4">
     <div>
-      <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Upcoming</p>
+      <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">Upcoming</p>
       <h1 class="mt-0.5 text-display font-semibold tracking-tight">{{ range() }}</h1>
     </div>
 
     <div class="flex items-center gap-1">
       <button
         type="button"
-        class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
         [disabled]="week() === 0"
         aria-label="Previous week"
         (click)="week.set(week() - 1)"
@@ -17,7 +17,7 @@
       </button>
       <button
         type="button"
-        class="grid h-9 w-9 place-items-center rounded-card text-ink-500 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30 disabled:hover:bg-transparent"
+        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
         [disabled]="week() >= maxWeek"
         aria-label="Next week"
         (click)="week.set(week() + 1)"
@@ -36,10 +36,10 @@
           box. It is the same hairline the task rows carry, so a day with
           tasks and a day without read as the same list.
         -->
-        <div class="mb-1 flex items-baseline gap-2 border-b border-ink-200/70 px-2 pb-2">
+        <div class="mb-1 flex items-baseline gap-2 border-b border-border px-2 pb-2">
           <h2 class="text-body font-semibold tracking-tight">{{ label(day.date) }}</h2>
           @if (day.tasks.length > 0) {
-            <span class="text-caption text-ink-400">{{ day.tasks.length }}</span>
+            <span class="text-caption text-text-subtle">{{ day.tasks.length }}</span>
           }
         </div>
 
@@ -60,12 +60,12 @@
           -->
           <button
             type="button"
-            class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
+            class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-text-subtle transition hover:text-brand-text"
             [attr.aria-label]="'Add a task on ' + full(day.date)"
             (click)="addingOn.set(day.date)"
           >
             <span
-              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-text transition group-hover:bg-brand-600 group-hover:text-on-brand"
               aria-hidden="true"
             >
               <svg

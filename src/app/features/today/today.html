@@ -5,7 +5,7 @@
   -->
   <header class="safe-py-6">
     <div>
-      <p class="text-caption font-medium uppercase tracking-wider text-ink-400">
+      <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">
         {{ heading }}
       </p>
       <h1 class="mt-1 text-display font-semibold tracking-tight">
@@ -18,7 +18,7 @@
         }
       </h1>
       @if (tasks.completedCount() > 0) {
-        <p class="mt-1 text-body text-done-700">{{ tasks.completedCount() }} done today</p>
+        <p class="mt-1 text-body text-done-text">{{ tasks.completedCount() }} done today</p>
       }
     </div>
   </header>
@@ -31,8 +31,8 @@
         class="rounded-full px-3 py-2 text-body font-medium transition"
         [class]="
           tasks.filter() === f.value
-            ? 'bg-ink-900 text-white'
-            : 'bg-ink-50 text-ink-600 ring-1 ring-ink-200 hover:bg-ink-100'
+            ? 'bg-inverse text-on-inverse'
+            : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong hover:bg-hover-strong'
         "
         [attr.aria-pressed]="tasks.filter() === f.value"
         (click)="tasks.setFilter(f.value)"
@@ -55,8 +55,8 @@
           class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-body font-medium transition"
           [class]="
             tasks.categoryFilter() === c.id
-              ? 'bg-ink-900 text-white'
-              : 'bg-ink-50 text-ink-600 ring-1 ring-ink-200 hover:bg-ink-100'
+              ? 'bg-inverse text-on-inverse'
+              : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong hover:bg-hover-strong'
           "
           [attr.aria-pressed]="tasks.categoryFilter() === c.id"
           (click)="toggleCategory(c.id)"
@@ -92,7 +92,7 @@
         <app-empty-state scene="filtered" title="Nothing matches that filter today.">
           <button
             type="button"
-            class="rounded-control text-body font-medium text-brand-700 transition hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            class="rounded-control text-body font-medium text-brand-text transition hover:text-brand-text-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
             (click)="tasks.clearFilters()"
           >
             Clear filters
@@ -118,11 +118,11 @@
     @if (tasks.openTasks().length > 0) {
       <button
         type="button"
-        class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-ink-400 transition hover:text-brand-700"
+        class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-text-subtle transition hover:text-brand-text"
         (click)="open.set(true)"
       >
         <span
-          class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"
+          class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-text transition group-hover:bg-brand-600 group-hover:text-on-brand"
           aria-hidden="true"
         >
           <svg
@@ -150,7 +150,7 @@
     <div class="mt-8">
       <button
         type="button"
-        class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-ink-600 transition hover:bg-ink-100"
+        class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-text-muted transition hover:bg-hover-strong"
         [attr.aria-expanded]="doneOpen()"
         (click)="doneOpen.set(!doneOpen())"
       >
@@ -158,7 +158,7 @@
           >&rsaquo;</span
         >
         Done today
-        <span class="rounded-full bg-done-100 px-2 py-1 text-caption text-done-700">
+        <span class="rounded-full bg-done-tint px-2 py-1 text-caption text-on-done-tint">
           {{ tasks.doneTasks().length }}
         </span>
       </button>
@@ -183,7 +183,7 @@
     <div class="mt-8">
       <button
         type="button"
-        class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-ink-600 transition hover:bg-ink-100"
+        class="flex w-full items-center gap-2 rounded-card px-3 py-2 text-body font-medium text-text-muted transition hover:bg-hover-strong"
         [attr.aria-expanded]="tasks.upcomingOpen()"
         (click)="tasks.toggleUpcoming()"
       >
@@ -194,7 +194,7 @@
           >&rsaquo;</span
         >
         Next 7 days
-        <span class="rounded-full bg-ink-200 px-2 py-1 text-caption">
+        <span class="rounded-full bg-fill-strong px-2 py-1 text-caption">
           {{ tasks.upcomingCount() }}
         </span>
       </button>
@@ -203,7 +203,9 @@
         <div class="mt-2 space-y-4">
           @for (day of tasks.upcoming(); track day.date) {
             <div>
-              <p class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-ink-400">
+              <p
+                class="mb-2 px-1 text-caption font-semibold uppercase tracking-wider text-text-subtle"
+              >
                 {{ label(day.date) }}
               </p>
               <div>

@@ -1,17 +1,17 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
   <header class="safe-py-6">
-    <p class="text-caption font-medium uppercase tracking-wider text-ink-400">Reporting</p>
+    <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">Reporting</p>
     <h1 class="mt-0.5 text-display font-semibold tracking-tight">The last fortnight</h1>
   </header>
 
   <!-- headline -->
   <div class="grid grid-cols-2 gap-3">
-    <div class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-      <p class="text-caption text-ink-400">Done this week</p>
-      <p class="mt-1 text-display-lg font-semibold tabular-nums tracking-tight text-done-700">
+    <div class="rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
+      <p class="text-caption text-text-subtle">Done this week</p>
+      <p class="mt-1 text-display-lg font-semibold tabular-nums tracking-tight text-done-text">
         {{ thisWeek() }}
       </p>
-      <p class="mt-1 text-caption text-ink-400">
+      <p class="mt-1 text-caption text-text-subtle">
         @if (lastWeek() === 0) {
           nothing recorded last week
         } @else {
@@ -20,17 +20,17 @@
       </p>
     </div>
 
-    <div class="rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
-      <p class="text-caption text-ink-400">Open right now</p>
+    <div class="rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
+      <p class="text-caption text-text-subtle">Open right now</p>
       <p class="mt-1 text-display-lg font-semibold tabular-nums tracking-tight">
         {{ tasks.openCount() }}
       </p>
-      <p class="mt-1 text-caption text-ink-400">on today</p>
+      <p class="mt-1 text-caption text-text-subtle">on today</p>
     </div>
   </div>
 
   <!-- completion trend -->
-  <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+  <section class="mt-4 rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
     <h2 class="text-body font-semibold tracking-tight">Tasks completed per day</h2>
 
     <div class="mt-4 flex h-32 items-end gap-[2px]">
@@ -42,7 +42,7 @@
         >
           @if (bar.unrecorded) {
             <!-- a hairline, so "not opened" cannot be misread as a zero -->
-            <div class="h-px w-full rounded-full bg-ink-200" aria-hidden="true"></div>
+            <div class="h-px w-full rounded-full bg-border-strong" aria-hidden="true"></div>
           } @else {
             <div
               class="w-full rounded-t bg-done-500 transition-opacity"
@@ -56,14 +56,14 @@
       }
     </div>
 
-    <div class="mt-1.5 flex gap-[2px] text-center text-caption text-ink-400">
+    <div class="mt-1.5 flex gap-[2px] text-center text-caption text-text-subtle">
       @for (bar of bars(); track bar.date) {
         <!-- every other label, so a fortnight of them does not collide -->
         <span class="flex-1">{{ $even ? bar.weekday : '' }}</span>
       }
     </div>
 
-    <p class="mt-3 h-4 text-caption text-ink-400" aria-live="polite">
+    <p class="mt-3 h-4 text-caption text-text-subtle" aria-live="polite">
       @if (hovered(); as bar) {
         {{ label(bar.date) }} —
         @if (bar.unrecorded) {
@@ -76,11 +76,13 @@
 
     <!-- the same numbers, for anyone the bars do not serve -->
     <details class="mt-2">
-      <summary class="cursor-pointer text-caption text-ink-400 transition hover:text-ink-600">
+      <summary
+        class="cursor-pointer text-caption text-text-subtle transition hover:text-text-muted"
+      >
         Show the numbers
       </summary>
       <table class="mt-2 w-full text-left text-caption">
-        <thead class="text-ink-400">
+        <thead class="text-text-subtle">
           <tr>
             <th scope="col" class="py-1 font-medium">Day</th>
             <th scope="col" class="py-1 text-right font-medium">Completed</th>
@@ -88,7 +90,7 @@
         </thead>
         <tbody>
           @for (bar of bars(); track bar.date) {
-            <tr class="border-t border-ink-100">
+            <tr class="border-t border-border-soft">
               <th scope="row" class="py-1 font-normal">{{ label(bar.date) }}</th>
               <td class="py-1 text-right tabular-nums">
                 {{ bar.unrecorded ? '—' : bar.count }}
@@ -101,9 +103,9 @@
   </section>
 
   <!-- what keeps moving -->
-  <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+  <section class="mt-4 rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
     <h2 class="text-body font-semibold tracking-tight">Carried over most</h2>
-    <p class="mt-0.5 text-caption text-ink-400">The app moved these. You did not.</p>
+    <p class="mt-0.5 text-caption text-text-subtle">The app moved these. You did not.</p>
 
     @if (mostCarried().length > 0) {
       <ul class="mt-3 space-y-1">
@@ -111,15 +113,15 @@
           <li class="flex items-baseline gap-3">
             <a
               [routerLink]="['/today', task.id]"
-              class="min-w-0 flex-1 truncate text-body text-ink-900 transition hover:text-brand-700"
+              class="min-w-0 flex-1 truncate text-body text-text transition hover:text-brand-text"
               >{{ task.text }}</a
             >
             <span
               class="shrink-0 rounded-full px-2 py-0.5 text-caption font-medium tabular-nums"
               [class]="
                 task.carried_over_count >= carriedAlarmCount
-                  ? 'bg-late-100 text-late-700'
-                  : 'bg-ink-100 text-ink-600'
+                  ? 'bg-late-tint text-on-late-tint'
+                  : 'bg-fill text-text-muted'
               "
               >&times;{{ task.carried_over_count }}</span
             >
@@ -127,13 +129,13 @@
         }
       </ul>
     } @else {
-      <p class="mt-3 text-body text-ink-400">Nothing has rolled over. Rare and good.</p>
+      <p class="mt-3 text-body text-text-subtle">Nothing has rolled over. Rare and good.</p>
     }
   </section>
 
-  <section class="mt-4 rounded-panel bg-white p-4 shadow-sm ring-1 ring-ink-200/60">
+  <section class="mt-4 rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
     <h2 class="text-body font-semibold tracking-tight">Pushed most</h2>
-    <p class="mt-0.5 text-caption text-ink-400">These you moved by hand.</p>
+    <p class="mt-0.5 text-caption text-text-subtle">These you moved by hand.</p>
 
     @if (mostPushed().length > 0) {
       <ul class="mt-3 space-y-1">
@@ -141,18 +143,18 @@
           <li class="flex items-baseline gap-3">
             <a
               [routerLink]="['/today', task.id]"
-              class="min-w-0 flex-1 truncate text-body text-ink-900 transition hover:text-brand-700"
+              class="min-w-0 flex-1 truncate text-body text-text transition hover:text-brand-text"
               >{{ task.text }}</a
             >
             <span
-              class="shrink-0 rounded-full bg-ink-100 px-2 py-0.5 text-caption font-medium tabular-nums text-ink-600"
+              class="shrink-0 rounded-full bg-fill px-2 py-0.5 text-caption font-medium tabular-nums text-text-muted"
               >&times;{{ task.reschedule_count }}</span
             >
           </li>
         }
       </ul>
     } @else {
-      <p class="mt-3 text-body text-ink-400">Nothing pushed by hand yet.</p>
+      <p class="mt-3 text-body text-text-subtle">Nothing pushed by hand yet.</p>
     }
   </section>
 </div>

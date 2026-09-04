@@ -13,7 +13,7 @@ import { PageTitle } from './core/page-title';
     } @else {
       <div class="grid min-h-dvh place-items-center" role="status">
         <div
-          class="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600"
+          class="h-8 w-8 animate-spin rounded-full border-2 border-border-strong border-t-brand-600"
           aria-hidden="true"
         ></div>
         <span class="sr-only">Loading Daybook</span>

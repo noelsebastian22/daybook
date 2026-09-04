@@ -3,6 +3,13 @@
   wear, so arriving here from the hero reads as one product and not a
   handoff to somebody else's sign-in page. The glow is the only brand
   colour left on the backdrop.
+
+  The field and everything written directly on it stay literal `ink-900`
+  and literal white in both themes. This is a poster, not a page: it is
+  already dark, it is the same picture the marketing page paints, and a
+  "dark mode" that made the dark half lighter would be a different design
+  rather than the same one after sundown. Only the card floating on it
+  takes the semantic tokens, because that card *is* a page surface.
 -->
 <div class="relative grid min-h-dvh place-items-center overflow-hidden bg-ink-900 p-6">
   <div
@@ -27,10 +34,10 @@
       </p>
     </div>
 
-    <div class="rounded-panel bg-white p-6 shadow-xl shadow-brand-700/20">
+    <div class="rounded-panel bg-surface-raised p-6 shadow-xl shadow-brand-700/20">
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-3 rounded-card border border-ink-200 px-4 py-3 font-medium transition hover:bg-ink-50 disabled:opacity-50"
+        class="flex w-full items-center justify-center gap-3 rounded-card border border-border-strong px-4 py-3 font-medium transition hover:bg-hover disabled:opacity-50"
         [disabled]="session.busy()"
         (click)="session.signInWithGoogle()"
       >
@@ -55,20 +62,20 @@
         Continue with Google
       </button>
 
-      <div class="my-5 flex items-center gap-3 text-caption text-ink-400">
-        <span class="h-px flex-1 bg-ink-200"></span>
+      <div class="my-5 flex items-center gap-3 text-caption text-text-subtle">
+        <span class="h-px flex-1 bg-border-strong"></span>
         or
-        <span class="h-px flex-1 bg-ink-200"></span>
+        <span class="h-px flex-1 bg-border-strong"></span>
       </div>
 
       @if (session.magicLinkSentTo(); as sentTo) {
-        <div class="rounded-card bg-done-100 p-4 text-body text-done-700">
+        <div class="rounded-card bg-done-tint p-4 text-body text-on-done-tint">
           Link sent to <strong>{{ sentTo }}</strong
           >. Open it on this device to finish signing in.
         </div>
       } @else {
         <form (ngSubmit)="sendLink()">
-          <label class="mb-1.5 block text-body font-medium text-ink-600" for="email">
+          <label class="mb-1.5 block text-body font-medium text-text-muted" for="email">
             Email a sign-in link
           </label>
           <input
@@ -78,12 +85,12 @@
             required
             autocomplete="email"
             placeholder="you@example.com"
-            class="w-full rounded-card border border-ink-200 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            class="w-full rounded-card border border-border-strong px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-tint-strong"
             [(ngModel)]="email"
           />
           <button
             type="submit"
-            class="mt-3 w-full rounded-card bg-ink-900 px-4 py-3 font-medium text-white transition hover:bg-ink-600 disabled:opacity-50"
+            class="mt-3 w-full rounded-card bg-inverse px-4 py-3 font-medium text-on-inverse transition hover:bg-inverse-hover disabled:opacity-50"
             [disabled]="session.busy() || !email()"
           >
             {{ session.busy() ? 'Sending...' : 'Send link' }}

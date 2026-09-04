@@ -11,6 +11,37 @@
     />
     <meta name="theme-color" content="#4f46e5" />
 
+    <!--
+      The one blocking inline script in this app, and it has to be blocking.
+
+      The theme class must be on <html> before the first paint. An Angular
+      service that applies it after bootstrap flashes a white page on every
+      cold load of a dark-mode install, which on a phone at night is the
+      single most noticeable defect this feature could ship with. There is no
+      async version of "before the first paint", so this runs here, ahead of
+      the body, and it is deliberately tiny.
+
+      It duplicates the key and the resolution rules in core/theme.ts. That
+      duplication is the cost of not flashing; if you change either, change
+      both. The key carries no uid because the theme is a device preference
+      (see the comment on KEY in core/theme.ts).
+    -->
+    <script>
+      (function () {
+        try {
+          var choice = localStorage.getItem('daybook.theme.v1');
+          var dark =
+            choice === 'dark' ||
+            (choice !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#12141f' : '#4f46e5');
+        } catch (e) {
+          // Safari in private mode throws on localStorage access. Light it is.
+        }
+      })();
+    </script>
+
     <!-- iOS has no automatic install prompt, so these have to be set by hand. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

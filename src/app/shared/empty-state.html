@@ -1,4 +1,11 @@
-<div class="rounded-panel border-2 border-dashed border-ink-200 px-6 py-10 text-center">
+<div class="rounded-panel border-2 border-dashed border-border-strong px-6 py-10 text-center">
+  <!--
+    The illustration is painted from the semantic tokens rather than from
+    hexes. It draws a *page*, and a page that stayed white on a dark screen
+    would be the brightest thing in the app sitting inside the emptiest one.
+    Green and indigo stay literal: the tick means completed and the caret is
+    the brand, and neither changes meaning with the light.
+  -->
   <svg
     viewBox="0 0 168 128"
     class="mx-auto h-28 w-auto"
@@ -8,7 +15,7 @@
     aria-hidden="true"
   >
     <!-- the ground every scene sits on, so they share a horizon -->
-    <ellipse cx="84" cy="116" rx="46" ry="5" fill="#eceef6" />
+    <ellipse cx="84" cy="116" rx="46" ry="5" fill="var(--color-border-soft)" />
 
     @switch (scene()) {
       @case ('clear') {
@@ -20,13 +27,17 @@
             width="76"
             height="96"
             rx="10"
-            fill="#fff"
-            stroke="#d6dae9"
+            fill="var(--color-surface-raised)"
+            stroke="var(--color-border-strong)"
             stroke-width="2"
           />
-          <path d="M58 30h30" stroke="#d6dae9" stroke-width="3" />
+          <path d="M58 30h30" stroke="var(--color-border-strong)" stroke-width="3" />
           @for (row of rows; track row) {
-            <path [attr.d]="'M74 ' + row + 'h34'" stroke="#eceef6" stroke-width="4" />
+            <path
+              [attr.d]="'M74 ' + row + 'h34'"
+              stroke="var(--color-border-soft)"
+              stroke-width="4"
+            />
             <path
               [attr.d]="'M58 ' + row + 'l3.5 3.5L68 ' + (row - 5)"
               stroke="#10b981"
@@ -45,14 +56,18 @@
             width="76"
             height="96"
             rx="10"
-            fill="#fff"
-            stroke="#d6dae9"
+            fill="var(--color-surface-raised)"
+            stroke="var(--color-border-strong)"
             stroke-width="2"
           />
-          <path d="M58 30h30" stroke="#d6dae9" stroke-width="3" />
+          <path d="M58 30h30" stroke="var(--color-border-strong)" stroke-width="3" />
           <!-- the caret sits on the first ruled line, not above it -->
           <path d="M60 52v14" stroke="#6366f1" stroke-width="3" />
-          <path d="M70 59h38M58 78h52M58 94h34" stroke="#eceef6" stroke-width="4" />
+          <path
+            d="M70 59h38M58 78h52M58 94h34"
+            stroke="var(--color-border-soft)"
+            stroke-width="4"
+          />
         </g>
       }
 
@@ -69,14 +84,14 @@
             width="62"
             height="80"
             rx="9"
-            fill="#f6f7fb"
-            stroke="#d6dae9"
+            fill="var(--color-surface-sunken)"
+            stroke="var(--color-border-strong)"
             stroke-width="2"
             transform="rotate(-14 47 66)"
           />
           <path
             d="M27 54h30M27 68h22M27 82h26"
-            stroke="#d6dae9"
+            stroke="var(--color-border-strong)"
             stroke-width="3.5"
             transform="rotate(-14 47 66)"
           />
@@ -86,14 +101,14 @@
             width="62"
             height="80"
             rx="9"
-            fill="#f6f7fb"
-            stroke="#d6dae9"
+            fill="var(--color-surface-sunken)"
+            stroke="var(--color-border-strong)"
             stroke-width="2"
             transform="rotate(14 121 66)"
           />
           <path
             d="M101 54h30M101 68h22M101 82h26"
-            stroke="#d6dae9"
+            stroke="var(--color-border-strong)"
             stroke-width="3.5"
             transform="rotate(14 121 66)"
           />
@@ -103,11 +118,11 @@
             width="62"
             height="88"
             rx="10"
-            fill="#fff"
+            fill="var(--color-surface-raised)"
             stroke="#6366f1"
             stroke-width="2"
           />
-          <path d="M64 32h26" stroke="#e0e7ff" stroke-width="3" />
+          <path d="M64 32h26" stroke="var(--color-brand-tint-strong)" stroke-width="3" />
         </g>
       }
 
@@ -124,18 +139,18 @@
             width="76"
             height="96"
             rx="10"
-            fill="#fff"
-            stroke="#d6dae9"
+            fill="var(--color-surface-raised)"
+            stroke="var(--color-border-strong)"
             stroke-width="2"
             stroke-dasharray="7 6"
           />
-          <path d="M58 30h30" stroke="#eceef6" stroke-width="3" />
+          <path d="M58 30h30" stroke="var(--color-border-soft)" stroke-width="3" />
         </g>
       }
     }
   </svg>
 
-  <p class="mt-4 font-medium text-ink-600">{{ title() }}</p>
+  <p class="mt-4 font-medium text-text-muted">{{ title() }}</p>
 
   <div class="mt-3 empty:hidden">
     <ng-content />

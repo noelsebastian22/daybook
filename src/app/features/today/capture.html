@@ -1,5 +1,5 @@
 <div
-  class="rounded-panel bg-white p-1 shadow-sm ring-1 ring-ink-200/70 focus-within:ring-2 focus-within:ring-brand-500"
+  class="rounded-panel bg-surface-raised p-1 shadow-sm ring-1 ring-border focus-within:ring-2 focus-within:ring-brand-500"
 >
   <div class="relative">
     <!-- The mirror and the textarea must share an identical line box or the
@@ -15,10 +15,10 @@
       @for (s of parts(); track $index) {
         @switch (s.kind) {
           @case ('date') {
-            <span class="rounded-control bg-brand-100 text-brand-700">{{ s.text }}</span>
+            <span class="rounded-control bg-brand-tint-strong text-brand-text">{{ s.text }}</span>
           }
           @case ('category') {
-            <span class="rounded-control bg-ink-100 text-ink-600">{{ s.text }}</span>
+            <span class="rounded-control bg-fill text-text-muted">{{ s.text }}</span>
           }
           @case ('energy') {
             <!-- quick and deep have their own scales; the mirror used to
@@ -32,7 +32,9 @@
         }
       }
       @if (!value()) {
-        <span class="text-ink-400">Add a task. Try "call physio thursday 2pm #physio !quick"</span>
+        <span class="text-text-subtle"
+          >Add a task. Try "call physio thursday 2pm #physio !quick"</span
+        >
       }
       <!-- keeps the box from collapsing on an empty last line -->
       <span>&nbsp;</span>
@@ -42,7 +44,7 @@
     <textarea
       #input
       rows="1"
-      class="absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-subtitle leading-6 text-transparent caret-ink-900 outline-none"
+      class="absolute inset-0 h-full w-full resize-none bg-transparent px-4 py-3 text-subtitle leading-6 text-transparent caret-text outline-none"
       [value]="value()"
       (input)="onInput($event)"
       (keydown)="onKeydown($event)"
@@ -55,7 +57,7 @@
       <button
         #dateChip
         type="button"
-        class="rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700 transition hover:bg-brand-100"
+        class="rounded-full bg-brand-tint px-2 py-1 font-medium text-brand-text transition hover:bg-brand-tint-strong"
         [attr.aria-expanded]="pickerOpen()"
         [attr.aria-label]="'Scheduled for ' + when() + '. Change the date'"
         (click)="toggle(pickerOpen)"
@@ -76,7 +78,7 @@
 
     @if (reminderTime(); as t) {
       <span
-        class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-1 font-medium text-brand-700"
+        class="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-1 font-medium text-brand-text"
       >
         <button
           type="button"
@@ -88,7 +90,7 @@
         </button>
         <button
           type="button"
-          class="text-brand-700/60 transition hover:text-brand-700"
+          class="text-brand-text/60 transition hover:text-brand-text"
           [attr.aria-label]="'Clear the ' + clock(t) + ' reminder'"
           (click)="clearReminder()"
         >
@@ -98,7 +100,7 @@
     } @else {
       <button
         type="button"
-        class="rounded-full bg-ink-50 px-2 py-1 font-medium text-ink-400 transition hover:bg-ink-100 hover:text-ink-600"
+        class="rounded-full bg-surface-sunken px-2 py-1 font-medium text-text-subtle transition hover:bg-hover-strong hover:text-text-muted"
         aria-label="Add a reminder time"
         (click)="open(pickerOpen)"
       >
@@ -110,7 +112,7 @@
     <div class="relative">
       <span
         class="inline-flex items-center gap-1 rounded-full font-medium"
-        [class]="parsed().categorySlug ? 'bg-ink-100 text-ink-600' : ''"
+        [class]="parsed().categorySlug ? 'bg-fill text-text-muted' : ''"
       >
         <button
           #categoryChip
@@ -118,8 +120,8 @@
           class="rounded-full px-2 py-1 transition"
           [class]="
             parsed().categorySlug
-              ? 'hover:text-ink-700'
-              : 'bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-600'
+              ? 'hover:text-text'
+              : 'bg-surface-sunken text-text-subtle hover:bg-hover-strong hover:text-text-muted'
           "
           [attr.aria-expanded]="categoryOpen()"
           [attr.aria-label]="
@@ -134,7 +136,7 @@
         @if (parsed().categorySlug) {
           <button
             type="button"
-            class="pr-2 text-ink-400 transition hover:text-ink-700"
+            class="pr-2 text-text-subtle transition hover:text-text"
             aria-label="Clear the category"
             (click)="chooseCategory(null)"
           >
@@ -153,9 +155,9 @@
           @for (c of categories(); track c.id) {
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
+              class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-body transition hover:bg-hover"
               [class]="
-                c.slug === parsed().categorySlug ? 'font-semibold text-brand-700' : 'text-ink-900'
+                c.slug === parsed().categorySlug ? 'font-semibold text-brand-text' : 'text-text'
               "
               [attr.aria-pressed]="c.slug === parsed().categorySlug"
               (click)="chooseCategory(c.slug)"
@@ -169,7 +171,9 @@
             </button>
           }
           @if (!categories().length) {
-            <p class="px-3 py-2 text-body text-ink-400">No categories yet. Add them in Settings.</p>
+            <p class="px-3 py-2 text-body text-text-subtle">
+              No categories yet. Add them in Settings.
+            </p>
           }
         </app-popover>
       }
@@ -186,7 +190,9 @@
           type="button"
           class="rounded-full px-2 py-1 transition"
           [class]="
-            parsed().energy ? '' : 'bg-ink-50 text-ink-400 hover:bg-ink-100 hover:text-ink-600'
+            parsed().energy
+              ? ''
+              : 'bg-surface-sunken text-text-subtle hover:bg-hover-strong hover:text-text-muted'
           "
           [attr.aria-expanded]="energyOpen()"
           [attr.aria-label]="
@@ -218,13 +224,13 @@
           @for (e of energies; track e) {
             <button
               type="button"
-              class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-ink-50"
-              [class]="e === parsed().energy ? 'font-semibold text-brand-700' : 'text-ink-900'"
+              class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-hover"
+              [class]="e === parsed().energy ? 'font-semibold text-brand-text' : 'text-text'"
               [attr.aria-pressed]="e === parsed().energy"
               (click)="chooseEnergy(e)"
             >
               <span>{{ e === 'quick' ? 'Quick' : 'Deep' }}</span>
-              <span class="text-caption text-ink-400">{{
+              <span class="text-caption text-text-subtle">{{
                 e === 'quick' ? '!quick' : '!deep'
               }}</span>
             </button>
@@ -237,14 +243,14 @@
       <div class="ml-auto flex items-center gap-2">
         <button
           type="button"
-          class="rounded-control px-3 py-1.5 font-medium text-ink-500 transition hover:bg-ink-100 hover:text-ink-700"
+          class="rounded-control px-3 py-1.5 font-medium text-text-muted transition hover:bg-hover-strong hover:text-text"
           (click)="cancelled.emit()"
         >
           Cancel
         </button>
         <button
           type="button"
-          class="rounded-control bg-brand-600 px-3 py-1.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-40"
+          class="rounded-control bg-brand-600 px-3 py-1.5 font-medium text-on-brand transition hover:bg-brand-700 disabled:opacity-40"
           [disabled]="!value().trim()"
           (click)="commit()"
         >
@@ -252,7 +258,7 @@
         </button>
       </div>
     } @else if (value().trim()) {
-      <span class="ml-auto text-ink-400">Enter to add</span>
+      <span class="ml-auto text-text-subtle">Enter to add</span>
     }
   </div>
 </div>

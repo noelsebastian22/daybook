@@ -10,15 +10,32 @@
   aria-live="polite"
 >
   @for (t of toasts.toasts(); track t.id) {
+    <!--
+      Two tones, and after dark mode they no longer share a text colour.
+
+      The neutral toast is the inverted chip: near-black on a light page,
+      near-white on a dark one, so it separates from the page in both. The
+      error toast keeps its red fill in both themes — red is reserved for
+      overdue and badly avoided, and a colour that carries a meaning cannot
+      be swapped for a lighter one to suit the background. That means the
+      text on it is white in both themes while the text on the neutral one
+      flips, which is why the two buttons below take their colours from the
+      tone as well rather than sharing one class string.
+    -->
     <div
       class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-card px-4 py-3 text-body shadow-lg"
-      [class]="t.tone === 'error' ? 'bg-late-700 text-white' : 'bg-ink-900 text-white'"
+      [class]="t.tone === 'error' ? 'bg-late-700 text-on-brand' : 'bg-inverse text-on-inverse'"
     >
       <span class="flex-1">{{ t.message }}</span>
       @if (t.undo) {
         <button
           type="button"
-          class="rounded-control px-2 py-1 font-semibold text-brand-100 hover:bg-white/10"
+          class="rounded-control px-2 py-1 font-semibold transition"
+          [class]="
+            t.tone === 'error'
+              ? 'text-brand-100 hover:bg-on-brand/10'
+              : 'text-on-inverse-accent hover:bg-on-inverse/10'
+          "
           (click)="toasts.runUndo(t)"
         >
           Undo
@@ -26,7 +43,12 @@
       }
       <button
         type="button"
-        class="rounded-control px-2 py-1 text-white/60 hover:bg-white/10"
+        class="rounded-control px-2 py-1 transition"
+        [class]="
+          t.tone === 'error'
+            ? 'text-on-brand/60 hover:bg-on-brand/10'
+            : 'text-on-inverse/60 hover:bg-on-inverse/10'
+        "
         aria-label="Dismiss"
         (click)="toasts.dismiss(t.id)"
       >
