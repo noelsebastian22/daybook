@@ -27,13 +27,24 @@ it turned out wrong, say so in a new one.
   moved to `docs/reference/brand/`.
 - **Dark mode**, semantic token layer + light/dark/system toggle top right.
   §9 for the whole argument.
-- **Bundle 532.51 → 438.64 kB** by dropping `createClient()`. §9.
+- **Bundle 532.51 → 438.64 kB** (128.85 → 107.47 kB transfer) by dropping
+  `createClient()` for `auth-js` + `postgrest-js`. §9. Also opt-in route
+  preloading (`core/preload.ts`, idle-callback, skipped on `saveData`),
+  `withViewTransitions({ skipInitialTransition: true })`, a `preconnect` to
+  Supabase, and budgets tightened 560 kB/1 MB → 450/480.
 - **Tests 55 → 680**, 4 files → 37. New `src/testing` harness: zoneless
   providers, a chainable `FakeSupabase` no spec can escape, row builders.
 - **Two bugs fixed**: `task.store.ts` latching `loaded: true` before checking
   the error, and `parse-capture.ts`'s first-date-wins guard.
 - Deleted dead `shared/mark.ts` + `.html`. Removed `@supabase/supabase-js`
-  entirely (`node_modules/@supabase` 19 MB → 4.7 MB).
+  entirely (`node_modules/@supabase` 19 MB → 4.7 MB); the five type-only
+  imports now name `auth-js`, where those types actually live.
+- **Fixed the theme toggle's own a11y gap, found by a spec agent.** It declared
+  `role="radiogroup"` and did not honour it — three tab stops, no arrow keys.
+  Now a roving `tabindex` (only the checked option is tabbable) with
+  Left/Right/Home/End, wrapping, selection following focus, and `toggle()`
+  opening onto the checked option so focus and selection cannot disagree.
+  Seven tests; six fail with the bindings removed.
 
 **Decided**
 - All of it is in `BUILD-PLAN.md` §9, added this session: the token layer, the
