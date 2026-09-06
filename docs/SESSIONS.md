@@ -11,6 +11,74 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-06 · claude-code · digest delivery, key rotation, retry fix deployed
+
+**Did**
+- Cleared a stale `.git/index.lock` (0 bytes, crashed process, no git running);
+  committed the 5 Sep cowork entry + BUILD-PLAN edits, which were staged but
+  never committed.
+- **Deployed the digest retry-storm fix as `notify` v10.** Live was still v9
+  from 22 Aug, so `isRetryableSendFailure` (written 3 Sep in `5b85bbd`) had
+  never shipped. Verified running: `digests:{"sent":1,"failed":0,"dropped":0}`.
+- **Rotated `RESEND_API_KEY`** off the key leaked in a Cowork transcript onto a
+  new `daybook-digest`. Confirmed by Resend's last-used column, not by trust.
+- **Diagnosed two days of vanished digests.** Gmail accepted, returned 250, and
+  silently discarded. Fixed with a Gmail "Never send it to Spam" filter;
+  confirmed landing in `[INBOX]` at 10:55Z. Full chain in BUILD-PLAN §12.
+- 680 tests / 37 files passing, bundle 438.64 kB (107.47 kB transfer) —
+  unchanged, no app code touched this session.
+
+**Decided**
+- **Do not deploy the repo's `notify/index.ts` until 0005 is applied.**
+  `5b85bbd` rewrote `runReminders` against 0005's `push_subscriptions` table
+  and the new `due_reminders` shape. Live has neither, so deploying it whole
+  breaks every push reminder — the subscription assembles from four
+  `undefined`s. v10 is therefore the 22 Aug function plus only the digest half,
+  byte-for-byte, verified by diffing both halves before deploy. The repo file
+  carries a do-not-deploy header naming the coupling; delete it with 0005.
+- A leaked key is not rotated by creating a new one beside it. The exposed key
+  stayed valid and in use for a day after `daybook-smtp` was added, because
+  that only covered Auth SMTP, not the Edge Function secret.
+
+**Didn't work**
+- **Deploying the repo's `notify` — nearly did it, and it would have silently
+  broken push.** Caught only by checking `due_reminders`' live return type
+  (`subscription jsonb`) and `to_regclass('public.push_subscriptions')` (null)
+  before deploying. Check the live schema against the code, not the plan.
+- **Chasing the missing digest from the sending side is a dead end.** Supabase
+  logs, `digest_last_sent_on`, and Resend all report success; they can only see
+  as far as the receiving MTA's 250. Go to the receiver's telemetry — the DMARC
+  aggregate report — or you are reading the wrong instrument.
+- Initially blamed a Gmail filter for the 27 Aug–4 Sep digests sitting unread
+  in Trash. Wrong: Noel was deleting them. The real failure only started 5 Sep
+  with the sender change.
+- Wrongly said this session's forced sends would suppress tomorrow's 07:00
+  digest. They do not — `due_digests` compares `digest_last_sent_on <` local
+  date, so today's value still fires tomorrow. Verified in SQL.
+- No Zoho attachment-download tool exists in the MCP set; the DMARC zip had to
+  be downloaded by hand. Attachment *info* is available, content is not.
+
+**Open**
+- **Delete the `Onboarding` key in Resend** (`re_71wWo2wk…`). Nothing depends on
+  it — verified via last-used — but it is still live and still leaked.
+- `service_role` secret sits in plaintext in `cron.job.command`, readable by
+  anything that can read that table, and was surfaced in this session's
+  transcript. Rotate with the Resend key.
+- Gmail's drop is unfixed for anyone but Noel: a second user cannot be told to
+  add a filter. Domain warming is the real fix. §12.
+- PWA on the phone is still the old origin; the stale push row is
+  `user_settings.push_subscription` (one row), **not** a `push_subscriptions`
+  table — that does not exist until 0005.
+- Everything from the 5 Sep entry except `DIGEST_FROM` and the retry storm.
+
+**Next**
+Phase 7 Gate 1. Gate 0 has been written and locally proven since 3 Sep and
+nothing is applied; today showed the cost of that drift, since the obvious
+deploy was the wrong one. Apply 0005, then deploy the repo's `notify` whole.
+
+**Touched** — `supabase/functions/notify/index.ts`, `BUILD-PLAN.md`,
+`docs/SESSIONS.md`
+
 ## 2026-09-05 · cowork · custom domain, sending subdomain, auth lockdown
 
 **Did**

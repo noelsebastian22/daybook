@@ -2184,30 +2184,51 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **The digest sends successfully and does not arrive. Open, found 6 Sep.**
-  Resend returns 2xx, `digest_last_sent_on` advances, `notify` logs
-  `digests:{"sent":1,"failed":0}` — and the mail is in no Gmail folder at all.
-  A `from:digest@send.noel-sebastian.com in:anywhere` search returns zero
-  results, so it is not spam, not trash, not a filter.
+- **Gmail silently dropped the digest for two days. Diagnosed and fixed,
+  6 Sep.** The first two sends from `digest@send.noel-sebastian.com` — 5 Sep
+  21:00Z and 6 Sep 10:05Z — never appeared in any Gmail folder, while every
+  layer we control reported success. **A send can succeed at every observable
+  point and still not exist for the reader.** Four sources, and only the fourth
+  disagreed:
 
-  The 6 Sep 07:00 AEST send was the first from the new sending domain. Prior
-  digests, from `onboarding@resend.dev`, arrived every day without exception —
-  the 27 Aug to 4 Sep run sitting in Trash was Noel deleting them, not a
-  filter, which was checked and ruled out. So the sender change is the only
-  variable, and the failure is downstream of Resend's API: accepted, never
-  delivered.
+  | Source | Said |
+  |---|---|
+  | `notify` log | `digests:{"sent":1,"failed":0,"dropped":0}` |
+  | Resend dashboard | **Delivered** — receiving MTA returned 250 |
+  | Google DMARC report | received; `dkim=pass`, `spf=pass`, `disposition=none` |
+  | Gmail, `in:anywhere` | nothing — not inbox, not spam, not trash |
 
-  This is the same new-domain reputation story as the 5 Sep magic link that
-  landed in Gmail spam with `dkim=pass spf=pass dmarc=pass` (§14), one notch
-  worse — Gmail has gone from foldering to dropping. **Do not tighten DMARC in
-  response**; that record governs Noel's Zoho business mail on the same zone.
+  So Gmail accepted the message, told Resend `250 OK`, and discarded it without
+  filing it anywhere. That is reputation filtering against a two-day-old
+  sending subdomain, and it is invisible from the sending side by construction.
 
-  Next diagnostic, and it needs a human: Resend dashboard → Emails → 6 Sep
-  07:00 AEST, and read the delivery event. `Delivered` means Gmail accepted and
-  suppressed it — a reputation problem, fixed by warming the domain, not by
-  DNS. `Bounced` or `Complained` names a concrete cause and gets a concrete
-  fix. The two are not distinguishable from inside Supabase, which is why this
-  is still open.
+  The DMARC aggregate report is what settled it, and it is worth knowing this
+  route exists: Google mails one daily to the `rua=` address on
+  `noel-sebastian.com`, which lands in **Zoho**, not Gmail. The zip's filename
+  encodes its window (`google.com!domain!<begin>!<end>.zip`, unix seconds), and
+  the XML gives the receiver's own account of disposition and auth per source
+  IP. The IPs resolved to `smtp-out.ap-northeast-1.amazonses.com`, confirming
+  Resend's Tokyo region (§14) and proving the records were ours.
+
+  **The fix is not configuration.** DKIM, SPF, DMARC, DNS, the API key and the
+  Edge Function were all provably correct. A Gmail filter on
+  `from:digest@send.noel-sebastian.com` with **"Never send it to Spam"**
+  overrides the classifier; a forced send one minute later landed in the inbox
+  with `labels: [INBOX]`. Confirmed 6 Sep 10:55Z.
+
+  **Do not tighten DMARC in response.** The published policy is
+  `p=none sp=none np=none`, so DMARC provably did not cause this, and that
+  record governs Noel's Zoho business mail on the same zone.
+
+  Still a real gap for multi-tenancy: a second user cannot be asked to add a
+  Gmail filter. Warming the domain, or sending from a domain with reputation,
+  is the actual fix and is unsolved. §4 Phase 7.
+
+  **Forcing a digest for testing:** `update user_settings set
+  digest_last_sent_on = digest_last_sent_on - 1` makes the user due on the next
+  five-minute tick. `due_digests` fires when `digest_last_sent_on <` the user's
+  local date, so leaving it at today does **not** suppress tomorrow's 07:00
+  send.
 - **Dark mode has never been seen below `lg`, and neither has the toggle.** It
   was verified on a real signed-in Today at desktop width in both themes, and
   the same viewport limit described in the next item still applies. The mobile
