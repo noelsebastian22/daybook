@@ -478,8 +478,11 @@ guard, because it would have been believed. §9.
   queue keys for C2, with a one-time adoption of the flat legacy key; push
   registration moved off `user_settings` onto the new table, with sign-out
   unregistering the device.
-- **Edge Function, written not deployed:** 4xx made terminal for blocker 2, and
-  the reminder loop grouped per task and fanned out per device for C1.
+- **Edge Function, half deployed:** 4xx made terminal for blocker 2 — **live as
+  `notify` version 10, 6 Sep**, hotfixed on top of the 22 Aug function rather
+  than deployed from the repo. The reminder loop grouped per task and fanned out
+  per device for C1 is **still undeployed and undeployable**: it depends on
+  0005's `push_subscriptions` table and the new `due_reminders` shape.
 - Build 530.59 kB, up 3.95 kB — `SwPush` moves into the eager graph because
   `signOut()` now needs the endpoint before the session goes. 55 tests still
   passing, and none of them cover any of this; that is Gate 1.
@@ -500,12 +503,23 @@ guard, because it would have been believed. §9.
    browserTimezone())` can plant one through the happy path. Fix both ends: a
    validating trigger against `pg_timezone_names` on write, **and** make
    `due_digests` skip a bad row instead of aborting on it.
-2. **A second user's digest becomes a permanent retry storm.** **Half fixed,
-   5 Sep**: `DIGEST_FROM` is now `Daybook <digest@send.noel-sebastian.com>` on a
-   verified domain (§14), so the rejection that triggered this no longer
-   happens. **The `index.ts` retry behaviour described below is unchanged and
-   still needs fixing** — any future permanent 4xx will still storm. Recorded as
-   audited, 3 Sep: `DIGEST_FROM`
+2. **A second user's digest becomes a permanent retry storm.** **Fixed and
+   deployed, 6 Sep.** `DIGEST_FROM` moved to `Daybook
+   <digest@send.noel-sebastian.com>` on a verified domain on 5 Sep (§14), and
+   the retry behaviour itself is now live: `notify` **version 10** carries
+   `isRetryableSendFailure` — 429 and 5xx retry, every other non-`ok` is
+   terminal, marks the day sent and counts as `dropped`.
+
+   **This was deployed as a hotfix, not by deploying the repo's `index.ts`.**
+   That file's `runReminders` was rewritten in `5b85bbd` against migration 0005
+   and reads `endpoint` / `p256dh` / `auth` off `due_reminders` and deletes from
+   `push_subscriptions`. Live has neither — `due_reminders` still returns
+   `subscription jsonb` and `to_regclass('public.push_subscriptions')` is null —
+   so deploying it whole would have broken every push reminder. Version 10 is
+   therefore the 22 Aug function plus the digest half of `5b85bbd`, byte for
+   byte, with `runReminders` left exactly as it was. The repo file carries a
+   do-not-deploy header until 0005 is applied. Recorded as audited, 3 Sep:
+   `DIGEST_FROM`
    was `onboarding@resend.dev`, which Resend delivers only to the account owner
    — long known, §12, and previously filed as "silently gets nothing". The
    audit shows it is worse than that. `index.ts` treats any non-`ok` Resend
@@ -2170,6 +2184,30 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **The digest sends successfully and does not arrive. Open, found 6 Sep.**
+  Resend returns 2xx, `digest_last_sent_on` advances, `notify` logs
+  `digests:{"sent":1,"failed":0}` — and the mail is in no Gmail folder at all.
+  A `from:digest@send.noel-sebastian.com in:anywhere` search returns zero
+  results, so it is not spam, not trash, not a filter.
+
+  The 6 Sep 07:00 AEST send was the first from the new sending domain. Prior
+  digests, from `onboarding@resend.dev`, arrived every day without exception —
+  the 27 Aug to 4 Sep run sitting in Trash was Noel deleting them, not a
+  filter, which was checked and ruled out. So the sender change is the only
+  variable, and the failure is downstream of Resend's API: accepted, never
+  delivered.
+
+  This is the same new-domain reputation story as the 5 Sep magic link that
+  landed in Gmail spam with `dkim=pass spf=pass dmarc=pass` (§14), one notch
+  worse — Gmail has gone from foldering to dropping. **Do not tighten DMARC in
+  response**; that record governs Noel's Zoho business mail on the same zone.
+
+  Next diagnostic, and it needs a human: Resend dashboard → Emails → 6 Sep
+  07:00 AEST, and read the delivery event. `Delivered` means Gmail accepted and
+  suppressed it — a reputation problem, fixed by warming the domain, not by
+  DNS. `Bounced` or `Complained` names a concrete cause and gets a concrete
+  fix. The two are not distinguishable from inside Supabase, which is why this
+  is still open.
 - **Dark mode has never been seen below `lg`, and neither has the toggle.** It
   was verified on a real signed-in Today at desktop width in both themes, and
   the same viewport limit described in the next item still applies. The mobile
@@ -2306,7 +2344,7 @@ Not core. Revisit once the main app is solid.
   `mark_digest_sent` on any failed send, so a rejected user is re-selected by
   `due_digests` on every five-minute tick for the rest of their local day, for
   ever — 288 failed sends a day, each one burning the Resend quota. §4 Phase 7,
-  blocker 2.
+  blocker 2. **Closed 6 Sep**, deployed as `notify` version 10.
 - ~~The digest's "Yesterday you finished" section has never rendered.~~
   **Closed 22 Aug.** The 07:00 digest arrived with subject `Daybook — 2 on
   today, 1 done yesterday` and rendered `Yesterday you finished 1 · call

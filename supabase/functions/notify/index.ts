@@ -14,6 +14,19 @@
  * response rather than throwing — a broken digest should not stop reminders.
  *
  * Callable by the service role only. See `isServiceRole`.
+ *
+ * **DO NOT DEPLOY THIS FILE UNTIL MIGRATION 0005 IS APPLIED.** `runReminders`
+ * below reads `subscription_id`, `endpoint`, `p256dh` and `auth` off
+ * `due_reminders`, and deletes from `push_subscriptions`. Live's
+ * `due_reminders` still returns `(task_id, user_id, text, reminder_at,
+ * subscription jsonb)` and there is no `push_subscriptions` table, so
+ * deploying this as-is silently breaks every push reminder — the subscription
+ * is assembled from four `undefined`s and every send fails.
+ *
+ * Live currently runs a hotfix (version 10, 6 Sep): the 22 Aug function plus
+ * `isRetryableSendFailure` and the terminal-drop branch from this file's
+ * `runDigests`, and nothing else. That half is byte-identical here. Apply
+ * 0005, deploy this file, then delete this note.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { isServiceRole } from './auth.ts';
