@@ -11,6 +11,67 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-05 · cowork · custom domain, sending subdomain, auth lockdown
+
+**Did**
+- `daybook.noel-sebastian.com` live on Vercel and now the production domain.
+  CNAME `daybook` → `703f8a9727faef44.vercel-dns-017.com`, DNS only.
+  `daybook-bay.vercel.app` left serving, no redirect, as the rollback.
+- `send.noel-sebastian.com` verified in Resend, Tokyo (`ap-northeast-1`). DKIM
+  `resend._domainkey.send`, MX and SPF on `bounce.send`, all three verified.
+- Supabase Site URL → `https://daybook.noel-sebastian.com`; redirect list cut
+  from four entries to `daybook.noel-sebastian.com/**`,
+  `daybook-bay.vercel.app/**`, `localhost:4200/**`.
+- Custom SMTP via `smtp.resend.com:465`, sender `noreply@send.…`. Magic link
+  delivered; Noel signed in on the new domain.
+- `DIGEST_FROM` → `Daybook <digest@send.noel-sebastian.com>`. Closes the item
+  open since 21 Aug and the Phase 7 blocker in §4.
+- New signups disabled. `send.noel-sebastian.com` verified in Google Postmaster.
+- No code changed, so no build or test run this session. Docs only:
+  BUILD-PLAN §14 added, §2/§4/§5/§9/§12 updated.
+
+**Decided**
+- Return-path `bounce`, not Resend's default `send`, to avoid
+  `send.send.noel-sebastian.com` reading like the doubled-zone DKIM bug. §9.
+- Removed the `daybook-*.vercel.app/**` open redirect, and added
+  `daybook-bay.vercel.app/**` explicitly — the wildcard was the only thing
+  matching it, so removing it alone would have killed the rollback's sign-in.
+- Deleted two redirect entries for `daybook.vercel.app`: not our host (Vercel
+  gave us `-bay` because plain `daybook` was taken).
+- Declined Resend's Cloudflare OAuth; added DNS by hand. The zone carries
+  Noel's Zoho business mail.
+- Leaked-password protection stays off permanently: Pro-only, and there is no
+  password sign-in for it to protect. The advisor stays red by design. §14.
+
+**Didn't work**
+- **First magic link went to Gmail spam with perfect auth** — `dkim=pass`,
+  `spf=pass`, `dmarc=pass` (headers in §14). Reputation, not DNS. Do not
+  tighten DMARC in response; that record governs the Zoho mail too.
+- **Two Supabase saves silently did nothing.** The secrets form hides a
+  "Confirm replacing existing secret" dialog behind Save; the User Signups
+  block has its Save below the fold. Both looked successful. Read the stored
+  value back — the form clearing means nothing.
+- Postmaster verification failed twice, at 30s and 4min, then passed unprompted.
+  Negative DNS caching from the premature first check. Retry, never re-add.
+- Leaked-password toggle flips in the UI and does not persist. That is the
+  Pro gate, not a bug.
+
+**Open**
+- Tonight's digest is the first real send from `digest@`. If `DIGEST_FROM` were
+  wrong the failure mode is the §4 retry storm, 288 sends/day.
+- The Resend key Noel pasted into the Cowork transcript needs rotating. SMTP is
+  on a new `daybook-smtp` key; `RESEND_API_KEY` still holds the exposed one.
+- The installed PWA on the phone is the old origin. Reinstall, re-subscribe to
+  push, clear the stale `push_subscriptions` rows.
+- `index.ts` still treats every non-`ok` Resend response as retryable. §4.
+- Everything from the 4 Sep entry.
+
+**Next**
+Watch tomorrow's digest arrive from `digest@send.noel-sebastian.com`, then
+Phase 7 — `DIGEST_FROM` no longer blocks it.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-09-04 · claude-code · restructure, brand, dark mode, performance
 
 **Did**

@@ -86,10 +86,15 @@ a hard Google limit, but client IDs under it are unlimited. Deploying to
 Netlify needs no console change at all: only the Supabase redirect allow list
 gains the production URL.
 
-Supabase auth config: Site URL `http://localhost:4200`, redirect allow list
-contains `http://localhost:4200/**`. The wildcard is load-bearing, since
-`login.ts` passes `redirectTo: location.origin + '/today'` and Supabase
-silently rejects anything not on the list.
+Supabase auth config, **as of 5 Sep**: Site URL
+`https://daybook.noel-sebastian.com`, redirect allow list holding exactly
+`https://daybook.noel-sebastian.com/**`, `https://daybook-bay.vercel.app/**`
+and `http://localhost:4200/**`. (It was Site URL `http://localhost:4200` with a
+localhost-only list until then.) **The localhost entry is load-bearing**, since
+`session.store.ts` passes `redirectTo: location.origin + '/today'` for both
+Google and magic link and Supabase silently rejects anything not on the list —
+delete it and `ng serve` cannot sign in. A run on a port other than 4200 needs
+its own entry. §14 for the whole domain and email setup.
 
 ---
 
@@ -361,7 +366,10 @@ multi-tenancy.
 
 ### Not phased, needed before daily use
 
-- ~~**Hosting on Vercel.**~~ **Done 22 Aug**, `https://daybook-bay.vercel.app`.
+- ~~**Hosting on Vercel.**~~ **Done 22 Aug**, and **on its own domain
+  `https://daybook.noel-sebastian.com` since 5 Sep** (§14).
+  `daybook-bay.vercel.app` is deliberately still served, without a redirect, as
+  the rollback.
   `vercel.json` carries the build command, `dist/daybook/browser`, the SPA
   rewrite and the service-worker cache headers (§9). Every check was made
   against the running site; see §12.
@@ -492,8 +500,13 @@ guard, because it would have been believed. §9.
    browserTimezone())` can plant one through the happy path. Fix both ends: a
    validating trigger against `pg_timezone_names` on write, **and** make
    `due_digests` skip a bad row instead of aborting on it.
-2. **A second user's digest becomes a permanent retry storm.** `DIGEST_FROM`
-   is `onboarding@resend.dev`, which Resend delivers only to the account owner
+2. **A second user's digest becomes a permanent retry storm.** **Half fixed,
+   5 Sep**: `DIGEST_FROM` is now `Daybook <digest@send.noel-sebastian.com>` on a
+   verified domain (§14), so the rejection that triggered this no longer
+   happens. **The `index.ts` retry behaviour described below is unchanged and
+   still needs fixing** — any future permanent 4xx will still storm. Recorded as
+   audited, 3 Sep: `DIGEST_FROM`
+   was `onboarding@resend.dev`, which Resend delivers only to the account owner
    — long known, §12, and previously filed as "silently gets nothing". The
    audit shows it is worse than that. `index.ts` treats any non-`ok` Resend
    response as retryable and skips `mark_digest_sent`, so `digest_last_sent_on`
@@ -730,9 +743,11 @@ tracked.
     tomorrow. State: **done and delivered.** `notify` renders and sends it via
     Resend; `due_digests()` decides who is due using their own timezone. On
     21 Aug a hand invocation landed "Daybook — 1 on today" in Noel's inbox
-    with the carried section correct. Two caveats: it is sent from Resend's
+    with the carried section correct. Two caveats, one now closed: it was sent from Resend's
     shared `onboarding@resend.dev`, which **only delivers to the Resend account
-    owner**, so a verified domain is needed before a second user exists; and
+    owner** — **fixed 5 Sep**, it now sends as
+    `Daybook <digest@send.noel-sebastian.com>` from a verified domain (§14),
+    which removes the hard blocker on a second user; and
     the "Yesterday you finished" branch of the template has still never
     rendered, because nothing scheduled on 20 Aug was completed. **The cron is
     live as of 21 Aug**, so the first unprompted digest is 22 Aug after 07:00
@@ -2099,6 +2114,50 @@ can never reach the root domain's reputation.
 
 ---
 
+### Domains and email, 5 Sep
+
+Operational detail is in §14. These are the decisions that outlive the session.
+
+**The app and the mail live on separate subdomains, and the apex is untouched.**
+`daybook.noel-sebastian.com` for the app, `send.noel-sebastian.com` for outbound
+mail. The root already runs Noel's Zoho business address `noel@noel-sebastian.com`
+and his portfolio, so the whole point of a sending subdomain is to keep Resend's
+reputation, and any future deliverability problem, off the domain his client mail
+depends on. **Only add records to this zone; never edit or delete one.**
+
+**Resend's return-path is `bounce`, not the default `send`.** Resend puts the
+bounce MX and SPF on a subdomain *of the domain you add*. The default would have
+produced `send.send.noel-sebastian.com` — valid, but visually identical to the
+doubled-zone mistake that is the classic silent DKIM failure on Cloudflare. A
+year from now nobody would remember which it was.
+
+**The `daybook-*.vercel.app/**` redirect wildcard was removed and
+`daybook-bay.vercel.app/**` added explicitly.** The wildcard is an open redirect
+— anyone can create a Vercel project named `daybook-<anything>`. It was also the
+only entry matching the Vercel domain, so removing it alone would have left the
+rollback target unable to sign in. **Two further entries for `daybook.vercel.app`
+were deleted**: that host is not ours (see §12 — Vercel assigned `-bay` because
+plain `daybook` was taken), so they allowlisted a redirect target on a stranger's
+domain.
+
+**Resend's Cloudflare OAuth integration was declined.** It writes DNS for you.
+Granting a third party write access to a zone carrying the business email is not
+worth the few minutes it saves. Records added by hand.
+
+**Leaked-password protection stays off, permanently.** Pro-plan only, and Daybook
+has no password sign-in for it to protect. The security advisor will always show
+one warning. See §14 before spending time on it.
+
+**Spam placement is not a DNS problem, and DMARC must not be tightened in
+response.** The first magic link from the new domain went to Gmail's spam folder
+with `dkim=pass`, `spf=pass` and `dmarc=pass` (headers in §14). That is
+reputation: one lifetime message from a new domain, and a magic link is
+structurally what phishing looks like. Moving off `p=none` would do nothing for
+inbox placement and would apply to the Zoho mail as well.
+
+**This supersedes "`DIGEST_FROM` is Resend's shared sender for now" from
+21 Aug**, above.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2233,7 +2292,11 @@ Not core. Revisit once the main app is solid.
   compiled CSS puts inside `@media(width>=64rem)` alongside `.lg\:hidden` and
   `.lg\:translate-x-0` — the same rules that hide the sidebar, so the inset and
   the sidebar can never disagree. Re-measured after: offset 0.
-- **The digest sends from a shared Resend address.** `DIGEST_FROM` is
+- ~~**The digest sends from a shared Resend address.**~~ **Closed 5 Sep.**
+  `DIGEST_FROM` is now `Daybook <digest@send.noel-sebastian.com>` on a Resend
+  domain verified against real DNS (§14), so mail reaches any recipient. The
+  retry-storm behaviour in `index.ts` is a separate defect and is **still
+  open** — see §4, Phase 7. Recorded as it stood: `DIGEST_FROM` was
   `onboarding@resend.dev`, which Resend only delivers to the account owner. It
   works for Noel and for nobody else. A verified domain is the fix, and it is
   not urgent while Daybook has one user. **Deliberately left, 22 Aug** — but
@@ -2290,9 +2353,11 @@ Not core. Revisit once the main app is solid.
   `*/5 * * * *`, active, calling `notify` with the service role key. First
   clean tick 12:05 UTC: `{"digests":{"sent":0,"failed":0},"reminders":
   {"sent":0,"failed":0}}`. Nothing is left waiting on a human for the digest.
-- ~~No hosting, no CI, not deployed anywhere.~~ **Closed 22 Aug. Daybook is
-  live at `https://daybook-bay.vercel.app`** — Vercel appended `-bay` because
-  `daybook.vercel.app` was taken. Verified against the running deployment, not
+- ~~No hosting, no CI, not deployed anywhere.~~ **Closed 22 Aug**, and **on
+  `https://daybook.noel-sebastian.com` since 5 Sep** (§14). It was first live at
+  `https://daybook-bay.vercel.app` — Vercel appended `-bay` because
+  `daybook.vercel.app` was taken, a detail that mattered later: two Supabase
+  redirect entries pointed at that unowned host and were removed (§14). Verified against the running deployment, not
   assumed: `/today` returns 200 HTML so the SPA rewrite applies, `ngsw.json`
   and `ngsw-worker.js` both come back `no-cache`, the hashed bundles come back
   `immutable`, and it serves from `syd1`, the same region as the database.
@@ -2596,3 +2661,268 @@ contact sheet was legible enough to show.
   before blaming anything else.
 - `ng test` needs `--watch=false` in a non-interactive run.
 - `tsc --noEmit` does not check Angular templates. Run the build.
+
+---
+
+## 14. Domains, DNS and email
+
+Set up 5 Sep 2026, in one session, driving Cloudflare, Vercel, Resend and
+Supabase. This section is the record of what exists and, more importantly, why
+it is shaped the way it is. Read it before touching DNS or auth URLs.
+
+### The two subdomains
+
+| Host | Purpose | Points at |
+|---|---|---|
+| `daybook.noel-sebastian.com` | the app | Vercel |
+| `send.noel-sebastian.com` | outbound email only | Resend |
+
+`noel-sebastian.com` is on Cloudflare (free plan, zone
+`32f26c12b517e43641f736ea821e871f`, account `712836b25269e821c48d5c070609a129`,
+registrar NameCheap). Zone status Active, DNS Setup Full.
+
+### The apex is not ours to touch
+
+**The root domain already runs Noel's Zoho Mail business address
+`noel@noel-sebastian.com`, and his portfolio.** Before this session the zone
+held 15 records: the portfolio `A` at the apex, `www` and six client-mockup
+CNAMEs on Vercel, three Zoho `MX`, an apex SPF, a Zoho verification `TXT`, the
+`zmail._domainkey` DKIM, and a `_dmarc` record.
+
+**Nothing was edited or deleted. Only added.** That is the standing rule for
+this zone. A separate sending subdomain exists precisely so Resend's sending
+reputation and any future deliverability problem stay off the root, where the
+business address lives.
+
+**There are no CAA records**, which is why Vercel's certificate issued without
+a fight. If a CAA record is ever added, it has to permit Vercel's issuer or the
+certificate silently stops renewing.
+
+**Cloudflare Email Routing is half-initialised** — status "Syncing", DNS records
+"Not configured", no rules, no destinations. It has never written to the zone.
+**Do not enable it.** It puts its own MX on the apex and would break Zoho.
+
+### Records added
+
+| Name | Type | Content | Proxy |
+|---|---|---|---|
+| `daybook` | CNAME | `703f8a9727faef44.vercel-dns-017.com` | **DNS only** |
+| `bounce.send` | MX (10) | `feedback-smtp.ap-northeast-1.amazonses.com` | DNS only |
+| `bounce.send` | TXT | `v=spf1 include:amazonses.com ~all` | DNS only |
+| `resend._domainkey.send` | TXT | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC/VC2hfaZQNB0DGIxJJ+Z7iIEaHZMPg1LFmGZm4bB081zojEkpdgxR65HENccc5jKHN28ZNhyab+f1UgK5aWGv/26FfaUiNJNpdywrBJVNPkJusGIQx0ea6XURa47k6xDevBmlpkLCVmAHoL3EzduKNyeHx5humtbbPomIGFaMLQIDAQAB` | DNS only |
+
+**Every Vercel record on this zone must stay grey-cloud DNS only.** Proxied,
+Cloudflare terminates TLS itself, Vercel cannot complete its ACME challenge,
+and the failure presents as an SSL error or a redirect loop rather than
+anything that names the cause.
+
+**Vercel no longer hands out `cname.vercel-dns.com` for new subdomains.** It
+issues a per-domain target on `vercel-dns-017.com`. Use whatever the dashboard
+displays; the legacy targets still work for the records that already use them.
+
+### Caveats worth not relearning
+
+- **The DMARC record already existed and was left alone.** It reads
+  `v=DMARC1; p=none; rua=mailto:noel@noel-sebastian.com; fo=1`. It governs the
+  Zoho business mail as well as anything Resend sends, because DMARC at the
+  apex is inherited by subdomains that have no `_dmarc` of their own. It stays
+  at `p=none`. Tightening it later is a decision about Noel's client-facing
+  email address, not just about Daybook.
+
+- **Resend's Custom Return-Path is `bounce`, not the default `send`.** Resend
+  puts the bounce MX and the SPF record on a subdomain *of the domain you add*,
+  defaulting to `send`. Adding `send.noel-sebastian.com` with that default
+  would have produced `send.send.noel-sebastian.com`, which is legitimate but
+  reads exactly like the doubled-zone mistake that is the classic silent DKIM
+  failure on Cloudflare. `bounce` was chosen so the record names stay
+  self-explanatory. **The DKIM record is unaffected by this and sits at
+  `resend._domainkey.send.noel-sebastian.com`.**
+
+- **Resend has no Sydney region.** The four options are North Virginia
+  (`us-east-1`), Ireland (`eu-west-1`), São Paulo (`sa-east-1`) and Tokyo
+  (`ap-northeast-1`). Tokyo is closest and is what the domain uses. The
+  Supabase project being in `ap-southeast-2` is irrelevant to this choice; the
+  region only affects Resend's own sending path. **Region is fixed at domain
+  creation** — changing it means deleting and re-adding the domain, and
+  re-doing the DNS.
+
+- **Cloudflare adds its own quotes to TXT values.** Paste the bare value. A
+  pasted pair of quotes gets embedded in the record and breaks verification.
+
+- **Cloudflare's Name field is relative to the zone.** Type `bounce.send`, not
+  `bounce.send.noel-sebastian.com`. The dialog's sentence at the top of the
+  form spells out the fully-qualified name it is about to create — read it
+  before saving, every time.
+
+- **Resend offers to configure Cloudflare DNS itself via OAuth. It was not
+  used.** Granting a third party write access to a zone that carries the
+  business email was not worth the few minutes it saves. Records were added by
+  hand.
+
+### Vercel
+
+Project `daybook` (`prj_kETl67Uioo3xBY64WMcs46PGDZ2Q`), team
+`noels-projects-42d9665c`, Hobby plan.
+
+- `daybook.noel-sebastian.com` is Valid Configuration and is now the production
+  domain. The certificate issued within seconds of the CNAME resolving.
+- **`daybook-bay.vercel.app` is deliberately left in place and serving**, with
+  no redirect, as the rollback path.
+- **Vercel Authentication (SSO protection) is on, scoped
+  `all_except_custom_domains`.** So the custom domain is public and every
+  `*.vercel.app` domain on this project, `daybook-bay` included, sits behind
+  Vercel's login. The rollback works for Noel because he is signed into Vercel.
+  It is not a public fallback.
+
+### Resend
+
+Domain `send.noel-sebastian.com`, Tokyo (`ap-northeast-1`), verified 5 Sep 2026.
+All three records verified individually: DKIM `resend._domainkey.send`, MX
+`bounce.send`, SPF TXT `bounce.send`. **Sending enabled, receiving disabled** —
+this subdomain is outbound only.
+
+Verification reported "may take a few hours" and then passed within the hour.
+**Retry Verify rather than re-adding records**; re-adding is how you end up with
+duplicates that never resolve.
+
+### Supabase auth URLs
+
+Before this session, Site URL was `http://localhost:4200` and the redirect
+allow list held four entries. **Two of them,
+`https://daybook.vercel.app` and `https://daybook.vercel.app/**`, pointed at a
+domain that is not ours.** Vercel assigned this project `daybook-bay` precisely
+because plain `daybook` was taken by somebody else, so those entries allowlisted
+a redirect target on a stranger's host. Both removed.
+
+`https://daybook-bay.vercel.app/**` was **never** in the list. Sign-in on the
+Vercel domain had been working only because `https://daybook-*.vercel.app/**`
+happened to match it. That wildcard is a known open redirect — anyone can create
+a Vercel project named `daybook-<anything>` — and removing it was half the point
+of this work, so the specific host was added explicitly to keep the rollback
+usable.
+
+**Site URL:** `https://daybook.noel-sebastian.com`
+
+**Redirect URLs, exactly three:**
+
+- `https://daybook.noel-sebastian.com/**`
+- `https://daybook-bay.vercel.app/**` — the rollback
+- `http://localhost:4200/**` — **load-bearing.** `session.store.ts` passes
+  `redirectTo: ${location.origin}/today` for both Google and magic link, and
+  Supabase silently rejects anything not on this list. Delete this entry and
+  local development cannot sign in. If `ng serve` is ever run on a port other
+  than 4200, that port needs its own entry.
+
+**Google OAuth needed no change.** The only redirect URI Google holds is the
+Supabase callback (§2). Changing the Site URL does not touch it.
+
+### Custom SMTP for auth email
+
+Supabase Auth sends magic links through Resend SMTP:
+
+| Setting | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | 465 |
+| Username | `resend` |
+| Password | a Resend API key, **Sending access, all domains** (key `daybook-smtp`) |
+| Sender | `noreply@send.noel-sebastian.com`, name `Daybook` |
+| Minimum interval per user | 60s |
+
+**Port 465 works.** The documented 587 fallback was not needed.
+
+**Enabling custom SMTP raises the auth email rate limit to 30/hour.** Before,
+Supabase's built-in sender capped it far lower.
+
+**`noreply@` has no mailbox.** It is send-only, like `digest@`. A reply to a
+magic link goes nowhere and nobody is told. Acceptable for auth; remember it
+before using either address anywhere a human might reply.
+
+### Digest sender
+
+`DIGEST_FROM` = `Daybook <digest@send.noel-sebastian.com>`, replaced 5 Sep 2026.
+`RESEND_API_KEY` untouched (still the 21 Aug value).
+
+**The Supabase secrets form shows a "Confirm replacing existing secret" dialog
+that is easy to miss.** Clicking Save is not enough — the first attempt looked
+like it worked, the form cleared, and the digest and timestamp in the table were
+unchanged. **Always read back the SHA256 and the updated timestamp.**
+
+### Auth toggles
+
+- **"Allow new users to sign up" is OFF.** Single-user until Phase 7. Note this
+  blocks new Google sign-ups too, and `signInWithOtp` for any unknown address.
+- **Leaked-password protection is OFF, deliberately and permanently. Do not
+  spend time on this again.** It is a Pro-plan feature (HaveIBeenPwned lookups)
+  and this project is on Free. The toggle is present in the Email provider panel
+  and will visibly flip, but the save does not persist and `get_advisors` keeps
+  reporting it disabled — which reads like a bug and is not one.
+
+  Considered and rejected on 5 Sep 2026: upgrading to Pro (~USD $25/month) to
+  clear it, and raising the password policy (minimum length is 6, requirements
+  unset) as a partial substitute. **Both were rejected for the same reason:
+  Daybook has no password sign-in.** Auth is magic link and Google only, no
+  screen in the app ever sets or accepts a password, and no account has one. A
+  password policy on a system with no passwords protects nothing.
+
+  **The security advisor will therefore always show one warning.** That is the
+  expected steady state, not an outstanding task. Revisit only if password
+  sign-in is ever added, at which point this becomes a genuine gap.
+
+**Two Supabase dashboard sections need an explicit Save that is scrolled out of
+view**: the User Signups block on Sign In / Providers, and the Site URL block on
+URL Configuration. A toggle flipped without scrolling down to Save silently
+reverts on reload.
+
+### Deliverability
+
+**The first magic link from the new domain landed in Gmail's spam folder, and
+the authentication was flawless.** Worth separating those two facts, because the
+instinct is to go looking for a DNS mistake. Headers from the delivered message,
+5 Sep 2026:
+
+```
+dkim=pass header.i=@send.noel-sebastian.com header.s=resend
+dkim=pass header.i=@amazonses.com
+spf=pass  smtp.mailfrom=...@bounce.send.noel-sebastian.com (23.251.234.50)
+dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=noel-sebastian.com
+```
+
+Both DKIM signatures pass, SPF passes on the `bounce.send` return path, and
+DMARC passes with relaxed alignment. The delivering host was
+`e234-50.smtp-out.ap-northeast-1.amazonses.com`, confirming the Tokyo region end
+to end. TLS 1.3.
+
+So spam placement was **pure reputation**: a domain that had sent exactly one
+message in its life, and a magic link is structurally what phishing looks like —
+new domain, no prior contact, one line of text, one link.
+
+**What actually helps**, in order: marking it not-spam and clicking through
+(per-recipient engagement is the strongest signal Gmail has); then time, since
+the daily digest now sends from `digest@send.noel-sebastian.com` and is itself
+the warm-up.
+
+**Do not tighten DMARC in response.** Moving off `p=none` does nothing for inbox
+placement and that record governs the Zoho business mail too.
+
+**Supabase's magic link email is already `multipart/alternative`** with a real
+`text/plain` part. Adding one is not an available fix.
+
+### Google Postmaster Tools
+
+`send.noel-sebastian.com` registered 5 Sep 2026. Verification TXT added on
+`send`:
+
+```
+send  TXT  google-site-verification=j5ioJMEfqS-xO7ct8lCgADBAzzpcZApenKWqfCH-vus
+```
+
+Note this is a plain TXT at `send.noel-sebastian.com` and does **not** collide
+with the SPF record, which lives at `bounce.send`.
+
+**Verified.** Two Verify attempts failed first, at 30 seconds and at 4 minutes
+after the record was added, then it passed on its own a few minutes later. That
+was propagation, not a mistake: a premature check makes Google's resolver cache
+a negative answer, and Cloudflare's SOA negative TTL holds it. **Wait and retry
+rather than re-adding the record** — the same discipline the Resend verification
+needed. Health reads "Not enough data" until real volume accumulates.
