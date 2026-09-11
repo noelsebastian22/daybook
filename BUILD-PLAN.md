@@ -108,7 +108,7 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 written and locally proven, 3 Sep; nothing applied or deployed.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` runs clean on a local stack and every fix was reproduced as a bug first. Live is still on six migrations. Gates 1–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
 
@@ -394,7 +394,7 @@ multi-tenancy.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
-### Phase 7, multi-tenancy — audited 3 Sep, not started
+### Phase 7, multi-tenancy — audited 3 Sep, Gate 0 applied 11 Sep
 
 The live project was audited end to end on 3 Sep, read-only, against
 `pg_catalog`, the Supabase advisors and this repo. What follows is the ordered
@@ -435,11 +435,21 @@ neither is visible from reading a migration:
   *only* because of the grants. One careless `grant execute … to
   authenticated` turns any of the three into a cross-tenant write.
 
-#### What has landed, 3 Sep
+#### What has landed
 
-Code and migration only. **Nothing has been applied to the live database and
-nothing has been deployed** — the migration is written and unapplied, and the
-Edge Function change is unreleased. Both need the schema to go first.
+**Applied and deployed, 11 Sep.** `0005` is live as migration
+`20260911074356 daybook_multitenancy_hardening` — seven migrations now, not six
+— and `notify` is deployed from the repo whole as **version 13**. The eight
+days between writing and applying are the interesting part: see "the cost of
+the gap" below.
+
+The rest of this subsection is as written on 3 Sep, when the migration existed
+and nothing was applied. It is kept because the local proof is what made
+applying it a five-minute job.
+
+Code and migration only, on 3 Sep. **Nothing had been applied to the live
+database and nothing deployed** — the migration was written and unapplied, and
+the Edge Function change unreleased. Both needed the schema to go first.
 
 **0005 has been proven against a local stack**, not just written. `supabase
 init` then `supabase start` (the project had no `config.toml` — local dev had
@@ -487,9 +497,36 @@ guard, because it would have been believed. §9.
   `signOut()` now needs the endpoint before the session goes. 55 tests still
   passing, and none of them cover any of this; that is Gate 1.
 
+#### The cost of the gap, 3–11 Sep
+
+Eight days with the client half deployed and the schema half not. It is worth
+recording what that actually cost, because the shape recurs.
+
+**The deployed frontend was calling database objects that did not exist.**
+`origin/master` has contained `5b85bbd` since 3 Sep, and its `settings.store.ts`
+calls `register_push_subscription` and `from('push_subscriptions')`. Neither
+existed in live until 11 Sep, so enabling reminders in the production app could
+only fail for the whole window. Inferred from the code against the live schema
+rather than observed — nobody appears to have tried it and the logs do not
+retain that far — but the capability was broken, silently, in production.
+
+**And it made the obvious deploy the wrong one.** On 6 Sep the digest needed a
+fix, the fix was sitting in `index.ts`, and deploying that file would have
+broken every push reminder — caught only by checking the live return type of
+`due_reminders` first. A hand-assembled hybrid had to be built instead.
+
+The rule both halves point at: **a client release and the migration it depends
+on are one change, and shipping half of it leaves the system in a state nobody
+designed.** If the schema half cannot go first, the client half does not go.
+
 #### Hard blockers — fix before a second real user exists
 
 1. **One bad timezone string silently kills the digest for every user.**
+   **Fixed and applied, 11 Sep**, both ends, in `0005`. Verified on live:
+   `daybook_local_now('Not/AZone')` returns null rather than raising, and the
+   `user_settings_validate_timezone` trigger rejects a bad zone on write with
+   `22023` leaving the stored value untouched. The description below is the
+   3 Sep diagnosis, kept because the mechanism is worth not relearning.
    `user_settings.timezone` is unvalidated `text` (`0001_core_schema.sql`) and
    any signed-in user can write anything into their own row. `due_digests`
    (`0003_digest_and_reminders.sql`) evaluates `now() at time zone
@@ -510,15 +547,22 @@ guard, because it would have been believed. §9.
    `isRetryableSendFailure` — 429 and 5xx retry, every other non-`ok` is
    terminal, marks the day sent and counts as `dropped`.
 
-   **This was deployed as a hotfix, not by deploying the repo's `index.ts`.**
-   That file's `runReminders` was rewritten in `5b85bbd` against migration 0005
-   and reads `endpoint` / `p256dh` / `auth` off `due_reminders` and deletes from
-   `push_subscriptions`. Live has neither — `due_reminders` still returns
-   `subscription jsonb` and `to_regclass('public.push_subscriptions')` is null —
-   so deploying it whole would have broken every push reminder. Version 10 is
-   therefore the 22 Aug function plus the digest half of `5b85bbd`, byte for
-   byte, with `runReminders` left exactly as it was. The repo file carries a
-   do-not-deploy header until 0005 is applied. Recorded as audited, 3 Sep:
+   **Superseded 11 Sep: the repo's `index.ts` is now deployed whole**, as
+   version 13, once 0005 was applied. The do-not-deploy header is gone and the
+   hybrid is history. Confirmed running from the cron rather than merely
+   uploaded — the 07:50Z tick returned
+   `reminders:{"sent":0,"failed":0,"devices_dropped":0}`, and `devices_dropped`
+   exists only in the rewritten `runReminders`.
+
+   The hotfix that preceded it, for the record: it was **deployed by hand, not
+   by deploying the repo's `index.ts`**, because that file's `runReminders` was
+   rewritten in `5b85bbd` against migration 0005 and reads `endpoint` /
+   `p256dh` / `auth` off `due_reminders` and deletes from `push_subscriptions`.
+   Live had neither. The hotfix was therefore the 22 Aug function plus the
+   digest half of `5b85bbd`, byte for byte, with `runReminders` untouched.
+   **The 6 Sep log calls it "version 10"; the platform calls it version 12.**
+   The content that entry described was right, the version number was not — do
+   not use "v10" as a landmark. Recorded as audited, 3 Sep:
    `DIGEST_FROM`
    was `onboarding@resend.dev`, which Resend delivers only to the account owner
    — long known, §12, and previously filed as "silently gets nothing". The
@@ -537,14 +581,24 @@ guard, because it would have been believed. §9.
    fires; on day one of multi-tenancy some fraction of signups get *"Could not
    create your settings."* on their very first app open. The fix is one word:
    `.upsert(seed, { onConflict: 'user_id' })`.
-4. **The service role key sits in plaintext in `cron.job.command`.** The repo
+4. **The service role key sits in plaintext in `cron.job.command`.** Still
+   open, 11 Sep, and it is one of the two things left in Gate 0. The repo
    copy of `supabase/cron/schedule-notify.sql` is correctly never committed
    filled in, but the database copy is readable by anything that can query
    `cron.job` as `postgres` — including the audit, which read it. Move it into
    Supabase Vault and have the job read it through `vault.decrypted_secrets`,
    then rotate the current `sb_secret_…` key.
-5. **Turn on leaked-password protection.** One toggle in the Auth dashboard,
-   flagged by the security advisor, irrelevant with one owner and not
+
+   **Order matters and the Vault move alone is not the fix.** This key was
+   surfaced in a session transcript, so it is leaked whatever it is stored in;
+   moving it to Vault without rotating changes who can read it *next time* and
+   nothing about the exposure that already happened. Rotation is a dashboard
+   action and is not reachable from the MCP surface or the CLI — it needs Noel.
+   Rotate first, then move the new key into Vault, then update the cron command
+   in one go.
+5. **Turn on leaked-password protection.** Still open, 11 Sep — the security
+   advisor still flags it — and the other of the two things left in Gate 0.
+   One toggle in the Auth dashboard, irrelevant with one owner and not
    irrelevant the moment strangers pick passwords.
 
 #### Hard blockers — the client half
@@ -689,6 +743,9 @@ critical path without deferring anything that actually isolates tenants.
 Four gates, in order:
 
 - **Gate 0 — before a second real user.** Blockers 1–5 and C1–C5.
+  **Applied and deployed 11 Sep bar two dashboard toggles**: blockers 1, 2 and
+  C1 are closed in production, blocker 3 and C2–C5 shipped with the client on
+  3 Sep, and blockers 4 and 5 are what remain. Neither can be done from here.
 - **Gate 1 — prove it.** C6: specs for the three stores and the guard covering
   the two-user transition, then a two-account pass on one device. This is the
   step that would have caught C1, and it is the only way `loadedFor` gets
@@ -735,11 +792,21 @@ tracked.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
 7. **Optional reminder times.** State: **done, delivered to a real device
-   22 Aug.** `reminder_at` is set by the parser or the picker; `due_reminders()`
-   finds them, the `notify` function encrypts and posts them. First real
-   delivery: `call the doctor`, set for 09:12 Sydney, sent 09:20:02 by the cron
-   to an installed iPhone PWA. See §12 for the transient 401 on the 09:15 tick
-   and how the grace window absorbed it.
+   22 Aug; re-plumbed per device 11 Sep and not yet re-verified on a phone.**
+   `reminder_at` is set by the parser or the picker; `due_reminders()` finds
+   them, the `notify` function encrypts and posts them. First real delivery:
+   `call the doctor`, set for 09:12 Sydney, sent 09:20:02 by the cron to an
+   installed iPhone PWA. See §12 for the transient 401 on the 09:15 tick and
+   how the grace window absorbed it.
+
+   **Subscriptions moved off `user_settings` onto their own `push_subscriptions`
+   table on 11 Sep** (C1 — an endpoint belongs to a browser install, not a
+   user), so `due_reminders` returns one row per device and `runReminders` fans
+   out over them, marking `reminder_sent_at` once after the fan-out. The cron
+   runs the new code and returns cleanly, but **nothing has been pushed to a
+   real handset since the change** — the only registered row is the pre-move one
+   carried across from the old origin. That delivery is the outstanding
+   verification, and `0006` waits on it.
 8. **Energy tag per task, Quick or Deep**, so the list can be filtered by how
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
@@ -2172,6 +2239,46 @@ inbox placement and would apply to the Zoho mail as well.
 **This supersedes "`DIGEST_FROM` is Resend's shared sender for now" from
 21 Aug**, above.
 
+### Applying 0005, 11 Sep
+
+**Edge Functions deploy with the Supabase CLI, not the MCP tool.**
+`supabase functions deploy notify --project-ref zzacswfongmzpnhcjiqp` reads the
+files off disk, so what ships is what is committed. The MCP `deploy_edge_function`
+takes file *contents* as arguments, which means retyping three files through a
+tool call for no benefit. The CLI needs no `supabase link` — `--project-ref` is
+enough — and it does not need Docker, despite warning that Docker is not
+running. It also uploads only `index.ts`, `auth.ts` and `webpush.ts`, leaving
+the `.test.mjs` files behind, which is what you want.
+
+**`supabase db push` is not usable on this repo.** The remote migration history
+is keyed by timestamp (`20260817025442…`) because every migration so far was
+applied through the MCP; the repo files are `0001…0005`. The CLI compares the
+two, sees five unapplied migrations, and would try to replay the schema from
+scratch. Migrations go through `apply_migration`.
+
+**Which raises the question the CLI would otherwise have answered: how do you
+know the SQL that ran is the file?** By hashing both ends, ignoring whitespace:
+
+```sql
+select md5(regexp_replace(array_to_string(statements, E'\n'), '\s+', '', 'g'))
+from supabase_migrations.schema_migrations where version = '20260911074356';
+```
+
+against `tr -d '[:space:]' < supabase/migrations/0005_*.sql | md5`. Both gave
+`02b056fe00bb8e834accd917e5547b34`. Do this every time a migration is applied by
+hand — it is the only thing standing between the repo and a silently divergent
+live schema, and it costs one query.
+
+**Do not test a swallow-the-error path by planting the error in the only
+production row.** The natural way to prove blocker 1's read-end fix is to write
+a bad timezone to `user_settings` and watch `due_digests` skip it. That was
+started and abandoned: `execute_sql` gives no guarantee an explicit
+`BEGIN`/`ROLLBACK` is honoured as written, and a bad value surviving the test
+*is* blocker 1 — the digest dies silently and nothing reports it. The property
+was proved instead from `daybook_local_now('Not/AZone') → null` plus a verified
+function body. **A test whose failure mode is the bug it is testing for is not
+worth running on production.**
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2309,8 +2416,11 @@ Not core. Revisit once the main app is solid.
   environment and dropping them mid-phase means rebuilding the seeded state by
   hand. Noel's call, 3 Sep.
 - **`user_settings.push_subscription` still exists**, deprecated and unread,
-  as the rollback path for the `push_subscriptions` move. Drop it in `0006`
-  once the new table has been seen delivering to a real device.
+  as the rollback path for the `push_subscriptions` move. **Live as of
+  11 Sep**: the table exists, the one legacy row was backfilled into it, and
+  the column now carries a `DEPRECATED` comment. Drop it in `0006` once the new
+  table has been seen delivering to a real device — which has not happened yet,
+  and is the reason the column is still there.
 
 - ~~`ensure_user_setup` fires twice on every page load.~~ **Closed 22 Aug.** It
   was a race, not a duplicated call site: `getSession().then()` called
@@ -2519,21 +2629,32 @@ Not core. Revisit once the main app is solid.
   beside `loaded` and refetch when it changes. RLS meant this was never a data
   leak on the server, only the wrong rows on screen. **Not verified** — it
   needs two accounts and one was not to hand.
-- **`user_settings.timezone` is unvalidated text, and one bad value stops the
-  digest for every user.** Found 3 Sep. Not deferred by choice — it was not
-  known. The full mechanism is in §4 Phase 7, blocker 1; it is the highest
-  priority thing in the repo.
+- ~~`user_settings.timezone` is unvalidated text, and one bad value stops the
+  digest for every user.~~ **Closed 11 Sep**, both ends, when `0005` was
+  applied. Verified on live: `daybook_local_now('Not/AZone')` returns null
+  instead of raising, so a bad row fails every comparison in `due_digests`
+  rather than aborting the statement; and the `user_settings_validate_timezone`
+  trigger rejects a bad zone on write with `22023`, leaving the stored value
+  untouched. Mechanism kept in §4 Phase 7, blocker 1.
 - **The service role key is stored in plaintext in `cron.job.command`.** Found
-  3 Sep. Readable by anything that can query `cron.job` as `postgres`. Vault
-  plus a rotation is the fix. §4 Phase 7, blocker 4.
-- **`SettingsStore.load()` races `ensure_user_setup` on a brand-new account.**
-  Found 3 Sep. A bare `.insert(seed)` against `user_settings_pkey`; the loser
-  toasts *"Could not create your settings."* Cannot fire with one existing
-  user, will fire on real signups. §4 Phase 7, blocker 3.
-- **A device clock a day fast permanently corrupts that day's history.** Found
-  3 Sep. `rollover_and_snapshot` clamps to `v_server + 1` and then snapshots a
-  still-running today, which `on conflict do nothing` can never correct.
-  Per-user, no cross-tenant effect. §4 Phase 7, item 10.
+  3 Sep, **still open 11 Sep** and one of the two things left in Gate 0.
+  Readable by anything that can query `cron.job` as `postgres`, and it has been
+  surfaced in a session transcript, so it is leaked whatever it is stored in.
+  Rotate first, *then* move the new key into Vault — the Vault move alone
+  changes who can read it next time and nothing about the exposure that already
+  happened. Rotation is dashboard-only: not reachable from the MCP tools or the
+  CLI. §4 Phase 7, blocker 4.
+- ~~`SettingsStore.load()` races `ensure_user_setup` on a brand-new account.~~
+  **Fixed in `5b85bbd` and deployed with the client**; the bare `.insert(seed)`
+  is now an `.upsert(seed, { onConflict: 'user_id' })`. Unverifiable until a
+  second account exists, since it cannot fire with one existing user — that is
+  part of the Gate 1 two-account pass. §4 Phase 7, blocker 3.
+- ~~A device clock a day fast permanently corrupts that day's history.~~
+  **Closed 11 Sep** with `0005`. `rollover_and_snapshot` now clamps against the
+  user's own local date and bounds the snapshot loop by it, so a day is never
+  sealed before it has closed where the user lives. The *reversible* half is
+  still there by design — see "a fast device clock still pushes tasks a day
+  forward" above. §4 Phase 7, item 10.
 - **A task can point at another user's category.** Found 3 Sep, and left: the
   FK carries no `user_id`, so the reference is accepted, but RLS still blocks
   the read and nothing leaks. §4 Phase 7, item 12. **Inferred, not verified** —

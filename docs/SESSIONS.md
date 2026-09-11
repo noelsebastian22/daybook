@@ -11,6 +11,106 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-11 · claude-code · 0005 applied, notify deployed whole
+
+**Did**
+- **Applied `0005_multitenancy_hardening.sql` to live** as
+  `20260911074356 daybook_multitenancy_hardening`. Seven migrations now, not six.
+  Applied through the Supabase MCP `apply_migration`, then verified the stored
+  statements against the repo file by whitespace-normalised md5 —
+  `02b056fe00bb8e834accd917e5547b34` on both sides. What ran is the file.
+- Verified live, one by one: `push_subscriptions` exists with RLS on and one
+  owner policy; the legacy `user_settings.push_subscription` row backfilled into
+  it (1 row); `due_reminders` now returns `(task_id, user_id, text, reminder_at,
+  subscription_id, endpoint, p256dh, auth)`; grants are `service_role`-only on
+  `due_reminders` / `due_digests` / `digest_payload`, `authenticated` +
+  `service_role` on `register_push_subscription`, `anon` nowhere;
+  `tasks_category_idx` created.
+- Timezone defence proven on live, not just locally: `daybook_local_now('Not/AZone')`
+  returns null, and an `update user_settings set timezone = 'Mars/Olympus_Mons'`
+  raises `22023` from the trigger with the stored zone unchanged.
+- **Deployed the repo's `notify` whole** — `supabase functions deploy notify
+  --project-ref zzacswfongmzpnhcjiqp`, now **version 13**, `verify_jwt` still
+  true. Deleted the do-not-deploy header from
+  `supabase/functions/notify/index.ts` in the same change.
+- **Confirmed the new code running on the cron, not just uploaded.** The 07:50Z
+  tick returned `reminders:{"sent":0,"failed":0,"devices_dropped":0}` where
+  07:45Z returned `{"sent":0,"failed":0}`. `devices_dropped` exists only in the
+  rewritten `runReminders`, so the new function read the new eight-column
+  `due_reminders` and finished without throwing. That key is the tell — check
+  for it after any future `notify` deploy.
+- Read the deployed source before replacing it: live was exactly what the 6 Sep
+  entry described — the 22 Aug function plus `isRetryableSendFailure`, with the
+  old `subscription jsonb` reminder loop intact.
+- Supabase performance advisor: the **four `auth_rls_initplan` findings are
+  gone**. Three `unused_index` INFOs remain, two of which are the indexes 0005
+  just created. Security advisor unchanged: `pg_net` in public, leaked-password
+  protection off, and the three by-design `authenticated`-callable
+  `SECURITY DEFINER` functions.
+- 680 tests / 37 files passing. `auth.test.mjs` and `webpush.test.mjs` pass
+  (13/13 in webpush). Bundle 438.64 kB (107.47 kB transfer) — unchanged, no app
+  code touched.
+
+**Decided**
+- **Deploy Edge Functions with the Supabase CLI, not the MCP tool.** The CLI
+  reads the files off disk, so what ships is what is committed; pasting three
+  files through a tool argument is a transcription risk for no gain. It needs
+  no `supabase link` — `--project-ref` is enough — and it does not need Docker,
+  despite warning that Docker is not running.
+- **`supabase db push` is not usable on this repo and should not be reached
+  for.** The remote migration history is keyed by timestamp
+  (`20260817025442…`), the repo files are `0001…0005`, so the CLI sees five
+  unapplied migrations and would try to replay the schema from scratch.
+  Migrations go through `apply_migration`, and the md5 check above is how you
+  prove the file is what ran.
+
+**Didn't work**
+- **Nearly proved the bad-timezone fix by writing a bad zone to the live row
+  inside a transaction and rolling back. Abandoned.** `execute_sql` gives no
+  guarantee an explicit `BEGIN`/`ROLLBACK` is honoured as written, and a bad
+  value left behind is precisely blocker 1 — the one user's digest dies
+  silently and nothing reports it. The property was proved from
+  `daybook_local_now('Not/AZone') → null` plus the verified function body
+  instead. **Do not test a swallow-the-error path by planting the error in the
+  only production row.**
+- Tried to close the two secret items and could not. Deleting the leaked Resend
+  `Onboarding` key needs the Resend dashboard, and rotating the `service_role`
+  key needs the Supabase dashboard; neither is reachable from the MCP surface
+  or the CLI. Moving the key into Vault *is* reachable, but it rewrites the
+  live cron command without fixing the leak — the key stays the leaked one
+  until it is rotated — so it was left for Noel rather than done half.
+
+**Open**
+- **Push has never been seen delivering off the new table.** Everything below
+  the wire is verified and nothing above it is. `0006` — dropping
+  `user_settings.push_subscription` — waits on that, by design.
+- **The deployed frontend has been calling objects that did not exist.**
+  `origin/master` contains `5b85bbd`, whose `settings.store.ts` calls
+  `register_push_subscription` and `from('push_subscriptions')`. Neither existed
+  in live until today, so enabling reminders in the production app has been
+  broken since that deploy. Inferred from the code against the schema, not
+  observed — nobody appears to have tried, and the logs do not retain that far.
+  It works now.
+- The 6 Sep entry called the hotfix **version 10**. The platform reports the
+  pre-deploy function as **version 12** and the new one as 13. The *content*
+  that entry described was right; the version number was not. Do not use "v10"
+  as a landmark.
+- **Delete the `Onboarding` key in Resend** (`re_71wWo2wk…`) — still live, still
+  leaked, still depended on by nothing.
+- **`service_role` is still plaintext in `cron.job.command`** (blocker 4), and
+  leaked-password protection is still off (blocker 5). Both are dashboard
+  toggles and both are what is left of Gate 0.
+- PWA on the phone is still the old origin.
+
+**Next**
+Reinstall the PWA on the new origin, sign in, enable reminders, and set a task
+for two minutes out. That one pass registers a row through
+`register_push_subscription`, proves the per-device fan-out in `runReminders`,
+and is the only thing standing between here and `0006`.
+
+**Touched** — `supabase/functions/notify/index.ts`, `BUILD-PLAN.md`,
+`docs/SESSIONS.md`, live: migration `20260911074356`, edge function `notify` v13
+
 ## 2026-09-06 · claude-code · digest delivery, key rotation, retry fix deployed
 
 **Did**
