@@ -199,7 +199,9 @@ themes. Never redefine one per theme: half the app reads `brand-600` to mean
 **`bg-white` is not a token and cannot flip.** It is a Tailwind built-in
 resolving to `#fff`. There were 58 literal `white` call sites before dark mode
 and migrating them was most of the work. The survivors are on `welcome` and
-`login`, which sit on a deliberately dark backdrop in *both* themes.
+`login`, which sat on a deliberately dark backdrop in *both* themes. **That is
+being retired by the paper retheme** (`docs/RETHEME-PLAN.md`, Phases 5 and 6):
+both pages move onto the semantic tokens and follow the theme.
 
 The rule underneath all of it: **content is the brightest surface, chrome
 recedes behind it, overlays separate from both.** How that is expressed
@@ -224,7 +226,31 @@ Both are `bg-surface` / `bg-hover` / `bg-surface-raised` at the call site.
 
 Green and red are reserved. Green means completed, red means overdue or
 badly avoided. Nothing else may use them, or they stop carrying meaning.
-Everything else comes from the `ink` and `brand` scales in `src/styles.css`.
+Everything else comes from the `ink`, `brand` and `pen` scales in `src/styles.css`.
+
+**Brand is coral and coral is a fill, never text.** `brand-500` is `#EC7F72`.
+It is for the icon and for primary action fills, written
+`bg-brand-500 hover:bg-brand-600 text-on-brand`. It fails AA as a text colour
+(4.21:1) and it is a neighbour of the reserved red, so it never appears as text,
+a border, a badge or anything that signals state.
+
+**`pen-*` is what gets read.** Links, icon buttons, checkbox borders, the
+carried stamp and the focus ring use the blue-black pen scale through
+`text-pen-text`, `bg-pen-tint`, `text-on-pen-tint`. This is the job `brand-text`
+used to do. `brand-text` survives only until Phase 2 of the retheme moves its
+call sites, and must not be used in new code.
+
+**`on-brand` is dark ink, in both themes.** White on coral is 2.68:1. Text on a
+green or red fill uses **`on-status`**, which is white in both themes. Do not use
+`on-brand` on a status fill or the tick on a completed checkbox goes dark.
+
+Colours also live outside the stylesheet in a few places that cannot read a
+token: `public/icon.svg`, `public/manifest.webmanifest`, the `theme-color` meta
+and pre-paint script in `src/index.html`, `core/theme.ts`, and the digest email
+in `supabase/functions/notify/index.ts`. A palette change has to visit them.
+
+`node tools/contrast-check.mjs` re-measures the text pairs in both themes. Run
+it after touching any colour token.
 
 - **Only shades declared in `@theme` exist.** Writing `text-ink-800` emits no
   CSS and fails silently — the element just inherits. Eleven elements were
@@ -316,7 +342,19 @@ visual pass, not a thing to change one call site at a time.
 
 ## Typeface
 
-**No webfont, anywhere, deliberately.** `--font-sans` is a system stack. The
+**One display face, self-hosted, and nothing else.** Decided 17 Sep, reversing
+"no webfont anywhere" (BUILD-PLAN §9, "The paper retheme"). Fraunces, as a
+Latin-subset variable `woff2` in `public/fonts/`, `font-display: swap`,
+prefetched by the service worker, exposed as `--font-display` with a system
+serif fallback. It lands in Phase 4 of `docs/RETHEME-PLAN.md`; until then
+nothing is loaded. It may be used on the welcome page, the login lockup line,
+`text-display` page titles, `text-display-lg` figures and the date header on
+Today, and nowhere else. **Never load a font from a third-party host at
+runtime**, and never block first paint on one.
+
+All UI text stays on the system stack, for the original reasons, which follow.
+
+**No webfont for UI text, deliberately.** `--font-sans` is a system stack. The
 theme named Inter for months without ever loading it, so every screen ever
 reviewed was already rendering in `system-ui`; the stack now says so on
 purpose rather than by accident. A PWA that has to work offline should not have

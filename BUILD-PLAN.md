@@ -111,6 +111,7 @@ its own entry. §14 for the whole domain and email setup.
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **in progress, started 17 Sep.** Plan, tokens, contrast numbers and copy deck live in [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md). Phases 0 and 1 of that plan (decisions recorded, tokens in `src/styles.css`) are on branch `retheme/paper`. |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -363,6 +364,14 @@ multi-tenancy.
   2 Sep unverified because a second account was not to hand. **That, not the
   offline queue, is now the highest-value thing to cover**, and it is Phase 7's
   Gate 1.
+
+### Phase 9, the paper retheme: in progress, 17 Sep
+
+The working plan is [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md), not this
+section. It holds the token tables, the measured contrast, the call-site audit,
+the eight phases and the copy deck. This file records only that the work exists,
+its state (§3), and the decisions it reversed (§5.4, §9). When the last phase
+ships, the outcome is summarised in §9 and the plan file is frozen.
 
 ### Not phased, needed before daily use
 
@@ -927,8 +936,17 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
   `quick`, violet is `deep`, plus the brand — five semantic hues in a list app.
   Any new colour has to displace one, and `quick`/`deep` are the candidates,
   being a duration property rather than a status.
-- **The brand is `#6366f1`**, which is Tailwind's unmodified `indigo-500`.
-  Noted so it is a choice next time rather than a default.
+- ~~**The brand is `#6366f1`**, which is Tailwind's unmodified `indigo-500`.
+  Noted so it is a choice next time rather than a default.~~ **Superseded
+  17 Sep.** It became a choice: **the brand is coral, `#EC7F72`**, on warm paper
+  surfaces, with a blue-black "pen" (`#27356B`) for everything that has to be
+  read. Coral is a fill for the icon and primary actions and is never text,
+  because it fails AA as text (4.21:1) and sits next to the reserved overdue red.
+  Overdue red moved toward crimson to keep the two apart. See §9, "The paper
+  retheme", and `docs/RETHEME-PLAN.md`.
+- **The direction is "Paper and biro".** A daybook is a paper book with one page
+  per day, so the look comes from the name: paper sheet, desk, ink, stamps for
+  the carried count. Playful through motion and copy, not through cartoon.
 - **The spacing, radius and type scales are now fixed** and are the substrate
   the visual pass paints on: three radii, seven type steps, six spacing steps.
   Declared in `@theme` in `src/styles.css`, ruled in `AGENTS.md`, adapted from
@@ -1686,6 +1704,8 @@ mid-flight, and a card that clipped it would cut it in half. **That makes the
 any card padding or row height in that component and the keyframe changes with
 it.
 
+**Reversed 17 Sep, see "The paper retheme" below.** One self-hosted display face is now allowed. The original reasoning is kept because its constraint still holds: nothing may block on a font request.
+
 **No webfont anywhere, including the marketing page.** A landing page that
 blocks on a font request is a landing page nobody waits for. The type
 personality comes from the scale — a very tight display size against very
@@ -2278,6 +2298,45 @@ started and abandoned: `execute_sql` gives no guarantee an explicit
 was proved instead from `daybook_local_now('Not/AZone') → null` plus a verified
 function body. **A test whose failure mode is the bug it is testing for is not
 worth running on production.**
+
+### The paper retheme, 17 Sep
+
+Noel found the welcome hero bland and opened the door to a retheme. Three
+directions were sketched (paper and biro, sticker sheet, first light) and
+**paper and biro was chosen**, then coral was chosen over ink, blue-black and
+plum for the brand after the first mockup's cobalt icon clashed with the cream
+desk. The full plan is `docs/RETHEME-PLAN.md`. Four earlier decisions were
+reversed, on purpose:
+
+- **The brand colour.** `#6366f1` was a default, not a choice (§5.4). Coral
+  `#EC7F72` is the choice. It cannot carry white text (2.68:1) or work as text
+  itself (4.21:1 on the paper surface), so the single `brand` role split in two:
+  **coral is the fill** for the icon and primary actions with dark ink on it, and
+  **a blue-black `pen-*` scale is the text**: links, checkbox borders, focus
+  rings, the carried stamp. `brand-text` is retired once the call sites move.
+- **`on-brand` is no longer white in both themes.** It is dark ink in both,
+  because the coral under it does not move. The three places that used
+  `text-on-brand` on a green or red fill get a new `on-status` token that stays
+  white. `on-status` lands before `on-brand` flips so nothing goes dark-on-green.
+- **No webfont, anywhere.** One display face, Fraunces, self-hosted, subset,
+  `font-display: swap`, prefetched by the service worker, with a system serif
+  fallback designed in. Welcome, login and app page titles only. UI text stays
+  on the system stack. The original objection was blocking on a network font in
+  an offline PWA; none of that happens with a precached local file.
+- **Welcome and login are no longer dark in both themes.** They were a poster on
+  an ink field. They become paper in light and a night desk in dark and follow
+  the theme like every other page.
+
+What did not change: green means done and red means overdue, palette values are
+identical in both themes and only semantic tokens move, and the spacing, radius,
+type-step and weight scales are untouched. `ink-*` kept its name, which suits
+the theme better than it suited the old one, and its values warmed up.
+
+The hero stops being an animation you watch and becomes a page you use: the
+real `parse-capture`, tickable tasks, and a "Flip to tomorrow" control that
+carries the unticked ones over with their count. Nothing is saved. Carrying the
+typed tasks into the account after sign-in ("Keep this page") was considered and
+left out of this pass.
 
 ## 11. Backlog
 
