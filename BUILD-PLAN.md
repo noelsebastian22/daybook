@@ -924,7 +924,11 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
   means overdue or badly avoided. Nothing else may use them, or they stop
   carrying meaning. Everything else comes from the `ink` and `brand` scales in
   `src/styles.css`.
-- Strong hero section on the landing / marketing view.
+- ~~Strong hero section on the landing / marketing view.~~ **Done 17 Sep, and it
+  is not a picture.** The hero is `features/welcome/try-page.ts`: a working
+  Daybook page running the real `parseCapture`, which you can type into, tick
+  off and turn over before you have an account. Nothing is persisted. It
+  replaced a looping CSS animation of the same argument.
 - Visually rich dashboard.
 - Premium-feeling login screen with Google sign-in.
 - AI-generated illustrations for the hero and empty states. **Superseded** —
@@ -951,7 +955,12 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
   the visual pass paints on: three radii, seven type steps, six spacing steps.
   Declared in `@theme` in `src/styles.css`, ruled in `AGENTS.md`, adapted from
   Doist's published tokens (§9, 25 Aug). Colour was deliberately left
-  untouched — it is the half of the look Noel is bringing references for.
+  untouched at that point — it was the half of the look Noel was bringing
+  references for, and it landed on 17 Sep as the paper retheme.
+- **One display face, and it is the only webfont.** Fraunces, self-hosted,
+  Latin-subset, 39.9 kB, on welcome, the login lockup, the wordmark,
+  `text-display` titles, `text-display-lg` figures and Today's date header.
+  UI text stays on the system stack. See `AGENTS.md`, Typeface.
 
 ### 5.5 Capture syntax
 

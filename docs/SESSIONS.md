@@ -13,6 +13,9 @@ it turned out wrong, say so in a new one.
 
 ## 2026-09-17 · claude-code · retheme phases 4 to 8, decisions closed
 
+_Ran past midnight; the branch push landed early on 18 Sep. Every decision in
+`BUILD-PLAN.md` and `RETHEME-PLAN.md` is stamped 17 Sep, which is when it was made._
+
 **Did**
 - Finished Phase 3: `notify/index.ts` hexes to `#1f1b16`/`#6b6353`/`#a3122f`
   (green unchanged), subject to `Daybook: `, eyebrow de-shouted. Own commit,
@@ -33,8 +36,16 @@ it turned out wrong, say so in a new one.
 - Acted on the Phase 7 audit: stale pre-D5 green in `empty-state.html`, new
   `--color-scrim`, six `opacity`-as-disabled sites, seven banned uppercase
   eyebrows, two em dashes, reporting's carried badge, the emoji alarm clock.
+- **Reviewed all eight signed-in screens in both themes** — today, upcoming,
+  calendar, day detail, task detail, reporting, settings, drawer — plus the
+  composer's parsed chips and both states of its Save button. Nothing is signed
+  in here, so `Supabase` was swapped for canned rows at bootstrap behind a
+  `?harness` flag; scaffolding deleted afterwards. See **Decided**.
+- Pushed `retheme/paper` to origin at Noel's choice (preview, not production).
+  `master` untouched.
 - 697 tests / 38 files, build **436.61 kB** initial (107.37 kB transfer), styles
   42.66 kB, `contrast-check` green with `KNOWN_GAPS` **empty** for the first time.
+  Schema untouched, so `list_migrations` was not run.
 - `_to_delete/` no longer exists. Nothing to clean.
 
 **Decided**
