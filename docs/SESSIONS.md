@@ -83,21 +83,29 @@ it turned out wrong, say so in a new one.
   caught a real defect the eye would not have: the task name rendered at **0px**.
 
 **Open**
-- **Nothing is deployed.** Front end and `notify` are both committed and both
-  unpushed; `notify` is its own deploy and wants a test digest.
-- Installed-PWA check outstanding: status bar, safe areas, no white flash,
-  offline load with the font, coral icon after a reinstall.
+- **`retheme/paper` is pushed; `master` is untouched and nothing is in
+  production.** Noel chose a preview build over shipping, so Vercel should have
+  a preview URL for the branch. Merging is a clean fast-forward, 17 commits.
+- **`master` is 2 commits ahead of `origin/master`, and has been since before
+  this session** — `1fcf2b8` and `4149347`, the digest delivery and key
+  rotation work. Nobody pushed them. They will go up with the retheme merge, so
+  look at them before pushing master rather than being surprised by them.
+- **`notify` is committed and not deployed.** Its own deploy step, and it wants
+  a test digest afterwards. The live digest still sends the old indigo hexes
+  and the em-dash subject until then.
+- Installed-PWA check outstanding, and it is the reason for the preview: status
+  bar, safe areas, no white flash, offline load with the font, coral icon after
+  a reinstall. Needs a real HTTPS URL and a real phone.
 - `AGENTS.md` now admits 41 fractional spacing steps survive in `src/app`, where
   it used to claim they were gone. Migrating them is its own piece of work.
 - `src/testing/fakes.ts:76` still seeds a category colour of `#6366f1`, the
   retired brand indigo. Harmless test data, but confusing to read.
 
 **Next**
-- Decide how this branch lands: merge `retheme/paper` to `master`, then deploy
-  the front end, and deploy `notify` separately with a test digest. Nothing is
-  pushed. The only verification left that needs hardware is the installed PWA —
-  status bar, safe areas, no white flash, offline load with the font, and the
-  coral icon after a reinstall.
+- Install the Vercel preview of `retheme/paper` on the iPhone and do the PWA
+  check. If it holds up: fast-forward `master`, push (taking the two older
+  commits with it), then `supabase functions deploy notify` and send a test
+  digest to confirm the new ink and crimson.
 
 **Touched** — `tools/build-font.sh`, `tools/build-notes.sh`, `tools/contrast-check.mjs`,
 `public/fonts/*`, `src/styles.css`, `ngsw-config.json`,
