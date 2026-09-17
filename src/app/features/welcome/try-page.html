@@ -1,0 +1,188 @@
+<!--
+  A real page, on paper, that works before you have an account.
+
+  Everything here is a real control: a `form` that submits, `button`s that
+  are buttons, a `label` bound to the input. The old hero was a looping
+  animation with `role="img"` and one long `aria-label` describing it,
+  which was the right call for a picture. This is not a picture, so it is
+  built to be used with a keyboard and read by a screen reader instead.
+
+  The rows are ruled with a bottom border rather than a background
+  gradient, so the ruling survives a row being added or removed and never
+  drifts out of step with the text sitting on it.
+-->
+<div class="rounded-panel bg-surface p-4 shadow-xl ring-1 ring-border sm:p-6">
+  <!-- the page's own header: what day this is, and where it falls in the year -->
+  <div class="flex items-baseline justify-between gap-3 border-b border-border-strong pb-3">
+    <p class="font-display text-subtitle font-semibold">{{ dateLine() }}</p>
+    <p class="shrink-0 text-caption text-text-subtle">
+      page {{ pageNumber() }} of {{ pageTotal() }}
+    </p>
+  </div>
+
+  @if (isEmpty()) {
+    <p class="py-8 text-center text-body text-text-subtle">Clean page. Nothing came with you.</p>
+  } @else {
+    <ul class="mb-3">
+      @for (t of tasks(); track t.id) {
+        <li
+          class="flex items-center gap-3 border-b border-border-soft py-3"
+          [style.view-transition-name]="'try-task-' + t.id"
+        >
+          <!--
+            A real toggle, not a checkbox input: it carries `aria-pressed`,
+            which is what the app's own task rows use, and it keeps the tick
+            and the strike-through on one control.
+          -->
+          <button
+            type="button"
+            class="grid h-5 w-5 shrink-0 place-items-center rounded-control border-2 transition"
+            [class]="
+              t.done
+                ? 'border-done-500 bg-done-500 text-on-status'
+                : 'border-border-strong hover:border-pen-500'
+            "
+            [attr.aria-pressed]="t.done"
+            [attr.aria-label]="t.done ? 'Untick ' + t.text : 'Tick off ' + t.text"
+            (click)="toggle(t.id)"
+          >
+            @if (t.done) {
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3.5"
+                class="h-3 w-3"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12.5 10 16.5 18 8" />
+              </svg>
+            }
+          </button>
+
+          <span
+            class="min-w-0 flex-1 truncate text-task"
+            [class]="t.done ? 'text-text-subtle line-through' : ''"
+          >
+            {{ t.text }}
+          </span>
+
+          @if (t.category) {
+            <span class="shrink-0 rounded-control bg-fill px-2 py-0.5 text-caption text-text-muted">
+              #{{ t.category }}
+            </span>
+          }
+          @if (t.energy) {
+            <span
+              class="shrink-0 rounded-control px-2 py-0.5 text-caption"
+              [class]="
+                t.energy === 'quick'
+                  ? 'bg-quick-tint text-on-quick-tint'
+                  : 'bg-deep-tint text-on-deep-tint'
+              "
+            >
+              !{{ t.energy }}
+            </span>
+          }
+
+          @if (t.carried > 0) {
+            <!--
+              The carried stamp. Pen outline and a slight tilt, like something
+              stamped on the page by hand — the tilt is decoration and the
+              count stays level enough to read.
+            -->
+            <span
+              class="shrink-0 -rotate-2 rounded-control border border-pen-text px-2 py-0.5 text-caption font-medium text-pen-text"
+            >
+              carried &times;{{ t.carried }}
+            </span>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  <!--
+    The notes. Decoration: each one points at something the page already
+    states in real text, so they are aria-hidden and a screen reader is not
+    read a second copy of it in a handwriting font.
+  -->
+  @if (!flipped() && anyCarried()) {
+    <p class="-mt-1 mb-3 flex justify-end pr-1" aria-hidden="true">
+      <svg
+        [attr.viewBox]="carriedNote.viewBox"
+        class="h-5 w-auto text-pen-text opacity-80"
+        fill="currentColor"
+      >
+        <path [attr.d]="carriedNote.path" />
+      </svg>
+    </p>
+  }
+  @if (flipped() && anyCarried()) {
+    <p class="-mt-1 mb-3 flex justify-end pr-1" aria-hidden="true">
+      <svg
+        [attr.viewBox]="flippedNote.viewBox"
+        class="h-5 w-auto text-pen-text opacity-80"
+        fill="currentColor"
+      >
+        <path [attr.d]="flippedNote.path" />
+      </svg>
+    </p>
+  }
+
+  <form (ngSubmit)="add()">
+    <label class="block text-body font-medium text-text-muted" for="try-input">
+      Add something. Type it the way you'd say it.
+    </label>
+    <div class="mt-2 flex gap-2">
+      <input
+        id="try-input"
+        type="text"
+        name="try-input"
+        autocomplete="off"
+        placeholder="water the plants 5pm #home"
+        class="min-w-0 flex-1 rounded-card border border-border-strong bg-surface px-3 py-2 text-body outline-none focus:border-pen-500 focus:ring-2 focus:ring-pen-tint-strong"
+        [(ngModel)]="draft"
+      />
+      <button
+        type="submit"
+        class="shrink-0 rounded-card bg-brand-500 px-4 py-2 text-body font-medium text-on-brand transition hover:bg-brand-600"
+      >
+        Add
+      </button>
+    </div>
+  </form>
+
+  <!--
+    One line, always in the DOM so the live region exists before it has
+    anything to announce, and `min-h` so a message appearing does not shove
+    the button down the page.
+  -->
+  <p class="mt-3 min-h-5 text-caption text-text-subtle" aria-live="polite">
+    @if (message()) {
+      {{ message() }}
+    } @else if (!flipped()) {
+      Leave one unticked, then turn the page.
+    }
+  </p>
+
+  <div class="mt-3 flex justify-end">
+    @if (flipped()) {
+      <button
+        type="button"
+        class="rounded-card border border-border-strong px-4 py-2 text-body font-medium text-pen-text transition hover:bg-hover"
+        (click)="back()"
+      >
+        Back to today
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="rounded-card border border-border-strong px-4 py-2 text-body font-medium text-pen-text transition hover:bg-hover"
+        (click)="flip()"
+      >
+        Flip to tomorrow
+      </button>
+    }
+  </div>
+</div>

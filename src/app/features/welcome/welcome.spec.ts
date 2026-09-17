@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { render, type Rendered } from '../../../testing/render';
 import { Welcome } from './welcome';
@@ -11,12 +11,16 @@ import { Welcome } from './welcome';
  * that has to be rewritten every time the page is redesigned.
  *
  * What is worth locking in is the accessibility contract, because it is the
- * part a redesign silently breaks. The hero animation is an *argument* — a
- * task lifting off yesterday's page onto today's with its count ticking over —
- * and it is the one thing about Daybook no other list app does. It carries one
- * `role="img"` and one label that states the argument; the eight cards and
- * rows it is drawn from are furniture and are hidden. Reading them out one by
- * one would say nothing at all.
+ * part a redesign silently breaks — and this page has just proved that, by
+ * being redesigned. The old hero was a looping animation carrying one
+ * `role="img"` and one label that stated its argument. It is now a real,
+ * usable page (`try-page.ts`), so the contract inverts: the interactive
+ * demo must be reachable as controls, and the decorative handwriting that
+ * sits beside it must NOT be, because everything it says is already said in
+ * real text.
+ *
+ * `try-page.spec.ts` covers what the demo actually does. This file only
+ * checks that the page frames it correctly.
  */
 
 async function renderWelcome(): Promise<Rendered<Welcome>> {
@@ -25,43 +29,71 @@ async function renderWelcome(): Promise<Rendered<Welcome>> {
 
 describe('Welcome', () => {
   beforeEach(() => {
+    // The hero renders a live date. Pin the clock so "page N of 365" and the
+    // date line cannot make this suite depend on the day it is run.
+    //
+    // `toFake: ['Date']` and not the full timer set: the app is zoneless, so
+    // `render()` waits on `fixture.whenStable()`, and faking the timers it is
+    // waiting on hangs the spec rather than failing it.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 17, 9, 0, 0));
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('makes one claim, as the page’s only first-level heading', async () => {
     const page = await renderWelcome();
 
     expect(page.queryAll('h1')).toHaveLength(1);
-    expect(page.query('h1')?.textContent).toContain('comes with you');
+    expect(page.query('h1')?.textContent).toContain('Leftovers included');
   });
 
-  it('states the carry-over in words as well as in motion', async () => {
+  it('puts a usable page in the hero, not a picture of one', async () => {
     const page = await renderWelcome();
-    const illustration = page.query('[role="img"]');
 
-    expect(page.queryAll('[role="img"]')).toHaveLength(1);
-    expect(illustration?.getAttribute('aria-label')).toContain('carried count');
+    // The demo is real controls. If someone replaces it with an illustration
+    // again, this is the line that should stop them.
+    expect(page.query('app-try-page')).not.toBeNull();
+    expect(page.queryAll('[role="img"]')).toHaveLength(0);
+    expect(page.query('app-try-page input')).not.toBeNull();
   });
 
-  it('hides the shapes the illustration is drawn from, rather than labelling each one', async () => {
+  it('hides the handwritten notes from assistive technology', async () => {
     const page = await renderWelcome();
-    const illustration = page.query('[role="img"]') as HTMLElement;
 
-    const exposed = Array.from(illustration.children).filter(
-      (child) => child.getAttribute('aria-hidden') !== 'true',
-    );
-
-    expect(exposed).toEqual([]);
+    // They are decoration: each one restates something the page already says
+    // in real text, so reading them aloud would say it twice.
+    const notes = page.queryAll('svg path[d]');
+    expect(notes.length).toBeGreaterThan(0);
+    for (const note of notes) {
+      expect(note.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
   });
 
   it('sends every route out of the page to the same door', async () => {
     const page = await renderWelcome();
-    const links = page.queryAll('a').map((a) => a.getAttribute('href'));
+    const routed = page
+      .queryAll('a')
+      .map((a) => a.getAttribute('href'))
+      .filter((href) => !href?.startsWith('#'));
 
-    expect(links.every((href) => href === '/login')).toBe(true);
+    expect(routed.every((href) => href === '/login')).toBe(true);
     // One in the header for someone who already has an account, one in the
     // hero and one at the close for someone who does not.
-    expect(links).toHaveLength(3);
+    expect(routed).toHaveLength(3);
+  });
+
+  it('points its one in-page link at a section that exists', async () => {
+    const page = await renderWelcome();
+    const jump = page.queryAll('a').find((a) => a.getAttribute('href')?.startsWith('#'));
+
+    // A "See how it works" link that scrolls nowhere is worse than no link.
+    const target = jump?.getAttribute('href')?.slice(1);
+    expect(target).toBeTruthy();
+    expect(page.query(`#${target}`)).not.toBeNull();
   });
 
   it('offers a way in before the page has been read, not only after it', async () => {

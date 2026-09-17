@@ -1,29 +1,27 @@
 <!--
-  Two halves, and only one of them is a page.
+  A desk with paper on it.
 
-  The hero and the closer are a poster: an ink field with white type, the
-  same field /login wears, and they stay literal in both themes. Making
-  the dark half lighter after dark would not be the same design at a
-  different brightness, it would be a second design.
+  The page is `surface-sunken` — the desk — and everything that carries
+  content is a sheet laid on top of it. That is the same rule the signed-in
+  app follows, which is the point: arriving at /login and then at /today
+  should feel like walking further into one building.
 
-  The mechanics band in the middle is the app being demonstrated, so it is
-  painted from the same semantic tokens the app is — a sunken band with
-  raised cards on it — and it turns over with everything else.
+  The always-dark poster this page used to be is gone (RETHEME-PLAN §1,
+  reversal 3). It was an ink field with literal white type that stayed dark
+  in both themes, and it made the marketing page and the app look like two
+  products. Everything here is on the semantic tokens now and turns over
+  with the theme like every other screen.
+
+  This page keeps its exemption from the UI type scale, and it is still the
+  only one — see the header comment in welcome.ts for which three sites use
+  it and why.
 -->
-<div class="min-h-dvh bg-ink-900 text-white">
-  <!-- ---------------------------------------------------------------- -->
-  <header class="safe-py-5 mx-auto flex max-w-5xl items-center justify-between px-5">
-    <!--
-      The one lockup, from shared/brand. It used to be the mark beside the
-      word "Daybook" set as body text, which is a lockup redrawn by hand on
-      the one page whose whole job is to present the brand. It also sits
-      larger here than it would in the app's chrome: this is the header of a
-      poster, not a nav bar.
-    -->
-    <app-logo variant="lockup" tone="light" [size]="32" />
+<div class="min-h-dvh bg-surface-sunken text-text">
+  <header class="safe-py-6 mx-auto flex max-w-5xl items-center justify-between px-4">
+    <app-logo variant="lockup" tone="primary" [size]="44" />
     <a
       routerLink="/login"
-      class="rounded-card px-3.5 py-2 text-body font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+      class="rounded-card px-3 py-2 text-body font-medium text-pen-text transition hover:bg-hover"
     >
       Sign in
     </a>
@@ -31,95 +29,84 @@
 
   <main>
     <!-- hero ------------------------------------------------------------ -->
-    <section class="mx-auto max-w-5xl px-5 pb-20 pt-10 lg:pt-20">
-      <div class="grid items-center gap-14 lg:grid-cols-[1fr_340px] lg:gap-20">
+    <section class="mx-auto max-w-5xl px-4 pb-20 pt-6 lg:pt-16">
+      <div class="grid items-center gap-12 lg:grid-cols-[1fr_420px] lg:gap-16">
         <div>
-          <p class="text-caption font-semibold uppercase tracking-[0.2em] text-brand-100/60">
-            One page per day
-          </p>
-
           <h1
-            class="mt-5 text-balance text-[2.75rem] font-semibold leading-[1.03] tracking-[-0.03em] sm:text-6xl"
+            class="text-balance font-display text-[2.75rem] font-semibold leading-[1.05] sm:text-6xl"
           >
-            Whatever you don't finish
-            <span class="text-brand-100">comes with you.</span>
+            One page a day. Leftovers included.
           </h1>
 
-          <p class="mt-6 max-w-md text-pretty text-lg leading-relaxed text-white/70">
-            Unfinished tasks roll to tomorrow on their own. Daybook keeps count of how many times,
-            so the thing you have been avoiding since Tuesday cannot hide in a list any more.
+          <p class="mt-6 max-w-md text-pretty text-lg leading-relaxed text-text-muted">
+            Whatever you don't tick off turns up on tomorrow's page, with a count of how many times
+            it's tagged along. Call physio, carried &times;4. You'll get to it.
           </p>
 
-          <div class="mt-9 flex flex-wrap items-center gap-3">
+          <div class="mt-8 flex flex-wrap items-center gap-4">
             <a
               routerLink="/login"
-              class="rounded-card bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
+              class="rounded-card bg-brand-500 px-6 py-3 font-medium text-on-brand transition hover:bg-brand-600"
             >
-              Start today
+              Start today's page
             </a>
-            <span class="text-body text-white/60">Free. Google sign-in or an emailed link.</span>
+            <!--
+              A plain fragment href, not a routerLink. RouterLink would push a
+              navigation for what is a jump down the same page; the browser
+              does this natively and correctly, including for a middle click.
+            -->
+            <a
+              href="#how"
+              class="rounded-card px-3 py-2 font-medium text-pen-text underline-offset-4 transition hover:underline"
+            >
+              See how it works
+            </a>
           </div>
+
+          <p class="mt-4 text-body text-text-subtle">
+            Free. Sign in with Google or an email link. No password to forget.
+          </p>
         </div>
 
         <!--
-        The signature. Fixed geometry, because the row's travel distance is
-        the difference between two hard-coded slot positions — see the
-        carry keyframes. role="img" with a label, because the animation
-        is the argument and a screen reader should get the argument, not
-        eight scattered words of card furniture.
-      -->
-        <div
-          class="stack mx-auto w-full max-w-[320px]"
-          role="img"
-          aria-label="A task called call physio moves from Tuesday's page to Wednesday's, and its carried count goes from one to two."
-        >
-          <div class="card" aria-hidden="true">
-            <p class="card-date">Tue 19</p>
-            <div class="row row--done">
-              <span class="tickbox"
-                ><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M6 12.5 10 16.5 18 8"
-                  /></svg
-              ></span>
-              <span class="row-text">pay rent</span>
-            </div>
-            <div class="row-gap"></div>
-          </div>
+          The hero is the product, running. Not a picture of it and not a
+          looping animation of it — see try-page.ts for why that swap was
+          worth the component.
+        -->
+        <app-try-page />
+      </div>
+    </section>
 
-          <div class="card card--today" aria-hidden="true">
-            <p class="card-date">Wed 20</p>
-            <div class="slot"></div>
-            <div class="row">
-              <span class="checkbox"></span>
-              <span class="row-text">book flights</span>
-            </div>
-          </div>
-
-          <!-- the one that travels -->
-          <div class="flyer row" aria-hidden="true">
-            <span class="checkbox"></span>
-            <span class="row-text">call physio</span>
-            <span class="badge">
-              <span class="badge-one">carried &times;1</span>
-              <span class="badge-two">carried &times;2</span>
-            </span>
-          </div>
+    <!-- value props ------------------------------------------------------ -->
+    <section class="mx-auto max-w-5xl px-4 pb-20">
+      <div class="grid gap-8 sm:grid-cols-3">
+        <div>
+          <h2 class="font-display text-header font-semibold">Type it like you'd say it.</h2>
+          <p class="mt-2 text-body text-text-muted">
+            "Call physio thursday 2pm" sets the day and the reminder in one line.
+          </p>
+        </div>
+        <div>
+          <h2 class="font-display text-header font-semibold">Leftovers move themselves.</h2>
+          <p class="mt-2 text-body text-text-muted">
+            No dragging things forward at 11pm. Open the app and they're already on today's page.
+          </p>
+        </div>
+        <div>
+          <h2 class="font-display text-header font-semibold">A note every morning.</h2>
+          <p class="mt-2 text-body text-text-muted">
+            What you finished, what came with you, and what today holds. At the hour you pick.
+          </p>
         </div>
       </div>
     </section>
 
     <!-- mechanics -------------------------------------------------------- -->
-    <section class="bg-surface-sunken py-20 text-text">
-      <div class="mx-auto max-w-5xl space-y-16 px-5">
+    <section id="how" class="scroll-mt-8 border-y border-border bg-surface py-20">
+      <div class="mx-auto max-w-5xl space-y-16 px-4">
         <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
           <div>
-            <p class="text-caption font-semibold uppercase tracking-[0.2em] text-text-subtle">
-              Capture
-            </p>
-            <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
+            <h2 class="text-balance font-display text-display font-semibold">
               Type it the way you'd say it
             </h2>
             <p class="mt-3 text-text-muted">
@@ -127,64 +114,59 @@
               up as you type, so you can see what Daybook understood before you commit.
             </p>
           </div>
-          <div class="self-center rounded-panel bg-surface-raised p-5 shadow-sm ring-1 ring-border">
+          <div class="self-center rounded-panel bg-surface-raised p-6 shadow-sm ring-1 ring-border">
             <p class="text-body text-text-subtle">Add task</p>
             <p class="mt-2 text-subtitle leading-loose">
               call physio
-              <span class="rounded-control bg-brand-tint px-1.5 py-1 text-on-brand-tint"
+              <span class="rounded-control bg-pen-tint px-2 py-1 text-on-pen-tint"
                 >thursday 2pm</span
               >
-              <span class="rounded-control bg-fill px-1.5 py-1 text-text-muted">#health</span>
-              <span class="rounded-control bg-quick-tint px-1.5 py-1 text-on-quick-tint"
-                >!quick</span
-              >
+              <span class="rounded-control bg-fill px-2 py-1 text-text-muted">#health</span>
+              <span class="rounded-control bg-quick-tint px-2 py-1 text-on-quick-tint">!quick</span>
             </p>
             <p class="mt-3 text-body text-text-subtle">
-              Thursday 22 August, 2:00 PM · Health · Quick
+              Thursday 22 August, 2:00 PM &middot; Health &middot; Quick
             </p>
           </div>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
           <div>
-            <p class="text-caption font-semibold uppercase tracking-[0.2em] text-text-subtle">
-              Two kinds of late
-            </p>
-            <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
+            <h2 class="text-balance font-display text-display font-semibold">
               What slipped, and what you moved
             </h2>
             <p class="mt-3 text-text-muted">
-              A task the app carried for you and a task you pushed by hand mean different things, so
-              Daybook counts them separately. One is drift. The other is a decision you made four
-              times.
+              Daybook counts two things separately. Tasks it carried over because you didn't get to
+              them, and tasks you pushed to another day yourself. The first is drift. The second is
+              you deciding, four times, that today isn't the day.
             </p>
           </div>
           <div class="grid gap-3 self-center sm:grid-cols-2">
-            <div class="rounded-panel bg-surface-raised p-5 shadow-sm ring-1 ring-border">
+            <div class="rounded-panel bg-surface-raised p-6 shadow-sm ring-1 ring-border">
               <p class="text-body font-medium">Carried over most</p>
-              <p class="mt-0.5 text-caption text-text-subtle">The app moved these. You did not.</p>
+              <p class="mt-1 text-caption text-text-subtle">The app moved these. You did not.</p>
               <div class="mt-4 flex items-baseline gap-3">
                 <span class="min-w-0 flex-1 truncate text-body">book the dentist</span>
                 <span
-                  class="shrink-0 rounded-full bg-late-tint px-2 py-0.5 text-caption font-medium tabular-nums text-on-late-tint"
+                  class="shrink-0 rounded-full bg-late-tint px-2 py-1 text-caption font-medium text-on-late-tint"
                   >&times;4</span
                 >
               </div>
               <div class="mt-2 flex items-baseline gap-3">
                 <span class="min-w-0 flex-1 truncate text-body">call physio</span>
                 <span
-                  class="shrink-0 rounded-full bg-fill px-2 py-0.5 text-caption font-medium tabular-nums text-text-muted"
+                  class="shrink-0 rounded-full bg-fill px-2 py-1 text-caption font-medium text-text-muted"
                   >&times;2</span
                 >
               </div>
             </div>
-            <div class="rounded-panel bg-surface-raised p-5 shadow-sm ring-1 ring-border">
+            <div class="rounded-panel bg-surface-raised p-6 shadow-sm ring-1 ring-border">
               <p class="text-body font-medium">Pushed most</p>
-              <p class="mt-0.5 text-caption text-text-subtle">These you moved by hand.</p>
+              <p class="mt-1 text-caption text-text-subtle">These you moved by hand.</p>
               <div class="mt-4 flex items-baseline gap-3">
                 <span class="min-w-0 flex-1 truncate text-body">rewrite the invoice</span>
                 <span
-                  class="shrink-0 rounded-full bg-fill px-2 py-0.5 text-caption font-medium tabular-nums text-text-muted"
+                  class="shrink-0 rounded-full bg-fill px-2 py-1 text-caption font-medium text-text-muted"
                   >&times;3</span
                 >
               </div>
@@ -194,10 +176,7 @@
 
         <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
           <div>
-            <p class="text-caption font-semibold uppercase tracking-[0.2em] text-text-subtle">
-              Mornings
-            </p>
-            <h2 class="mt-3 text-balance text-display font-semibold tracking-tight">
+            <h2 class="text-balance font-display text-display font-semibold">
               It writes to you first
             </h2>
             <p class="mt-3 text-text-muted">
@@ -209,22 +188,20 @@
           <div
             class="self-center overflow-hidden rounded-panel bg-surface-raised shadow-sm ring-1 ring-border"
           >
-            <div class="border-b border-border-soft px-5 py-3">
-              <p class="text-body font-medium">Daybook — 3 on today</p>
-              <p class="text-caption text-text-subtle">to you · 7:00 AM</p>
+            <div class="border-b border-border-soft px-6 py-3">
+              <p class="text-body font-medium">Daybook: 3 on today</p>
+              <p class="text-caption text-text-subtle">to you &middot; 7:00 AM</p>
             </div>
-            <div class="space-y-3 px-5 py-4 text-body">
+            <div class="space-y-3 px-6 py-4 text-body">
               <div>
-                <p class="text-caption font-semibold uppercase tracking-wider text-text-subtle">
-                  Yesterday you finished
-                </p>
-                <p class="mt-1 text-done-text">pay rent · 9:14 AM</p>
+                <p class="text-caption font-medium text-text-subtle">Yesterday you finished</p>
+                <p class="mt-1 text-done-text">pay rent &middot; 9:14 AM</p>
               </div>
               <div>
-                <p class="text-caption font-semibold uppercase tracking-wider text-text-subtle">
-                  Came with you
+                <p class="text-caption font-medium text-text-subtle">Came with you</p>
+                <p class="mt-1">
+                  call physio <span class="text-text-subtle">&middot; carried &times;2</span>
                 </p>
-                <p class="mt-1">call physio <span class="text-text-subtle">· carried ×2</span></p>
               </div>
             </div>
           </div>
@@ -233,23 +210,23 @@
     </section>
 
     <!-- close ------------------------------------------------------------ -->
-    <section class="mx-auto max-w-5xl px-5 py-24 text-center">
-      <h2 class="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+    <section class="mx-auto max-w-5xl px-4 py-24 text-center">
+      <h2 class="text-balance font-display text-3xl font-semibold sm:text-4xl">
         Start with one page.
       </h2>
-      <p class="mx-auto mt-4 max-w-sm text-white/60">
-        Tomorrow's page writes itself out of whatever today's still has on it.
+      <p class="mx-auto mt-4 max-w-sm text-text-muted">
+        Tomorrow's writes itself out of whatever today still has on it.
       </p>
       <a
         routerLink="/login"
-        class="mt-8 inline-block rounded-card bg-white px-5 py-3 font-medium text-ink-900 transition hover:bg-brand-50"
+        class="mt-8 inline-block rounded-card bg-brand-500 px-6 py-3 font-medium text-on-brand transition hover:bg-brand-600"
       >
-        Start today
+        Start today's page
       </a>
     </section>
   </main>
 
-  <footer class="safe-pb-8 border-t border-white/10 py-8 text-center text-caption text-white/50">
+  <footer class="safe-pb-8 border-t border-border py-8 text-center text-caption text-text-subtle">
     Daybook
   </footer>
 </div>
