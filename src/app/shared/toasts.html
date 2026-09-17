@@ -24,7 +24,7 @@
     -->
     <div
       class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-card px-4 py-3 text-body shadow-lg"
-      [class]="t.tone === 'error' ? 'bg-late-700 text-on-brand' : 'bg-inverse text-on-inverse'"
+      [class]="t.tone === 'error' ? 'bg-late-700 text-on-status' : 'bg-inverse text-on-inverse'"
     >
       <span class="flex-1">{{ t.message }}</span>
       @if (t.undo) {
@@ -33,7 +33,7 @@
           class="rounded-control px-2 py-1 font-semibold transition"
           [class]="
             t.tone === 'error'
-              ? 'text-brand-100 hover:bg-on-brand/10'
+              ? 'text-on-status hover:bg-on-status/10'
               : 'text-on-inverse-accent hover:bg-on-inverse/10'
           "
           (click)="toasts.runUndo(t)"
@@ -46,7 +46,7 @@
         class="rounded-control px-2 py-1 transition"
         [class]="
           t.tone === 'error'
-            ? 'text-on-brand/60 hover:bg-on-brand/10'
+            ? 'text-on-status/60 hover:bg-on-status/10'
             : 'text-on-inverse/60 hover:bg-on-inverse/10'
         "
         aria-label="Dismiss"

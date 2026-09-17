@@ -1,6 +1,6 @@
 # Daybook retheme plan: Paper and coral
 
-Status: **draft for Noel's review, 17 Sep 2026.** Nothing in the repo has changed yet.
+Status: **approved 17 Sep 2026, in progress on branch `retheme/paper`.** Phases 0 and 1 done 17 Sep. Next: Phase 2.
 
 This file plans one piece of work: moving Daybook from the navy and indigo look to the
 "Paper and coral" theme, and rebuilding the welcome hero. `BUILD-PLAN.md` stays the source of
@@ -184,7 +184,7 @@ Classification rule for the `brand-*` sites, applied one by one in Phase 2:
 
 ## 5. Phases
 
-### Phase 0. Record the decisions
+### Phase 0. Record the decisions (done 17 Sep)
 No code.
 - Create branch `retheme/paper`.
 - `BUILD-PLAN.md`: add a pointer to this file under §4, rewrite §5.4 UI direction, add a §9 entry
@@ -194,7 +194,8 @@ No code.
   display face, where it may be used, UI text stays system).
 - Done when: both files read correctly on their own to an agent who has not seen this chat.
 
-### Phase 1. Tokens
+### Phase 1. Tokens (done 17 Sep)
+Landed as planned, with two additions: the three status-fill call sites moved to `text-on-status` here rather than in Phase 2, because `on-brand` could not flip safely without them, and a `--color-focus` token carries the per-theme focus ring. 680 tests pass, initial bundle 438.94 kB, `tools/contrast-check.mjs` passes with one reported known gap (D5).
 Files: `src/styles.css`, new `tools/contrast-check.mjs`.
 - Replace the palette values and both semantic columns per §3. Add `pen-*`, `on-status`, the
   `pen-*` semantic set. Keep `brand-text` temporarily, pointed at the pen values, so nothing
@@ -345,3 +346,4 @@ uppercase tracked eyebrow labels.
 - **D2. `quick` and `deep`.** Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues. Decide on real screens in Phase 7.
 - **D3. Active nav item.** Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.
 - **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.
+- **D5. The tick on a completed checkbox.** Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph. It was the same before the retheme. Closing it means darkening the reserved green to about `#0E9F6E` (3.4:1), which also moves the heat map and the charts. Listed as a known gap in the script, reported every run, not fatal.
