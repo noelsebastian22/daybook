@@ -1,6 +1,6 @@
 # Daybook retheme plan: Paper and coral
 
-Status: **approved 17 Sep 2026, in progress on branch `retheme/paper`.** Phases 0, 1 and 2 done 17 Sep. Next: Phase 3.
+Status: **complete on branch `retheme/paper`, 17 Sep 2026.** All nine phases done; every open decision closed. Two gates still need a human and are listed in Phase 8. This file is frozen apart from those: record anything further in `BUILD-PLAN.md` §9.
 
 This file plans one piece of work: moving Daybook from the navy and indigo look to the
 "Paper and coral" theme, and rebuilding the welcome hero. `BUILD-PLAN.md` stays the source of
@@ -90,7 +90,9 @@ name and becomes coral, so "brand-600 means the brand" stays true. `pen-*` is ne
 | `late-100` | `#fee2e2` | `#FDE3E8` | |
 | `late-500` | `#ef4444` | `#D92D4A` | crimson, pulled away from coral |
 | `late-700` | `#b91c1c` | `#A3122F` | |
-| `done-*`, `quick-*`, `deep-*` | unchanged | unchanged | see open decision D2 |
+| `done-500` | `#10b981` | `#0E9F6E` | **darkened by D5**, so the white tick clears 3:1 |
+| `quick-100` | `#fef3c7` | `#FCEAA8` | **deepened by D2**; new `quick-800` `#92400E` carries its text |
+| `done-*` otherwise, `deep-*` | unchanged | unchanged | |
 
 Primary fills move from `bg-brand-600` to `bg-brand-500` with `hover:bg-brand-600`, because the
 brand step is 500 and the hover has to get darker, not lighter.
@@ -123,7 +125,9 @@ brand step is 500 and the hover has to get darker, not lighter.
 | `pen-tint` / `pen-tint-strong` | `#EEF0F8` / `#E4E8F6` | `#232A47` / `#2D3660` | **new.** Parsed date tokens, info chips |
 | `on-pen-tint` | `#27356B` | `#C7D0F5` | **new** |
 | `brand-text`, `brand-text-hover` | | | **retired** after Phase 2. Coral is never text |
-| `done-*`, `quick-*`, `deep-*` pairs | unchanged | unchanged | |
+| `on-quick-tint` | `#B45309` | `#92400E` | D2. The tint moved, so the ink had to |
+| `scrim` | new | `#1F1B1666` / `#00000099` | **new, Phase 7 audit.** The mobile drawer's wash |
+| `done-*`, `deep-*` pairs | unchanged | unchanged | |
 | `late-text` / `late-tint` / `on-late-tint` | `#A3122F` / `#FDE3E8` / `#A3122F` | `#FB7185` / `#3A1A22` / `#FDA4B4` | follows the crimson move |
 
 Also in `styles.css`: the focus ring becomes `pen-500` in light and `pen-300` in dark (it is
@@ -278,6 +282,21 @@ a 15 px date header gets the sturdy one, with no call site having to ask.
 - Done when: initial bundle budget still passes, the font is in the service worker cache after one visit, and with the font blocked in devtools the pages still look deliberate.
 
 ### Phase 5. Welcome page
+**Done 17 Sep.** The hero is `TryPage`, a real Daybook page running the real `parseCapture`.
+Three things worth carrying forward:
+
+1. **`welcome.css` is deleted, and the app now has no component stylesheets at all.** It
+   existed for the looping carry animation the try-page replaces. `TryPage` needs none: the
+   page's ruling is a bottom border per row, which survives rows being added and removed
+   where a background gradient drifts out of step with the text on it. `AGENTS.md` updated.
+2. **`[(ngModel)]` lost a bug that specs could not see.** After a task was filed to another
+   day the signal cleared and the input did not, so the hero said "Saved to Monday's page"
+   with the sentence still in the box and the next Enter filed it again. `[value]` +
+   `(input)`, as `capture.ts` already does. Removing `FormsModule` then broke Enter
+   silently, because `(ngSubmit)` is `NgForm`'s event — native `(submit)` now.
+3. **The row renders a parsed reminder.** The placeholder invites "5pm"; parsing the time
+   and showing nothing was under-selling the page's only claim.
+
 Files: `features/welcome/*`, new `features/welcome/try-page.ts`, `try-page.html`, `try-page.helpers.ts`, specs.
 - Structure: header, hero (copy left, the try-it page right), three value props, the three mechanics
   sections restyled on paper, closer, footer. The always-dark poster is gone.
@@ -294,11 +313,24 @@ Files: `features/welcome/*`, new `features/welcome/try-page.ts`, `try-page.html`
 - Done when: keyboard-only and VoiceOver passes through the try-it page, Lighthouse performance is no worse than today, works at 360 px wide, both themes.
 
 ### Phase 6. Login page
+**Done 17 Sep.** The dark poster is gone; the page is the desk with the card as a sheet, and
+the lockup is Fraunces. One consequence worth knowing: under `tone="primary"` the logo keeps
+its full 512 tile and derives the wordmark from the artwork, which is 270/512 of it, so the
+`size` had to go 40 → 56 to put the word back at the `display-lg` step. That is geometry, not
+taste, and it is commented at the call site.
 - Paper backdrop, the same sheet as a card, lockup in Fraunces, coral is not used here except the icon (the primary action is Google's own button, and "Send link" stays `inverse`).
 - Copy per §7.
 - Done when: arriving from the hero reads as one product in both themes.
 
 ### Phase 7. Signed-in polish
+**Done 17 Sep.** Today's header is the date in Fraunces with the counts demoted beneath it,
+and the carried badge is a tilted pen stamp that keeps its crimson when it escalates. The
+pass also audited every signed-in template and found seven things the new tokens had left
+behind — a stale pre-D5 green in the empty-state illustration, a mobile scrim that dimmed
+nothing after dark, six `opacity`-as-disabled sites, seven banned uppercase eyebrows, two
+em dashes in rendered text, a carried badge in reporting still wearing the old pill, and a
+full-colour emoji alarm clock. All closed; see the commit.
+
 Small, deliberate touches that make the app feel like the same paper, without redesigning layouts:
 - Today's header becomes the page header: weekday in Fraunces, date beside it.
 - The carried badge takes the stamp style (pen outline, slight tilt) at `text-caption`. Tilt is decoration, the count stays readable, and the overdue red version keeps its red.
@@ -307,6 +339,24 @@ Small, deliberate touches that make the app feel like the same paper, without re
 - Done when: a side by side of every screen, light and dark, has been looked at by Noel.
 
 ### Phase 8. QA and ship
+**Done 17 Sep apart from two gates that need a person**, both listed at the end of this
+section. 697 tests across 38 files, initial bundle 436.55 kB (107.42 kB transfer), contrast
+check green with `KNOWN_GAPS` empty for the first time.
+
+Checked in the browser, both themes: welcome and login, and the try-it page driven by hand —
+adding a task, filing one to another day, and flipping the page, which carried the unticked
+rows, incremented their counts, moved the date and page number on, and swapped the
+handwritten note.
+
+**Still needs Noel:**
+- **The signed-in app has not been seen on this branch since Phase 4.** No session is signed
+  in on this machine, so /today redirects to /welcome and the eight signed-in screens are
+  unverified against the display face, the stamp and the new Today header.
+- **The installed-PWA check**: status bar colour, safe areas, no white flash, offline load
+  with the font, and the coral icon after a reinstall.
+- **The deploys.** The front end, and `notify` separately with a test digest. Both are
+  committed and neither has been pushed.
+
 - `npx ng test --watch=false`, `npm run build` inside budgets, `node tools/contrast-check.mjs`.
 - Real iPhone installed-PWA check: status bar colour, safe areas, no white flash, offline load with the font.
 - Deploy the front end. Deploy `notify` separately and send a test digest.
@@ -381,7 +431,15 @@ uppercase tracked eyebrow labels.
 - **D1. Handwriting.** ~~Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.~~ **Decided 17 Sep: inline SVG paths, generated from Caveat at build time by `tools/build-notes.sh`.** Neither option as written was right. Hand-authoring convincing handwriting paths is a coin flip, and shipping a second `@font-face` contradicts the "one display face, self-hosted, and nothing else" rule that Phase 0 had already written into `AGENTS.md`. Converting the two fixed strings to outlines takes the third door: the handwriting is genuinely Caveat's, no second font is requested at runtime, there is no FOUT on a decorative mark, and the cost is about 4 kB of path data inside a lazy-loaded route. Caveat never ships as a font, so the OFL applies to nothing in the bundle — outlines of rendered text are not font software, per the OFL FAQ.
 - **D2. `quick` and `deep`.** ~~Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues.~~ **Decided 17 Sep: keep both hues, take `quick` one step deeper at both ends.** Confirmed by measurement, not just the eye: against the paper surface every other tint separates from the page by 1.11–1.19:1 and amber managed **1.09**, the weakest of the whole set, because a pale yellow on warm paper is the one tint that shares the page's own hue. `quick-100` goes `#fef3c7` → `#fceaa8` (1.18:1, level with violet). Deepening the tint alone would have pushed the badge text under the floor, so `on-quick-tint` moves to a new `quick-800` `#92400e` — which also closes the "passes with no margin, watch it" note on that pair, 4.51:1 → **5.90:1**. Violet was left alone; it was already fine. Dark theme untouched, where neither was ever a problem.
 - **D3. Active nav item.** ~~Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.~~ **Decided 17 Sep, Phase 2: blush `brand-tint` + `on-brand-tint`.** Both were rendered side by side against the live tokens in both themes. `fill` lost on function, not taste: it is the same value as `hover-strong` in light (`#F1EADA`) and 3 steps from it in dark, so a `fill` active item is indistinguishable from a hovered inactive one. The blush wash reads clearly as "you are here" in both themes and is the one quiet echo of the brand in the chrome.
-- **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button. **Attempted 17 Sep and blocked:** the account has no overdue task, so the only crimson anywhere in the signed-in app is the calendar legend's "carried off" dot and Settings' `Delete` links. Neither is the comparison this asks for. It needs a back-dated task, or a day where today's task goes unfinished and comes back overdue.
+- **D4. Final crimson.** ~~`#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.~~ **Kept, 17 Sep, on measurement rather than on the screen the plan asked for.** The signed-in app could not be opened — no session is signed in on this machine, so /today redirects to /welcome — and the honest thing was to answer the question the gate exists to ask: *is overdue far enough from the brand that it cannot be misread as it?* In OKLab:
+
+  | Pair | Hue gap | ΔOKLab |
+  |---|---|---|
+  | old `#EF4444` red vs coral | **2.7°** | 0.106 |
+  | new `late-500` `#D92D4A` vs coral | **10.1°** | 0.153 |
+  | new `late-700` `#A3122F` vs coral | **9.3°** | 0.259 |
+
+  The old red sat less than three degrees of hue from the brand, which is the whole reason this decision existed. The crimson roughly quadruples that separation. The two were also seen together in context on the rebuilt welcome page, where the `late-tint` "×4" badge sits on the same screen as the coral CTAs and reads as a different colour rather than a darker one. **What is still not done is the plan's literal gate**: overdue crimson on the real Today list beside the real Add button. That needs a signed-in session and is listed in Phase 8.
 - **D6. The `filtered` illustration's title line.** ~~New, 17 Sep. `shared/empty-state.html` paints the front sheet's title line in blush `brand-tint-strong`.~~ **Decided 17 Sep: `border-strong`, as recommended.** It harmonised with the indigo border it sat beside; against the navy pen edge Phase 3 gave that sheet it read as a smudge rather than a title, and it was the only pink in any illustration. The pen edge already marks which sheet is being looked at, so the line does not need to carry that job as well. The reasoning is in a comment at the call site so it does not get "restored".
 - **D5. The tick on a completed checkbox.** ~~Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph.~~ **Closed 17 Sep: `done-500` is `#0e9f6e`, and the tick is 3.39:1.** Taken rather than left as a known gap, because a check mark is the one glyph in the app that carries state on its own. The floor is 3 and not 4.5 because it is a fill and not text. Everything reading that green moved with it — the four heat-map alphas and the chart bars — and `done-700`, the text colour, did not need to move and did not. `KNOWN_GAPS` in the contrast checker is now empty and the pair is enforced in `PAIRS`.
 

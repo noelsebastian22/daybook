@@ -41,8 +41,10 @@ that symlink is load-bearing. Edit the `.agents/` copy.
 - `inject()`, not constructor parameter injection.
 - **Templates live in a sibling `.html` file**, never inline. `task-row.ts`
   holds the class, `task-row.html` holds the markup, joined by
-  `templateUrl: './task-row.html'`. Same for the one component with styles:
-  `welcome.ts` / `welcome.css` via `styleUrl`.
+  `templateUrl: './task-row.html'`. **No component has a stylesheet.**
+  `welcome.css` was the only one and went with the looping hero animation it
+  existed for; if a component genuinely needs one, it goes in a sibling
+  `.css` via `styleUrl` and the `anyComponentStyle` budget applies.
 
   This retired a footgun rather than a preference. An inline `template:` is a
   template literal, so **a single backtick anywhere inside it — including in an
@@ -130,7 +132,7 @@ One subject, one basename, siblings in the same folder:
 |---|---|
 | `.ts` | the class, and only the class |
 | `.html` | the template |
-| `.css` | component styles — there is exactly one, `welcome.css` |
+| `.css` | component styles — there are none; see the rule above |
 | `.constants.ts` | tuning values, with the comment that explains them |
 | `.data.ts` | static tables and lists |
 | `.helpers.ts` | pure functions, no injection, no clock |
@@ -175,6 +177,12 @@ Rules that come from real failures here:
   clock. `parse-capture.spec.ts` used a `REF` frozen in Aug 2026, so anything
   compared against `today()` could never be equal — a real bug sat under that
   spec, unreachable. Use `vi.useFakeTimers()` + `vi.setSystemTime()`.
+
+  **In a spec that renders a component, fake only the clock:
+  `vi.useFakeTimers({ toFake: ['Date'] })`.** The app is zoneless, so
+  `render()` waits on `fixture.whenStable()` — fake the timers it is waiting
+  on and the spec hangs instead of failing, which costs far more to diagnose
+  than a red test. `today.spec.ts` and `try-page.spec.ts` both do this.
 - **Check your test can fail.** The first replacement for that same bug still
   passed, because the real "today" was a Friday and the phrase said "friday".
   A test that passes either way is worse than no test.
@@ -198,10 +206,10 @@ themes. Never redefine one per theme: half the app reads `brand-600` to mean
 
 **`bg-white` is not a token and cannot flip.** It is a Tailwind built-in
 resolving to `#fff`. There were 58 literal `white` call sites before dark mode
-and migrating them was most of the work. The survivors are on `welcome` and
-`login`, which sat on a deliberately dark backdrop in *both* themes. **That is
-being retired by the paper retheme** (`docs/RETHEME-PLAN.md`, Phases 5 and 6):
-both pages move onto the semantic tokens and follow the theme.
+and migrating them was most of the work. The last survivors were on `welcome`
+and `login`, which sat on a deliberately dark backdrop in *both* themes; the
+paper retheme moved both pages onto the semantic tokens, so **there are now
+none anywhere and a new one is a bug.** Every page follows the theme.
 
 The rule underneath all of it: **content is the brightest surface, chrome
 recedes behind it, overlays separate from both.** How that is expressed
@@ -237,8 +245,18 @@ a border, a badge or anything that signals state.
 **`pen-*` is what gets read.** Links, icon buttons, checkbox borders, the
 carried stamp and the focus ring use the blue-black pen scale through
 `text-pen-text`, `bg-pen-tint`, `text-on-pen-tint`. This is the job `brand-text`
-used to do. `brand-text` survives only until Phase 2 of the retheme moves its
-call sites, and must not be used in new code.
+used to do; `brand-text` is deleted and is not coming back.
+
+**Overlays that dim the page use `bg-scrim`**, not a palette shade at an
+alpha. The mobile drawer's scrim was `bg-ink-900/30`, which is a 30% wash of
+a colour one step off the dark page and therefore dimmed nothing after dark.
+The token is 40% ink in light and 60% black in dark, because a near-black
+page can only be dimmed by a colour it does not already have.
+
+**Disabled means a different colour, never `opacity`.** A filled control goes
+to `disabled:bg-fill-strong disabled:text-text-subtle`; an icon button goes to
+`disabled:text-text-disabled`. Fading the element takes its children down with
+it — see the rule at the end of this section.
 
 **`on-brand` is dark ink, in both themes.** White on coral is 2.68:1. Text on a
 green or red fill uses **`on-status`**, which is white in both themes. Do not use
@@ -281,16 +299,28 @@ Declared in `@theme` in `src/styles.css`. Adapted from Doist's published
 token package — the naming is theirs, the values are Daybook's. See
 `BUILD-PLAN.md` §9 for why the library itself was not adopted.
 
-**Spacing is 1, 2, 3, 4, 6, 8 and nothing else.** That is 4/8/12/16/24/32px,
-which is both Tailwind's default scale and Doist's, so there are no aliases to
-learn. No fractional steps — `py-0.5`, `gap-1.5`, `px-2.5` and `px-3.5` were
-eighteen eyeballed values across the core surfaces and they are gone. The rule
-governs padding, margin and gap; `h-` and `w-` are sizes, not spacing, and are
-not bound by it.
+**Spacing is 1, 2, 3, 4, 6, 8 and nothing else** in new and edited code. That
+is 4/8/12/16/24/32px, which is both Tailwind's default scale and Doist's, so
+there are no aliases to learn. The rule governs padding, margin and gap; `h-`
+and `w-` are sizes, not spacing, and are not bound by it.
 
-The one exception is `0.5` (2px) to optically centre a control or icon against
-a line of text — alignment, not spacing. There is exactly one, on the checkbox
-in `task-row.ts`, and it is commented as such.
+The one sanctioned exception is `0.5` (2px) to optically centre a control or
+icon against a line of text — alignment, not spacing — on the checkbox in
+`task-row.ts`, commented as such.
+
+**This section used to claim the fractional steps were "gone". They are not.**
+A Phase 7 sweep on 17 Sep counted **41** across `src/app`: `mt-0.5` ×12,
+`py-1.5` ×10, `py-0.5` ×6, `px-2.5` ×5, `gap-1.5` ×4, plus a few singles. The
+2026 cleanup removed eighteen from the core surfaces and the doc was written
+as though it had finished the job. Re-check with:
+
+```
+grep -rhoE '\b(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap)-[0-9]+\.5\b' src/app | sort | uniq -c
+```
+
+Migrating them is its own piece of work, not something to smuggle into an
+unrelated change — the paper retheme deliberately did not touch the scales
+(`docs/RETHEME-PLAN.md` §2). Do not add new ones.
 
 **The iOS safe area is `safe-py-*` / `safe-pb-*`, and it owns that axis.**
 These are hand-written rules in `src/styles.css`, not Tailwind utilities, and
@@ -356,14 +386,35 @@ visual pass, not a thing to change one call site at a time.
 ## Typeface
 
 **One display face, self-hosted, and nothing else.** Decided 17 Sep, reversing
-"no webfont anywhere" (BUILD-PLAN §9, "The paper retheme"). Fraunces, as a
-Latin-subset variable `woff2` in `public/fonts/`, `font-display: swap`,
-prefetched by the service worker, exposed as `--font-display` with a system
-serif fallback. It lands in Phase 4 of `docs/RETHEME-PLAN.md`; until then
-nothing is loaded. It may be used on the welcome page, the login lockup line,
-`text-display` page titles, `text-display-lg` figures and the date header on
-Today, and nowhere else. **Never load a font from a third-party host at
-runtime**, and never block first paint on one.
+"no webfont anywhere" (BUILD-PLAN §9, "The paper retheme"). **Shipped:**
+Fraunces, Latin-subset variable `woff2`, 39.9 kB, `public/fonts/`,
+`font-display: swap`, prefetched by the service worker, exposed as
+`--font-display` (Tailwind class `font-display`) with a system serif fallback.
+
+Use it on the welcome page, the login lockup, the wordmark in
+`shared/brand/logo.html`, `text-display` page titles, `text-display-lg` figures
+and Today's date header. **Nowhere else.** The wordmark is the one piece of
+app chrome that gets it, because it is the brand rather than UI text.
+**Never load a font from a third-party host at runtime**, and never block
+first paint on one.
+
+Rebuild it with `./tools/build-font.sh` — never by hand, and never by
+downloading a file from Google Fonts directly. The script clamps `wght` to
+400–700, keeps the `opsz` axis whole and retains the `rvrn` feature, and
+every one of those is load-bearing; its header says why. The `.woff2` is
+committed, so no build and no checkout needs Python.
+
+Two properties of the face that call sites have to know:
+
+- **`opsz` is never pinned.** `font-optical-sizing: auto` is the initial
+  value, so the browser sets the axis from the font size on its own. That is
+  the entire reason this is Fraunces and not any serif.
+- **There is no `tnum` and the digits are proportional**, so `tabular-nums`
+  does nothing under it. Do not pair the two; if a figure genuinely needs to
+  line up in a column, leave it on the system stack.
+
+And `tracking-tight` comes off anything set in Fraunces. Negative tracking is
+a sans-serif device.
 
 All UI text stays on the system stack, for the original reasons, which follow.
 

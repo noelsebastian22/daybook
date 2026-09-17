@@ -111,7 +111,7 @@ its own entry. §14 for the whole domain and email setup.
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **in progress, started 17 Sep.** Plan, tokens, contrast numbers and copy deck live in [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md). Phases 0–2 (decisions recorded; tokens in `src/styles.css`; all `brand-*` call sites migrated to pen/fill/tint per the §9 audit table, `brand-text` aliases deleted, D3 decided for `brand-tint`) and **Phase 3's front end** (coral icon and PNGs, coral logo tile, paper `theme-color` in both themes, pen strokes in the empty-state illustrations) are on branch `retheme/paper`. **The signed-in app has now been clicked through in both themes**, 17 Sep, which confirmed D3 on the real drawer. What is left of Phase 3 is `notify/index.ts`'s hexes, which are their own commit and their own deploy. D1, D2, D4 and D5 still open. |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **done on branch `retheme/paper`, 17 Sep**, not yet merged or deployed. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **What is left is not code**: the signed-in app has not been seen since Phase 4 because nothing is signed in on this machine, the installed-PWA check is outstanding, and neither the front end nor `notify` has been deployed. §12 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -2338,6 +2338,39 @@ carries the unticked ones over with their count. Nothing is saved. Carrying the
 typed tasks into the account after sign-in ("Keep this page") was considered and
 left out of this pass.
 
+**The retheme finished the same day it started, across nine phases.** What the
+later phases settled, beyond what the plan had planned for:
+
+- **The display face is real and it is 39.9 kB.** Fraunces, Latin subset,
+  variable, built reproducibly by `tools/build-font.sh` with the `.woff2`
+  committed so no build and no checkout needs Python. Three traps are written
+  into that script because each fails silently: the `rvrn` feature must be
+  retained or the face renders correctly at 15px and wrongly at display sizes;
+  `format('woff2')` and never the legacy `woff2-variations`, which some
+  browsers skip entirely; and Fraunces carries no `tnum`, so `tabular-nums`
+  under it is a lie. `opsz` is deliberately left unpinned, because
+  `font-optical-sizing: auto` already maps it from the font size.
+- **The wordmark is the one piece of chrome that gets the serif**, because it
+  is the brand and not UI text. Its cap-height constant moved 0.72 -> 0.70,
+  read off the face, and a stale one there would not fail loudly.
+- **No second webfont for the handwriting (D1).** The hero's two handwritten
+  notes are traced from Caveat to SVG outlines at build time by
+  `tools/build-notes.sh`. Chosen on measurement: a Caveat subset is 12.7 kB
+  plus a request plus a swap flash, the outlines are ~11.4 kB gzipped with
+  neither. Caveat never reaches the bundle.
+- **The app now has no component stylesheets.** `welcome.css` existed for the
+  looping hero animation the try-page replaced.
+- **A colour audit is worth running after a token moves, not just before.**
+  Darkening `done-500` for D5 left a literal `#10b981` behind in the
+  empty-state illustration, so the "all done" scene was quietly drawing a
+  different green from the thing it depicted. The lesson is in `AGENTS.md`:
+  "same in both themes" is a property of the token, not a reason to hard-code
+  it. The same sweep found a mobile scrim that dimmed nothing after dark (now
+  a `--color-scrim` token), six `opacity`-as-disabled controls, seven banned
+  uppercase eyebrows, and a full-colour emoji alarm clock.
+- **`AGENTS.md` overstated the spacing cleanup** and now says so: 41 fractional
+  steps survive in `src/app`, where the doc claimed they were gone.
+
 Two things were settled while Phase 3 landed the assets, 17 Sep:
 
 - **`theme-color` is the page surface, in both themes** — `#fffdf7` light,
@@ -2369,14 +2402,15 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **The tick on a completed checkbox is 2.54:1. Found 17 Sep, not fixed.** White
-  on `done-500` (`#10b981`) is under the 3:1 floor for a meaningful glyph. It
-  predates the paper retheme: the green did not move. `tools/contrast-check.mjs`
-  found it on its first run and reports it every run as a non-fatal known gap.
-  The filled box carries the state on its own, so nothing is unreadable. Closing
-  it means darkening a reserved colour to about `#0E9F6E` (3.4:1), which also
-  moves the calendar heat map and the reporting charts, so it is a decision and
-  not a tweak. Open decision D5 in `docs/RETHEME-PLAN.md`.
+- ~~**The tick on a completed checkbox is 2.54:1.**~~ **Closed 17 Sep.**
+  `done-500` darkened `#10b981` -> `#0E9F6E` and the white tick is now 3.39:1,
+  clear of the 3:1 floor for a meaningful glyph. Taken rather than deferred
+  because a check mark is the one glyph in the app that carries state on its
+  own. Everything reading that green moved with it — the four heat-map alphas
+  and the reporting chart bars — and `done-700`, the text colour, did not need
+  to. `KNOWN_GAPS` in `tools/contrast-check.mjs` is now empty and the pair is
+  enforced in `PAIRS`. Was open decision D5.
+
 - ~~**The retheme's signed-in screens have not been seen by anyone, 17 Sep.**~~
   **Closed the same day.** Noel signed in and the app was clicked through in both
   themes: shell, today, filter chips, calendar, day detail, settings, upcoming,
@@ -2384,19 +2418,31 @@ Not core. Revisit once the main app is solid.
   real drawer rather than on an injected mock. The `blank` empty state remains
   unseen — reaching it means emptying Today, which is live data.
 
-- **Three retheme judgements are waiting on Noel, 17 Sep.** All three were put to
-  him at the end of the Phase 3 session and none is answered, so each is a
-  recommendation and not a decision:
-  - The `filtered` empty-state illustration's front-sheet title line is blush
-    `brand-tint-strong`. It harmonised with the old indigo border and reads as a
-    smudge beside the new navy pen edge. Recommendation: `border-strong`, as in
-    every other scene. Unchanged in the code.
-  - **D4 cannot be judged yet**: no overdue task exists in the account, so the
-    only crimson on any screen is the calendar legend dot and Settings' `Delete`
-    links. The plan wants it seen on the Today list beside the coral Add button.
-  - **D2**: amber `quick` barely separates from the paper surface in light;
-    violet `deep` is fine in both themes. Recommendation: keep both hues and
-    take `quick`'s tint one step deeper.
+- ~~**Three retheme judgements are waiting on Noel, 17 Sep.**~~ **All three
+  closed the same day**, each taking the recommendation that was put to him:
+  - **D6**, the `filtered` illustration's title line: now `border-strong`, like
+    every other scene. The navy pen edge already marks which sheet is being
+    looked at, so the line did not need to carry that job as well.
+  - **D2**, amber `quick`: kept as a hue and deepened at both ends. Measured
+    rather than eyeballed — against the paper surface every other tint
+    separates from the page by 1.11–1.19:1 and amber managed **1.09**, the
+    weakest of the set, because a pale yellow on warm paper is the one tint
+    that shares the page's own hue. `quick-100` -> `#FCEAA8` (1.18:1) and a new
+    `quick-800` `#92400E` carries its text, which also took that badge from
+    4.51:1 to 5.90:1.
+  - **D4**, the crimson: kept, on measurement. The signed-in app could not be
+    opened (see the gap below), so the question the gate exists to ask was
+    answered numerically instead. In OKLab the old `#EF4444` sat **2.7°** of
+    hue from coral; the new `#D92D4A` sits **10.1°** away, roughly quadrupling
+    the separation. The plan's literal gate — crimson on the real Today list
+    beside the coral Add button — is still not done.
+
+- **The signed-in app has not been seen since Phase 4, 17 Sep.** No session is
+  signed in on this machine, so `/today` redirects to `/welcome` and the eight
+  signed-in screens are unverified against the display face, the new carried
+  stamp and the rebuilt Today header. Welcome and login were checked by hand in
+  both themes, and the try-it hero was driven through a full flip. This is the
+  main thing the retheme still needs a person for.
 
 - **The category swatches now fight the palette, 17 Sep.** The seeded defaults
   put Freelance on an orange that sits beside coral and Health on a green that
