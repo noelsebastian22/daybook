@@ -19,8 +19,8 @@ import { Theme } from './theme';
  */
 
 const KEY = 'daybook.theme.v1';
-const DARK_SURFACE = '#12141f';
-const BRAND = '#4f46e5';
+const DARK_SURFACE = '#1e1b15';
+const LIGHT_SURFACE = '#fffdf7';
 
 type MediaListener = (event: { matches: boolean }) => void;
 
@@ -101,7 +101,7 @@ describe('Theme', () => {
   beforeEach(() => {
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
-    meta.setAttribute('content', BRAND);
+    meta.setAttribute('content', LIGHT_SURFACE);
     document.head.append(meta);
   });
 
@@ -247,7 +247,7 @@ describe('Theme', () => {
       expect(isDarkPainted()).toBe(false);
     });
 
-    it('moves theme-color to the dark surface so the status bar is not indigo over near-black', () => {
+    it('moves theme-color to the dark surface so the status bar is not cream over near-black', () => {
       stubOs();
       stubStorage({ saved: 'dark' });
 
@@ -257,7 +257,7 @@ describe('Theme', () => {
       expect(themeColour()).toBe(DARK_SURFACE);
     });
 
-    it('puts theme-color back to the brand in light', () => {
+    it('puts theme-color back to the paper in light', () => {
       stubOs();
       stubStorage({ saved: 'dark' });
       const theme = TestBed.inject(Theme);
@@ -266,7 +266,7 @@ describe('Theme', () => {
       theme.set('light');
       paint();
 
-      expect(themeColour()).toBe(BRAND);
+      expect(themeColour()).toBe(LIGHT_SURFACE);
     });
 
     it('repaints when the OS flips underneath a system choice', () => {

@@ -3,8 +3,15 @@
     The illustration is painted from the semantic tokens rather than from
     hexes. It draws a *page*, and a page that stayed white on a dark screen
     would be the brightest thing in the app sitting inside the emptiest one.
-    Green and indigo stay literal: the tick means completed and the caret is
-    the brand, and neither changes meaning with the light.
+
+    Green stays literal, because the tick means completed and that does not
+    change meaning with the light. The caret and the front sheet's edge were
+    literal indigo for the same reason until the retheme, when the thing they
+    were drawing — a stroke of ink on paper — stopped being the brand colour
+    and became the pen. Both read `--color-pen-text`, so they follow the theme
+    like every other written mark. Coral could not take this job: it is a fill,
+    and a 3px coral hairline beside the overdue red is exactly what AGENTS.md
+    forbids.
   -->
   <svg
     viewBox="0 0 168 128"
@@ -62,7 +69,7 @@
           />
           <path d="M58 30h30" stroke="var(--color-border-strong)" stroke-width="3" />
           <!-- the caret sits on the first ruled line, not above it -->
-          <path d="M60 52v14" stroke="#6366f1" stroke-width="3" />
+          <path d="M60 52v14" stroke="var(--color-pen-text)" stroke-width="3" />
           <path
             d="M70 59h38M58 78h52M58 94h34"
             stroke="var(--color-border-soft)"
@@ -119,7 +126,7 @@
             height="88"
             rx="10"
             fill="var(--color-surface-raised)"
-            stroke="#6366f1"
+            stroke="var(--color-pen-text)"
             stroke-width="2"
           />
           <path d="M64 32h26" stroke="var(--color-brand-tint-strong)" stroke-width="3" />

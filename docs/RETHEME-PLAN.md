@@ -219,6 +219,21 @@ Files: the 20 templates from the audit.
   buttons read as coral with ink labels in both themes, completed checkboxes still show a white tick on green.
 
 ### Phase 3. Brand assets and the hexes outside the stylesheet
+**Front end done 17 Sep; `notify` still outstanding.** Two amendments came out of doing it,
+both recorded in `BUILD-PLAN.md` §9:
+
+1. **`theme-color` shipped as `--color-surface`, not the desk this section specified.**
+   `#FFFDF7` light and `#1E1B15` dark, not `#F6EEDC` / `#161410`. `body` is `bg-surface`,
+   so the desk values put a visible band under the status bar on an installed PWA. The
+   manifest below still takes `#F6EEDC` — it paints the splash, not the bar.
+2. **Paper on coral in the icon is 2.63:1**, under the 3:1 non-text floor, and stays.
+   A logo is exempt, the marks are slabs rather than hairlines, and `on-brand` ink at
+   6.52:1 reads as a stamp. It is the app's one exemption from "coral never carries
+   light" and is written into `icon.svg` itself.
+
+The icon set shrank from 178 kB to 29 kB across the nine PNGs and the `.ico`, because a
+flat field compresses where a gradient does not.
+
 - `public/icon.svg`: flat coral `#EC7F72` field (drop the indigo gradient), marks in `#FFFDF7`. Run `node tools/build-icons.mjs`.
 - `shared/brand/logo.html` and `logo.ts`: coral tile, wordmark tones from the new ink values. Add the Fraunces wordmark in Phase 4.
 - `public/manifest.webmanifest`: `theme_color` and `background_color` to `#F6EEDC`.
@@ -344,9 +359,10 @@ uppercase tracked eyebrow labels.
 ## 8. Open decisions
 
 - **D1. Handwriting.** Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.
-- **D2. `quick` and `deep`.** Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues. Decide on real screens in Phase 7.
+- **D2. `quick` and `deep`.** Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues. Decide on real screens in Phase 7. **Seen on the real Today list in both themes, 17 Sep:** violet `deep` reads fine in both; amber `quick` barely separates from the paper surface in light, because the tint and the page share the same warmth. Recommendation, not yet decided: keep both hues and take `quick`'s tint one step deeper rather than neutralise them.
 - **D3. Active nav item.** ~~Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.~~ **Decided 17 Sep, Phase 2: blush `brand-tint` + `on-brand-tint`.** Both were rendered side by side against the live tokens in both themes. `fill` lost on function, not taste: it is the same value as `hover-strong` in light (`#F1EADA`) and 3 steps from it in dark, so a `fill` active item is indistinguishable from a hovered inactive one. The blush wash reads clearly as "you are here" in both themes and is the one quiet echo of the brand in the chrome.
-- **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.
+- **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button. **Attempted 17 Sep and blocked:** the account has no overdue task, so the only crimson anywhere in the signed-in app is the calendar legend's "carried off" dot and Settings' `Delete` links. Neither is the comparison this asks for. It needs a back-dated task, or a day where today's task goes unfinished and comes back overdue.
+- **D6. The `filtered` illustration's title line.** New, 17 Sep. `shared/empty-state.html` paints the front sheet's title line in blush `brand-tint-strong`. It harmonised with the indigo border it sat beside; against the navy pen edge Phase 3 gave that sheet, it reads as a smudge rather than a title, and it is the only pink in any illustration. Recommendation: `border-strong`, matching every other scene, since the navy edge already marks the sheet as the one being looked at. Unchanged in the code pending Noel.
 - **D5. The tick on a completed checkbox.** Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph. It was the same before the retheme. Closing it means darkening the reserved green to about `#0E9F6E` (3.4:1), which also moves the heat map and the charts. Listed as a known gap in the script, reported every run, not fatal.
 
 ---

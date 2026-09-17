@@ -11,6 +11,90 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-17 · claude-code · retheme phase 3, brand assets
+
+**Did**
+- Phase 3 front end, one commit: `public/icon.svg` to a flat `#ec7f72` field with
+  `#fffdf7` marks (gradient dropped), then `node tools/build-icons.mjs`. The nine
+  PNGs plus `favicon.ico` went **178 kB → 29 kB** — a flat field compresses where
+  a gradient does not.
+- `logo.html` / `logo.ts`: coral tile replaces the two-stop gradient, `ink()` is
+  `#fffdf7` (primary/light) and `#1f1b16` (dark), `gradientId` deleted.
+- `manifest.webmanifest`: `theme_color` and `background_color` to `#f6eedc`.
+- `index.html` meta + pre-paint script and `theme.ts` constants to `#fffdf7` /
+  `#1e1b15`; `theme.spec.ts` constants and two test names followed.
+- `empty-state.html`: the `blank` caret and the `filtered` front-sheet edge from
+  `#6366f1` to `var(--color-pen-text)`.
+- **Clicked through the signed-in app in both themes, first time on this branch.**
+  Noel signed in; shell, today, filter chips, three of the four empty-state
+  scenes, calendar, day detail, settings, upcoming and reporting were all seen.
+  Closes the §12 gap that said nobody had.
+- 679 tests / 37 files, build 439.19 kB initial (107.58 kB transfer), styles
+  45.09 kB, `contrast-check` green bar the known D5 gap.
+
+**Decided**
+- **`theme-color` is `--color-surface`, not the desk.** `RETHEME-PLAN.md` Phase 3
+  specified `#F6EEDC` / `#161410`, which are `surface-sunken`. `body` is
+  `bg-surface`, so those values draw a visible band under the status bar on an
+  installed PWA. Shipped `#fffdf7` / `#1e1b15`, which is also what `theme.ts`'s
+  own comment always claimed the tag was for. The manifest keeps `#f6eedc`: it
+  paints the splash, not the bar. Plan amended in §5.
+- **The app icon is the one place light sits on coral.** Paper on coral is
+  2.63:1, under the 3:1 non-text floor. Kept deliberately — WCAG exempts a logo,
+  the marks are 42-unit slabs not hairlines, and `on-brand` ink at 6.52:1 reads
+  as a rubber stamp rather than a page. Written into `icon.svg` and `AGENTS.md`
+  so a later sweep does not "fix" it.
+- **D3 confirmed against the real drawer**, not only last session's injected
+  mock: `bg-brand-tint text-on-brand-tint`. Subtle in dark (`#3a211d`) but legible.
+- Deleted `logo.spec.ts`'s gradient-id test, 680 → 679. A flat tile has no id to
+  collide, so the bug it guarded can no longer be written. Commented in place.
+
+**Didn't work**
+- `ng serve --port 4200` exits **127**: Noel already had a server there. It was
+  serving this working tree and live-reloaded the new values, so nothing was
+  needed. Check `lsof -nP -iTCP:4200 -sTCP:LISTEN` before starting one.
+- **Two screenshots lied.** The calendar's first shot had no snapshots loaded and
+  looked like an empty month; two seconds later it came back with green heat
+  cells and crimson carried-off dots. Clicking a day caught the View Transition
+  mid-cross-fade. Same family as last session's stale theme frame: **wait 2s and
+  re-shoot before believing any screenshot of this app.**
+- `var()` inside an SVG presentation attribute was the one thing not safe to take
+  on trust — a silent failure there is indistinguishable from an inherited
+  colour. Confirmed by computed style: `#27356b` light, `#aab6ee` dark. It works,
+  and the three pre-existing `var()` strokes beside it were already proof.
+- The `blank` empty state is still unseen. Reaching it means emptying Today,
+  which is Noel's data, so it was left alone.
+
+**Open**
+- **Three questions asked of Noel and not yet answered:**
+  - The `filtered` illustration's front-sheet title line is blush
+    `brand-tint-strong` and now reads as a smudge beside the new navy edge — it
+    harmonised with the old indigo border. Recommendation: `border-strong`, as
+    in every other scene. **Not changed.**
+  - **D4 is unjudgeable:** no overdue task exists, so the only crimson in the app
+    is the calendar legend dot and Settings' `Delete` links, which is not the
+    comparison the plan asks for. Back-date a task, or leave today's unfinished.
+  - **D2:** both hues now seen in both themes. Violet `deep` is fine; amber
+    `quick` barely separates from the paper in light. Recommendation: keep both
+    hues, take `quick`'s tint one step deeper.
+- `supabase/functions/notify/index.ts` is the rest of Phase 3 and is untouched —
+  its own commit and its own deploy, per the plan.
+- Device check outstanding: reinstall to see the coral icon, and confirm the
+  cream `background_color` on a dark install is one splash and not a flash.
+- D1 and D5 unchanged in `RETHEME-PLAN.md` §8.
+- `_to_delete/` still holds ~180 stale git temp files.
+
+**Next**
+- `notify/index.ts`: digest hexes to the new ink and crimson, subject line loses
+  its em dash, as its own commit and its own `supabase functions deploy notify`.
+  Then Phase 4, the self-hosted Fraunces.
+
+**Touched** — `public/icon.svg`, `public/icons/*.png`, `public/favicon.ico`,
+`public/manifest.webmanifest`, `src/index.html`, `src/app/core/theme.ts`,
+`src/app/core/theme.spec.ts`, `src/app/shared/brand/{logo.html,logo.ts,logo.spec.ts}`,
+`src/app/shared/empty-state.html`, `AGENTS.md`, `BUILD-PLAN.md`,
+`docs/RETHEME-PLAN.md`
+
 ## 2026-09-17 · claude-code · retheme phase 2, call sites
 
 **Did**

@@ -244,10 +244,23 @@ call sites, and must not be used in new code.
 green or red fill uses **`on-status`**, which is white in both themes. Do not use
 `on-brand` on a status fill or the tick on a completed checkbox goes dark.
 
+**The app icon is the one exemption, and it is deliberate.** `public/icon.svg`
+and the `primary` tone of `shared/brand/logo.html` put paper `#fffdf7` marks on
+a flat coral field, which is 2.63:1. A logo is exempt from the contrast rules,
+the marks are 42-unit slabs rather than a glyph, and dark ink there reads as a
+rubber stamp. The reasoning lives in `icon.svg` itself. **Nowhere else.** If a
+contrast sweep flags it, leave it alone.
+
 Colours also live outside the stylesheet in a few places that cannot read a
 token: `public/icon.svg`, `public/manifest.webmanifest`, the `theme-color` meta
 and pre-paint script in `src/index.html`, `core/theme.ts`, and the digest email
 in `supabase/functions/notify/index.ts`. A palette change has to visit them.
+
+The three `theme-color` sites — the meta tag, the pre-paint script beside it and
+`DARK_THEME_COLOR` / `LIGHT_THEME_COLOR` in `core/theme.ts` — must agree with
+each other and with `--color-surface` in both themes. The bar's job is to
+disappear into the surface under it, and a mismatch between the meta and the
+script paints the wrong bar for one frame on every cold load.
 
 `node tools/contrast-check.mjs` re-measures the text pairs in both themes. Run
 it after touching any colour token.

@@ -9,7 +9,10 @@
       name="description"
       content="One page per day. Whatever you don't finish comes with you."
     />
-    <meta name="theme-color" content="#4f46e5" />
+    <!-- The paper, and the script below moves it to the dark surface. Both
+         values are the page's own background, not the brand: the bar's job is
+         to disappear into whatever is under it. See core/theme.ts. -->
+    <meta name="theme-color" content="#fffdf7" />
 
     <!--
       The session check is the first thing the app does and nothing renders
@@ -47,7 +50,7 @@
             (choice !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', dark ? '#12141f' : '#4f46e5');
+          if (meta) meta.setAttribute('content', dark ? '#1e1b15' : '#fffdf7');
         } catch (e) {
           // Safari in private mode throws on localStorage access. Light it is.
         }

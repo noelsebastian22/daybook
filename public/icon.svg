@@ -6,29 +6,34 @@
     exploration in docs/reference/brand/ — see NOTES.md there for why the
     other three were dropped.
 
+    Coral and flat since 17 Sep 2026 (docs/RETHEME-PLAN.md, Phase 3). It was
+    an indigo gradient before that. The field is `brand-500` exactly and the
+    marks are the paper surface, so the icon is the app's two loudest colours
+    and nothing else.
+
     No green anywhere. The tick this replaced used the reserved completion
     colour (AGENTS.md) and spent it on an app icon, which is the one surface
     that never completes anything.
+
+    Paper on coral is 2.63:1, under the 3:1 non-text floor, and that is
+    deliberate: WCAG exempts a logo from the contrast rules, the marks are
+    42-unit slabs rather than a hairline glyph, and the alternative — the
+    `on-brand` ink at 6.52:1 — reads as a rubber stamp rather than as a page.
+    **This is the only place in the app allowed to put light on coral.** The
+    rule everywhere else is still the one in AGENTS.md.
 
     Everything sits inside the maskable safe zone — a circle of 80% diameter,
     which for a 512 box is the square from 111 to 401. The artwork runs
     x 132..369 and y 119..389, so it clears that square on every side and the
     circle by a further margin. The manifest declares "maskable any", so the
-    indigo runs full bleed and Android may crop it to any shape it likes
+    coral runs full bleed and Android may crop it to any shape it likes
     without taking a bite out of the artwork. That full bleed is also why
-    there is no rx here and there is one in shared/brand/logo.ts: the tile in
-    the app is a tile, this one is a canvas somebody else rounds.
+    there is no rx here and there is one in shared/brand/logo.html: the tile
+    in the app is a tile, this one is a canvas somebody else rounds.
   -->
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4338ca" />
-      <stop offset="1" stop-color="#6366f1" />
-    </linearGradient>
-  </defs>
+  <rect width="512" height="512" fill="#ec7f72" />
 
-  <rect width="512" height="512" fill="url(#bg)" />
-
-  <g fill="#f6f7fb">
+  <g fill="#fffdf7">
     <rect x="132" y="119" width="164" height="42" rx="21" />
     <rect x="132" y="195" width="108" height="42" rx="21" />
     <rect x="132" y="271" width="140" height="42" rx="21" />

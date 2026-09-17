@@ -111,7 +111,7 @@ its own entry. §14 for the whole domain and email setup.
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **in progress, started 17 Sep.** Plan, tokens, contrast numbers and copy deck live in [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md). Phases 0–2 of that plan (decisions recorded; tokens in `src/styles.css`; all `brand-*` call sites migrated to pen/fill/tint per the §9 audit table, `brand-text` aliases deleted, D3 decided for `brand-tint`) are on branch `retheme/paper`. No human has yet clicked through the signed-in app on the branch. |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **in progress, started 17 Sep.** Plan, tokens, contrast numbers and copy deck live in [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md). Phases 0–2 (decisions recorded; tokens in `src/styles.css`; all `brand-*` call sites migrated to pen/fill/tint per the §9 audit table, `brand-text` aliases deleted, D3 decided for `brand-tint`) and **Phase 3's front end** (coral icon and PNGs, coral logo tile, paper `theme-color` in both themes, pen strokes in the empty-state illustrations) are on branch `retheme/paper`. **The signed-in app has now been clicked through in both themes**, 17 Sep, which confirmed D3 on the real drawer. What is left of Phase 3 is `notify/index.ts`'s hexes, which are their own commit and their own deploy. D1, D2, D4 and D5 still open. |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -2338,6 +2338,25 @@ carries the unticked ones over with their count. Nothing is saved. Carrying the
 typed tasks into the account after sign-in ("Keep this page") was considered and
 left out of this pass.
 
+Two things were settled while Phase 3 landed the assets, 17 Sep:
+
+- **`theme-color` is the page surface, in both themes** — `#fffdf7` light,
+  `#1e1b15` dark, in the `index.html` meta, its pre-paint script and
+  `core/theme.ts`. The plan had specified the desk (`surface-sunken`), but `body`
+  is `bg-surface`, so the desk values draw a faint band across the top of an
+  installed PWA. The bar's job is to disappear into whatever is under it.
+  `manifest.webmanifest` keeps the desk `#f6eedc`, because it paints the splash
+  rather than the bar and a manifest carries only one value — a dark install
+  therefore shows one cream splash before first paint, which is the right
+  trade for the majority case.
+- **The app icon is the single exemption from "coral never carries light".**
+  Paper `#fffdf7` on coral is 2.63:1, under the 3:1 non-text floor. It stays:
+  WCAG exempts a logo from the contrast rules, the marks are 42-unit slabs
+  rather than a hairline glyph, and the alternative — `on-brand` ink at 6.52:1 —
+  reads as a rubber stamp instead of a page. The reasoning and the measured
+  number live in `public/icon.svg` so a later contrast sweep does not silently
+  "correct" it, and `AGENTS.md` names it as the exemption.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2358,11 +2377,41 @@ Not core. Revisit once the main app is solid.
   it means darkening a reserved colour to about `#0E9F6E` (3.4:1), which also
   moves the calendar heat map and the reporting charts, so it is a decision and
   not a tweak. Open decision D5 in `docs/RETHEME-PLAN.md`.
-- **The retheme's signed-in screens have not been seen by anyone, 17 Sep.** Phase
-  1 changed every colour in the app through the tokens. Only `/welcome` and
-  `/login` were screenshotted, in both themes, from a production build, because
-  the rest needs a session. Until Phase 2 lands, primary buttons still say
-  `bg-brand-600`, which is now the darker hover coral, not the brand.
+- ~~**The retheme's signed-in screens have not been seen by anyone, 17 Sep.**~~
+  **Closed the same day.** Noel signed in and the app was clicked through in both
+  themes: shell, today, filter chips, calendar, day detail, settings, upcoming,
+  reporting, and three of the four empty-state scenes. D3 was confirmed on the
+  real drawer rather than on an injected mock. The `blank` empty state remains
+  unseen — reaching it means emptying Today, which is live data.
+
+- **Three retheme judgements are waiting on Noel, 17 Sep.** All three were put to
+  him at the end of the Phase 3 session and none is answered, so each is a
+  recommendation and not a decision:
+  - The `filtered` empty-state illustration's front-sheet title line is blush
+    `brand-tint-strong`. It harmonised with the old indigo border and reads as a
+    smudge beside the new navy pen edge. Recommendation: `border-strong`, as in
+    every other scene. Unchanged in the code.
+  - **D4 cannot be judged yet**: no overdue task exists in the account, so the
+    only crimson on any screen is the calendar legend dot and Settings' `Delete`
+    links. The plan wants it seen on the Today list beside the coral Add button.
+  - **D2**: amber `quick` barely separates from the paper surface in light;
+    violet `deep` is fine in both themes. Recommendation: keep both hues and
+    take `quick`'s tint one step deeper.
+
+- **The category swatches now fight the palette, 17 Sep.** The seeded defaults
+  put Freelance on an orange that sits beside coral and Health on a green that
+  collides with the reserved completion green. These are rows written by
+  `ensure_user_setup` in `0001`, not tokens, so this is a data question and not
+  a theme one: changing the defaults is a migration, and existing rows are the
+  user's to edit in Settings. Noticed during the Phase 3 click-through, not
+  chased.
+
+- **Reporting may disagree with Today about rollover, 17 Sep.** "Carried over
+  most" said "Nothing has rolled over. Rare and good." while Today showed
+  `carried ×7` and `carried ×5` on two tasks. It may well be correct — both of
+  those were completed that morning, and the panel may only count open tasks —
+  but nobody has read the query. Spotted during the click-through; unverified,
+  and not a colour problem.
 
 - **Gmail silently dropped the digest for two days. Diagnosed and fixed,
   6 Sep.** The first two sends from `digest@send.noel-sebastian.com` — 5 Sep

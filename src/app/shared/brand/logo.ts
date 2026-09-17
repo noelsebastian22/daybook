@@ -10,9 +10,13 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
  * changes, change that file too — nothing regenerates it automatically.
  *
  * The colours are literals rather than theme classes on purpose. A logo that
- * inherits is a logo that drifts, and these three values ARE `brand-700`,
- * `brand-500` and `ink-50` — see `src/styles.css`. `tone="mono"` is the one
- * escape hatch, and it inherits deliberately.
+ * inherits is a logo that drifts, and these three values ARE `brand-500`, the
+ * light `--color-surface` and `ink-900` — see `src/styles.css`. `tone="mono"`
+ * is the one escape hatch, and it inherits deliberately.
+ *
+ * The paper-on-coral tile is the app's one exemption from "coral never carries
+ * light" (AGENTS.md); the reasoning and the measured ratio are written out in
+ * `public/icon.svg`.
  */
 @Component({
   selector: 'app-logo',
@@ -26,7 +30,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 export class Logo {
   /** 'mark' is the square glyph; 'lockup' is glyph + "Daybook" wordmark. */
   readonly variant = input<'mark' | 'lockup'>('mark');
-  /** 'primary' = indigo on its own tile. 'light'/'dark'/'mono' are flat. */
+  /** 'primary' = the mark on its own coral tile. 'light'/'dark'/'mono' are flat. */
   readonly tone = input<'primary' | 'light' | 'dark' | 'mono'>('primary');
   /** Rendered height in px. Width follows the aspect ratio. */
   readonly size = input<number>(32);
@@ -48,9 +52,9 @@ export class Logo {
     switch (this.tone()) {
       case 'primary':
       case 'light':
-        return '#f6f7fb';
+        return '#fffdf7';
       case 'dark':
-        return '#171a2b';
+        return '#1f1b16';
       default:
         return 'currentColor';
     }
@@ -83,10 +87,4 @@ export class Logo {
    * exempt from the radius scale.
    */
   protected readonly gap = computed(() => `${Math.round(this.size() * 0.28)}px`);
-
-  /**
-   * Two logos on one page would otherwise declare the same gradient id twice
-   * and the second would win for both.
-   */
-  protected readonly gradientId = `logo-${Math.random().toString(36).slice(2, 9)}`;
 }

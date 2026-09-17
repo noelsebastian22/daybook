@@ -1,4 +1,3 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { describe, expect, it } from 'vitest';
 
 import { render } from '../../../testing/render';
@@ -50,13 +49,15 @@ describe('Logo', () => {
     expect(logo.query('svg')?.getAttribute('height')).toBe('48');
   });
 
+  // `svg > rect` is the tile and only the tile: the three task lines are rects
+  // too, but they live inside the <g> that carries the mark's fill.
   it('wears its tile only in the primary tone', async () => {
     const primary = await renderLogo({ tone: 'primary' });
-    expect(primary.query('svg defs')).not.toBeNull();
+    expect(primary.query('svg > rect')).not.toBeNull();
 
     for (const tone of ['light', 'dark', 'mono']) {
       const flat = await renderLogo({ tone });
-      expect(flat.query('svg defs')).toBeNull();
+      expect(flat.query('svg > rect')).toBeNull();
     }
   });
 
@@ -78,20 +79,9 @@ describe('Logo', () => {
   });
 });
 
-@Component({
-  selector: 'app-two-logos',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Logo],
-  template: '<app-logo tone="primary" /><app-logo tone="primary" />',
-})
-class TwoLogos {}
-
-describe('Logo on a page with another', () => {
-  it('gives each gradient its own id, or the second one wins for both', async () => {
-    const page = await render(TwoLogos);
-    const ids = page.queryAll('linearGradient').map((g) => g.getAttribute('id'));
-
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(2);
-  });
-});
+// Removed with the gradient, 17 Sep 2026: "gives each gradient its own id, or
+// the second one wins for both". Two primary logos on one page shared a
+// `linearGradient` id and the second definition won for both, so the component
+// minted a random id per instance. A flat coral tile has no id to collide, the
+// `gradientId` field is gone, and a test for a bug that can no longer be
+// written is worse than no test.

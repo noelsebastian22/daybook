@@ -27,13 +27,13 @@
       plate under them would fight it.
     -->
     @case ('primary') {
-      <defs>
-        <linearGradient [attr.id]="gradientId" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#4338ca" />
-          <stop offset="1" stop-color="#6366f1" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="112" [attr.fill]="'url(#' + gradientId + ')'" />
+      <!--
+        Flat `brand-500`, the same field as public/icon.svg. It was a two-stop
+        indigo gradient until the retheme; coral is a fill that means "the
+        brand" at one value, and a gradient would have put a second coral in
+        the app that no token names.
+      -->
+      <rect width="512" height="512" rx="112" fill="#ec7f72" />
     }
   }
 

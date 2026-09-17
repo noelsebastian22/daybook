@@ -21,10 +21,19 @@ export type ResolvedTheme = 'light' | 'dark';
 const KEY = 'daybook.theme.v1';
 
 /** Matches `--color-surface` under `.dark` in `src/styles.css`. */
-const DARK_THEME_COLOR = '#12141f';
+const DARK_THEME_COLOR = '#1e1b15';
 
-/** The brand, which is what the light theme has always shipped. */
-const LIGHT_THEME_COLOR = '#4f46e5';
+/**
+ * Matches `--color-surface` on `:root` — the paper.
+ *
+ * This was the brand indigo until the retheme (17 Sep 2026), which was
+ * defensible while the brand was a colour the app could put text on. Coral
+ * cannot be a full-bleed band at the top of the screen: it is a fill that
+ * means "primary action", and a warm red strip above a cream page reads as a
+ * warning. Both values are now the surface directly underneath the bar, which
+ * is what the rest of this comment has always claimed the tag is for.
+ */
+const LIGHT_THEME_COLOR = '#fffdf7';
 
 const MEDIA = '(prefers-color-scheme: dark)';
 
@@ -93,12 +102,15 @@ export class Theme {
   /**
    * The class on `<html>` is what every semantic token in `styles.css` hangs
    * off. `theme-color` goes with it so the iOS status bar and the Android
-   * address bar match the surface underneath them rather than staying indigo
-   * over a near-black page.
+   * address bar match the surface underneath them instead of holding one
+   * colour over both themes.
    *
    * `manifest.webmanifest`'s `background_color` is deliberately left alone:
    * it paints the splash screen before any of this runs and cannot respond to
-   * a runtime toggle.
+   * a runtime toggle. It is the desk, `#f6eedc`, so a dark install shows one
+   * cream splash before the first paint. A manifest carries a single value and
+   * there is nowhere to put the other one — the alternative is a dark splash
+   * that is wrong for the majority case.
    */
   private apply(theme: ResolvedTheme): void {
     if (typeof document === 'undefined') return;
