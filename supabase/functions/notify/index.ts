@@ -89,6 +89,13 @@ function escapeHtml(value: string): string {
 /**
  * The digest is deliberately plain. It is read on a phone at 7am, and the
  * only thing it has to do is make opening the app unnecessary or obvious.
+ *
+ * An email cannot read a CSS variable, so these hexes are copies of tokens in
+ * `src/styles.css` and have to be updated by hand when the palette moves —
+ * `AGENTS.md` lists this file for exactly that reason. They are, in order:
+ * `ink-900` body, `ink-400` muted, `done-700` finished, `late-700` carried.
+ * Light values only: there is no dark column, because a mail client decides
+ * its own background and cannot be asked which theme it is in.
  */
 function renderDigest(payload: DigestPayload): { subject: string; html: string } {
   const { completed_yesterday: done, carried, today_tasks: todo } = payload;
@@ -108,10 +115,10 @@ function renderDigest(payload: DigestPayload): { subject: string; html: string }
   if (carried.length > 0) {
     sections.push(
       `<p style="margin:16px 0 4px;font-weight:600">Carried over</p>
-       <ul style="margin:0;padding-left:20px;color:#b91c1c">${carried
+       <ul style="margin:0;padding-left:20px;color:#a3122f">${carried
          .map(
            (c) =>
-             `<li style="margin:2px 0">${escapeHtml(c.text)} <span style="color:#8a90ab">&times;${c.count}</span></li>`,
+             `<li style="margin:2px 0">${escapeHtml(c.text)} <span style="color:#6b6353">&times;${c.count}</span></li>`,
          )
          .join('')}</ul>`,
     );
@@ -121,7 +128,7 @@ function renderDigest(payload: DigestPayload): { subject: string; html: string }
     todo.length > 0
       ? `<p style="margin:16px 0 4px;font-weight:600">On today</p>
          <ul style="margin:0;padding-left:20px">${list(todo)}</ul>`
-      : `<p style="margin:16px 0 4px;color:#8a90ab">Nothing scheduled for today yet.</p>`,
+      : `<p style="margin:16px 0 4px;color:#6b6353">Nothing scheduled for today yet.</p>`,
   );
 
   const subject =
@@ -130,9 +137,9 @@ function renderDigest(payload: DigestPayload): { subject: string; html: string }
       : 'Nothing scheduled for today';
 
   return {
-    subject: `Daybook — ${subject}`,
-    html: `<div style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;color:#171a2b;max-width:480px">
-      <p style="margin:0;font-size:13px;color:#8a90ab;text-transform:uppercase;letter-spacing:.05em">Daybook</p>
+    subject: `Daybook: ${subject}`,
+    html: `<div style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;color:#1f1b16;max-width:480px">
+      <p style="margin:0;font-size:13px;color:#6b6353">Daybook</p>
       ${sections.join('')}
     </div>`,
   };
