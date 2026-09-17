@@ -11,6 +11,99 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-17 · claude-code · retheme phases 4 to 8, decisions closed
+
+**Did**
+- Finished Phase 3: `notify/index.ts` hexes to `#1f1b16`/`#6b6353`/`#a3122f`
+  (green unchanged), subject to `Daybook: `, eyebrow de-shouted. Own commit,
+  **not deployed**.
+- Phase 4: `tools/build-font.sh` builds a 39.9 kB Fraunces Latin variable subset;
+  `.woff2` committed so no build needs Python. `@font-face` + `--font-display`,
+  `fonts` prefetch group in `ngsw-config.json`, applied to six page titles, two
+  reporting figures, welcome, login and the wordmark.
+- Phase 5: `TryPage` — the hero is a working Daybook page running the real
+  `parseCapture`. `welcome.css` deleted; the app now has **no** component
+  stylesheets. 12 new specs.
+- Phases 6 and 7 by subagents: login off the dark poster, Today's header is the
+  date in Fraunces, carried badge is a tilted pen stamp.
+- Closed every open decision. D1 handwriting → outlines traced from Caveat at
+  build time (`tools/build-notes.sh`). D2 → `quick-100` `#FCEAA8` + new
+  `quick-800` `#92400E`. D5 → `done-500` `#0E9F6E`. D6 → `border-strong`.
+  D4 → kept, on measurement (see below).
+- Acted on the Phase 7 audit: stale pre-D5 green in `empty-state.html`, new
+  `--color-scrim`, six `opacity`-as-disabled sites, seven banned uppercase
+  eyebrows, two em dashes, reporting's carried badge, the emoji alarm clock.
+- 697 tests / 38 files, build **436.61 kB** initial (107.37 kB transfer), styles
+  42.66 kB, `contrast-check` green with `KNOWN_GAPS` **empty** for the first time.
+- `_to_delete/` no longer exists. Nothing to clean.
+
+**Decided**
+- **D4 was decided on measurement, not on the screen the plan asked for.** No
+  session is signed in here, so /today redirects to /welcome. In OKLab the old
+  `#EF4444` sat **2.7°** of hue from coral; `#D92D4A` sits **10.1°** away. The
+  literal gate — crimson on the real Today list beside the coral Add button — is
+  still open.
+- **The wordmark is the one piece of app chrome that gets Fraunces**, because it
+  is the brand and not UI text. Its cap-height constant moved 0.72 → 0.70, read
+  off the face. Survivable under `swap` only because `--font-display` falls back
+  to a *serif*; a sans fallback would visibly resize the mark on every cold load.
+- **Handwriting ships as outlines, never as a font.** Caveat subset is 12.7 kB +
+  a request + a flash; the traced paths are ~11.4 kB gzipped with neither.
+- **Markdown here is not prettier-formatted.** `AGENTS.md`, `BUILD-PLAN.md` and
+  `RETHEME-PLAN.md` already failed `--check` before this session. Do not run
+  `--write` on them; it buries the diff.
+
+**Didn't work**
+- **`[(ngModel)]` + a signal silently half-works.** After a task was filed to
+  another day the signal cleared and the input did not, so the hero read "Saved
+  to Monday's page" with the sentence still in the box and the next Enter filed
+  it again. Use `[value]` + `(input)`, as `capture.ts` already does.
+- **Removing `FormsModule` then broke Enter with no error.** `(ngSubmit)` is
+  `NgForm`'s event; without the import it binds to an event nothing fires and the
+  form looks perfectly correct. Native `(submit)` + `preventDefault`.
+- **`vi.useFakeTimers()` bare hangs any spec that renders.** The app is zoneless,
+  so `render()` waits on `whenStable()`. Use `{ toFake: ['Date'] }`. Cost the
+  Phase 7 agent real time; now in `AGENTS.md`.
+- **`pyftsubset` drops `rvrn` unless asked.** It is a *required* feature Fraunces
+  drives from FeatureVariations across `opsz`. A build without it renders
+  correctly at 15px and wrongly at display sizes. Also: `format('woff2')`, never
+  `woff2-variations` — some browsers skip the src entirely.
+- **Fraunces has no `tnum`.** `tabular-nums` under it is a no-op; the two
+  reporting figures had it and it was a lie. Removed.
+- **The `computer` tool's click coordinates did not land** on small targets
+  (devicePixelRatio 1.8 here), and `resize_window` did not change `innerWidth`.
+  Clicks were verified via `javascript_tool` instead, and the 360px check was
+  done by cloning a row into a 328px container and reading `scrollWidth`. That
+  caught a real defect the eye would not have: the task name rendered at **0px**.
+
+**Open**
+- **The signed-in app has not been seen since Phase 4.** Nothing is signed in on
+  this machine. Eight screens are unverified against the display face, the stamp
+  and the new Today header. This is the main thing left.
+- **Nothing is deployed.** Front end and `notify` are both committed and both
+  unpushed; `notify` is its own deploy and wants a test digest.
+- Installed-PWA check outstanding: status bar, safe areas, no white flash,
+  offline load with the font, coral icon after a reinstall.
+- `AGENTS.md` now admits 41 fractional spacing steps survive in `src/app`, where
+  it used to claim they were gone. Migrating them is its own piece of work.
+- `src/testing/fakes.ts:76` still seeds a category colour of `#6366f1`, the
+  retired brand indigo. Harmless test data, but confusing to read.
+
+**Next**
+- Sign in and click through the eight signed-in screens in both themes, looking
+  at Today's new header, the carried stamp on a real row, and D4's crimson
+  against the coral Add button. Then merge and deploy the front end, and deploy
+  `notify` separately with a test digest.
+
+**Touched** — `tools/build-font.sh`, `tools/build-notes.sh`, `tools/contrast-check.mjs`,
+`public/fonts/*`, `src/styles.css`, `ngsw-config.json`,
+`src/app/features/welcome/*` (welcome.css deleted, try-page.* new),
+`src/app/features/login/login.*`, `src/app/features/today/{today,capture,task-row}.*`,
+`src/app/features/{reporting,calendar,settings,upcoming}/*`,
+`src/app/shared/{shell,empty-state,date-picker}.html`, `src/app/shared/brand/logo.*`,
+`supabase/functions/notify/index.ts`, `AGENTS.md`, `BUILD-PLAN.md`, `docs/RETHEME-PLAN.md`
+
+
 ## 2026-09-17 · claude-code · retheme phase 3, brand assets
 
 **Did**
