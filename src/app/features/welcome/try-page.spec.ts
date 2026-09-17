@@ -75,6 +75,16 @@ describe('TryPage', () => {
     expect(added?.energy).toBe('quick');
   });
 
+  it('shows the time it understood, because the placeholder asked for one', async () => {
+    const page = await renderPage();
+    await type(page, 'water the plants 5pm');
+
+    // The placeholder is literally "water the plants 5pm #home". Parsing the
+    // time and then rendering nothing would under-sell the hero's one claim.
+    expect(page.component.tasks().at(-1)?.text).toBe('water the plants');
+    expect(rowText(page).at(-1)).toContain('5:00');
+  });
+
   it('refuses an empty box, and a box with only tokens in it', async () => {
     const page = await renderPage();
 
@@ -93,6 +103,21 @@ describe('TryPage', () => {
     // exactly what the app does. Saying so is the honest demo.
     expect(page.query('[aria-live="polite"]')?.textContent).toContain("Monday's page");
     expect(rowText(page).some((r) => r.includes('call the dentist'))).toBe(false);
+  });
+
+  it('empties the box once a task has gone somewhere', async () => {
+    const page = await renderPage();
+
+    // Caught in the browser, not here: under `[(ngModel)]` the signal
+    // cleared and the input did not, so the page said "Saved to Monday's
+    // page" with the sentence still sitting in the box, and the next Enter
+    // filed it again. Asserting on the element's own value rather than on
+    // the signal is the point — the signal was never the broken half.
+    await type(page, 'call the dentist monday');
+    expect((page.query('input') as HTMLInputElement).value).toBe('');
+
+    await type(page, 'water the plants');
+    expect((page.query('input') as HTMLInputElement).value).toBe('');
   });
 
   it('ticks and unticks, and says which it is doing', async () => {

@@ -72,12 +72,17 @@ export class Logo {
    *
    * In the reference lockup the wordmark's cap height is 0.754x the height of
    * the drawn artwork. Under `primary` that artwork is only 270/512 of the
-   * tile, which is why the multiplier halves there. 0.72 is the cap height of
-   * the system stack as a fraction of its font size.
+   * tile, which is why the multiplier halves there.
+   *
+   * 0.70 is Fraunces' cap height as a fraction of its font size, read from
+   * the face itself (`sCapHeight` 1400 on a 2000 em). It was 0.72, the system
+   * stack's ratio, until the wordmark moved to the display face — a stale
+   * constant there does not fail loudly, it just quietly sets the word a few
+   * percent wrong against the mark at every size.
    */
   protected readonly wordPx = computed(() => {
     const art = this.tone() === 'primary' ? this.size() * (270 / 512) : this.size();
-    return Math.round(art * (0.754 / 0.72) * 10) / 10;
+    return Math.round(art * (0.754 / 0.7) * 10) / 10;
   });
 
   /**

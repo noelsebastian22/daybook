@@ -57,13 +57,26 @@
     <!--
       The wordmark is live text, not outlines. The brand file draws it as
       paths, which is right for a file handed to a printer and wrong here: it
-      would be ten kilobytes of letterforms in a PWA that ships no webfont on
-      purpose, and it would freeze one more typeface into an app whose whole
-      type system is the system stack. Set from the same stack, at the
-      cap-height and tracking the reference lockup uses.
+      would be ten kilobytes of letterforms, and it would freeze the word into
+      a shape no `size` could set well.
+
+      It is set in the display face — the one place in the app's chrome that
+      Fraunces is allowed, because this is the brand and not UI text. The
+      drawer's lockup gets it for the same reason: a wordmark that changed
+      typeface between the marketing page and the signed-in app would be two
+      wordmarks.
+
+      `font-display: swap` reflows this when the face arrives, which is worse
+      for a logo than for a heading. It is survivable here only because
+      `--font-display` falls back to a *serif* — the pre-swap and post-swap
+      widths are close, where a sans fallback would visibly resize the mark on
+      every cold load. Do not change that stack to a sans.
+
+      No `tracking-tight`. Negative tracking is a sans-serif device; Fraunces
+      sets its own spacing and the reference lockup's is what wordPx targets.
     -->
     <span
-      class="font-semibold tracking-tight"
+      class="font-display font-semibold"
       [style.font-size.px]="wordPx()"
       [style.line-height]="1"
       [style.color]="wordColor()"

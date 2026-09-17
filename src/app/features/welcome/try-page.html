@@ -67,6 +67,14 @@
             {{ t.text }}
           </span>
 
+          @if (t.reminder) {
+            <!-- pen-tint, the same wash the app puts behind a parsed time -->
+            <span
+              class="shrink-0 rounded-control bg-pen-tint px-2 py-0.5 text-caption text-on-pen-tint"
+            >
+              {{ t.reminder }}
+            </span>
+          }
           @if (t.category) {
             <span class="shrink-0 rounded-control bg-fill px-2 py-0.5 text-caption text-text-muted">
               #{{ t.category }}
@@ -130,7 +138,13 @@
     </p>
   }
 
-  <form (ngSubmit)="add()">
+  <!--
+    Native `submit`, not `ngSubmit`: that event comes from `NgForm`, and this
+    component does not import FormsModule. A stray `(ngSubmit)` here would
+    bind to an event nothing ever fires, and the form would simply do nothing
+    on Enter while looking completely correct.
+  -->
+  <form (submit)="submit($event)">
     <label class="block text-body font-medium text-text-muted" for="try-input">
       Add something. Type it the way you'd say it.
     </label>
@@ -142,7 +156,8 @@
         autocomplete="off"
         placeholder="water the plants 5pm #home"
         class="min-w-0 flex-1 rounded-card border border-border-strong bg-surface px-3 py-2 text-body outline-none focus:border-pen-500 focus:ring-2 focus:ring-pen-tint-strong"
-        [(ngModel)]="draft"
+        [value]="draft()"
+        (input)="onInput($event)"
       />
       <button
         type="submit"

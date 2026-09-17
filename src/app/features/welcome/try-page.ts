@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ApplicationRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { addDays, today } from '../../core/dates';
+import { addDays, friendlyTime, today } from '../../core/dates';
 import type { Energy } from '../../core/models';
 import { parseCapture } from '../../core/parse-capture';
 import { withViewTransition } from '../../core/view-transition';
@@ -16,6 +15,8 @@ interface TryTask {
   readonly carried: number;
   readonly category: string | null;
   readonly energy: Energy | null;
+  /** Already formatted for display: "5:00 PM", or null. */
+  readonly reminder: string | null;
 }
 
 /**
@@ -46,7 +47,6 @@ interface TryTask {
 @Component({
   selector: 'app-try-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
   templateUrl: './try-page.html',
 })
 export class TryPage {
@@ -73,9 +73,33 @@ export class TryPage {
    * to tick and something to leave, which is what the hint asks for.
    */
   readonly tasks = signal<readonly TryTask[]>([
-    { id: 1, text: 'call physio', done: false, carried: 2, category: 'health', energy: 'quick' },
-    { id: 2, text: 'book flights', done: false, carried: 0, category: null, energy: null },
-    { id: 3, text: 'pay rent', done: false, carried: 0, category: null, energy: null },
+    {
+      id: 1,
+      text: 'call physio',
+      done: false,
+      carried: 2,
+      category: 'health',
+      energy: 'quick',
+      reminder: null,
+    },
+    {
+      id: 2,
+      text: 'book flights',
+      done: false,
+      carried: 0,
+      category: null,
+      energy: null,
+      reminder: null,
+    },
+    {
+      id: 3,
+      text: 'pay rent',
+      done: false,
+      carried: 0,
+      category: null,
+      energy: null,
+      reminder: null,
+    },
   ]);
 
   /** Restored by "Back to today", so the demo can be run more than once. */
@@ -95,6 +119,28 @@ export class TryPage {
 
   /** Whether anything on the page has been carried, for the flipped note. */
   readonly anyCarried = computed(() => this.tasks().some((t) => t.carried > 0));
+
+  /**
+   * `[value]` + `(input)`, which is what `capture.ts` does, rather than
+   * `[(ngModel)]`.
+   *
+   * Not a style preference: under `[(ngModel)]` the box kept the text after a
+   * task was filed to another day. `add()` clears `draft`, and the signal did
+   * clear — but ngModel owns the DOM value through its own control and did
+   * not write the cleared value back, so the page said "Saved to Monday's
+   * page" with the sentence still sitting in the input. Owning the value
+   * directly removes the second source of truth, and drops FormsModule from
+   * a lazy marketing route.
+   */
+  onInput(event: Event): void {
+    this.draft.set((event.target as HTMLInputElement).value);
+  }
+
+  /** `preventDefault` or the form navigates and the page reloads. */
+  submit(event: Event): void {
+    event.preventDefault();
+    this.add();
+  }
 
   add(): void {
     const raw = this.draft().trim();
@@ -137,6 +183,10 @@ export class TryPage {
         carried: 0,
         category: parsed.categorySlug,
         energy: parsed.energy,
+        // Formatted once, on the way in. The placeholder invites "5pm", so
+        // a demo that parsed the time and then showed nothing would be
+        // under-selling the one thing the hero is claiming.
+        reminder: parsed.reminder_at ? friendlyTime(parsed.reminder_at) : null,
       },
     ]);
     this.draft.set('');
