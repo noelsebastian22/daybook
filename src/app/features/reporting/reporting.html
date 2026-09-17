@@ -1,7 +1,6 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
   <header class="safe-py-6">
-    <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">Reporting</p>
-    <h1 class="mt-0.5 font-display text-display font-semibold">The last fortnight</h1>
+    <h1 class="font-display text-display font-semibold">The last fortnight</h1>
   </header>
 
   <!-- headline -->
@@ -72,7 +71,7 @@
 
     <p class="mt-3 h-4 text-caption text-text-subtle" aria-live="polite">
       @if (hovered(); as bar) {
-        {{ label(bar.date) }} —
+        {{ label(bar.date) }}&colon;
         @if (bar.unrecorded) {
           app not opened
         } @else {
@@ -100,7 +99,10 @@
             <tr class="border-t border-border-soft">
               <th scope="row" class="py-1 font-normal">{{ label(bar.date) }}</th>
               <td class="py-1 text-right tabular-nums">
-                {{ bar.unrecorded ? '—' : bar.count }}
+                <!-- en dash, not em: the copy deck bans the em dash from
+                     anything a user reads, and this cell is read out as
+                     "no value" by a screen reader either way. -->
+                {{ bar.unrecorded ? '–' : bar.count }}
               </td>
             </tr>
           }
@@ -123,12 +125,18 @@
               class="min-w-0 flex-1 truncate text-body text-text transition hover:text-pen-text"
               >{{ task.text }}</a
             >
+            <!--
+              The same stamp the task row wears, so one fact has one
+              rendering. No tilt here: this is a dense ranked list where the
+              rows are three lines apart, and a column of counts each leaning
+              two degrees reads as a wobble rather than as a stamp.
+            -->
             <span
-              class="shrink-0 rounded-full px-2 py-0.5 text-caption font-medium tabular-nums"
+              class="shrink-0 rounded-control border px-2 py-0.5 text-caption font-medium tabular-nums"
               [class]="
                 task.carried_over_count >= carriedAlarmCount
-                  ? 'bg-late-tint text-on-late-tint'
-                  : 'bg-fill text-text-muted'
+                  ? 'border-late-text bg-late-tint text-on-late-tint'
+                  : 'border-pen-text text-pen-text'
               "
               >&times;{{ task.carried_over_count }}</span
             >

@@ -36,7 +36,7 @@
       <div class="flex items-center gap-1">
         <button
           type="button"
-          class="grid h-7 w-7 place-items-center rounded-control text-text-subtle transition hover:bg-hover-strong hover:text-text-muted disabled:opacity-30 disabled:hover:bg-transparent"
+          class="grid h-7 w-7 place-items-center rounded-control text-text-subtle transition hover:bg-hover-strong hover:text-text-muted disabled:text-text-disabled disabled:hover:bg-transparent disabled:hover:text-text-disabled"
           [disabled]="atFirstMonth()"
           aria-label="Previous month"
           (click)="stepMonth(-1)"
@@ -85,7 +85,25 @@
 
   <!-- reminder time -->
   <div class="mt-1 flex items-center gap-2 border-t border-border-soft px-2 pt-2">
-    <span class="text-caption text-text-subtle" aria-hidden="true">&#9200;</span>
+    <!--
+      A drawn clock, not U+23F0. That character renders as a full-colour
+      emoji on every platform the app runs on, which means it ignores its
+      own `text-text-subtle` and was the one saturated multicolour mark
+      anywhere in the signed-in app — a red plastic alarm clock sitting on
+      paper and ink. A stroked SVG inherits `currentColor` and follows the
+      theme, like the empty-state illustrations.
+    -->
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      class="h-4 w-4 shrink-0 text-text-subtle"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path stroke-linecap="round" d="M12 7.5V12l3 2" />
+    </svg>
     <input
       type="time"
       class="min-w-0 flex-1 rounded-control bg-surface-sunken px-2 py-1.5 text-body outline-none focus:ring-2 focus:ring-focus"

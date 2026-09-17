@@ -248,9 +248,17 @@
         >
           Cancel
         </button>
+        <!--
+          Disabled changes colour rather than fading. `opacity` took the
+          coral fill and the ink label down together, and no colour choice
+          inside a faded element can recover the contrast — AGENTS.md calls
+          this out by name. The neutral fill is also the clearer signal:
+          the button stops being the primary action rather than becoming a
+          ghost of it.
+        -->
         <button
           type="button"
-          class="rounded-control bg-brand-500 px-3 py-1.5 font-medium text-on-brand transition hover:bg-brand-600 disabled:opacity-40"
+          class="rounded-control bg-brand-500 px-3 py-1.5 font-medium text-on-brand transition hover:bg-brand-600 disabled:bg-fill-strong disabled:text-text-subtle disabled:hover:bg-fill-strong"
           [disabled]="!value().trim()"
           (click)="commit()"
         >

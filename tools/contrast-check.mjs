@@ -95,6 +95,10 @@ const PAIRS = [
   ['on-quick-tint', 'quick-tint', 4.5, '!quick badge'],
   ['on-deep-tint', 'deep-tint', 4.5, '!deep badge'],
   ['on-status', 'done-500', 3, 'the tick on a completed checkbox'],
+  // A disabled control is exempt from 1.4.3, so the floor is 3 rather than
+  // 4.5 — but "exempt" is not "illegible", and this replaced a
+  // `disabled:opacity-40` that took the fill and its label down together.
+  ['text-subtle', 'fill-strong', 3, 'the label on a disabled button'],
   ['focus', 'surface', 3, 'focus ring on the page'],
   ['focus', 'surface-sunken', 3, 'focus ring on the desk'],
   ['focus', 'surface-raised', 3, 'focus ring on an overlay'],

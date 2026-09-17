@@ -100,7 +100,9 @@ describe('Reporting', () => {
       snapshots.set(snapshotMap(everyDayRecorded().filter((s) => s.date !== missing)));
       await page.settle();
 
-      expect(rowFor(page, missing).count).toBe('—');
+      // An en dash. The copy deck bans the em dash from anything a user
+      // reads, and this cell used to be one.
+      expect(rowFor(page, missing).count).toBe('–');
     });
 
     it('is not what a recorded day with nothing done looks like', async () => {

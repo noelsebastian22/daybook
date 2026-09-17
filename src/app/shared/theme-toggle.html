@@ -43,9 +43,7 @@
             role="radio"
             [attr.tabindex]="tabIndexFor(option.value)"
             class="flex w-full items-center gap-3 rounded-control px-3 py-2 text-left text-body transition hover:bg-hover"
-            [class]="
-              option.value === theme.choice() ? 'font-semibold text-pen-text' : 'text-text'
-            "
+            [class]="option.value === theme.choice() ? 'font-semibold text-pen-text' : 'text-text'"
             [attr.aria-checked]="option.value === theme.choice()"
             (click)="choose(option.value)"
           >

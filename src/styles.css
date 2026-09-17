@@ -369,6 +369,17 @@
   --color-on-inverse: #fffdf7;
   --color-on-inverse-accent: #fbcfc8; /* brand-100 — the Undo in a toast */
 
+  /* The wash behind the mobile drawer. It is not a surface and it is not
+     ink: its whole job is to push the page back, so it is the one token
+     defined by how far it dims rather than by what colour it is.
+
+     This was `bg-ink-900/30` at the call site, which is nearly invisible
+     after dark — ink-900 is #1f1b16 and the dark page is #1e1b15, so it
+     was washing the page with one step off itself. The dark value is
+     black and heavier, because dimming a near-black page needs a colour
+     the page does not already have. */
+  --color-scrim: #1f1b1666; /* 40% */
+
   /* The pen as text and as a tint: links, icon buttons, parsed tokens in
      the capture box. pen-600 on near-black would be unreadable, so the
      text moves to pen-300 in the dark column. */
@@ -460,6 +471,8 @@
   --color-inverse-hover: #ffffff;
   --color-on-inverse: #1e1b15;
   --color-on-inverse-accent: #27356b; /* pen-600 reads on a light chip; coral does not */
+
+  --color-scrim: #00000099; /* 60% black — see the light column */
 
   --color-pen-text: #aab6ee; /* pen-300, 8.7:1 */
   --color-pen-text-hover: #c7d0f5;

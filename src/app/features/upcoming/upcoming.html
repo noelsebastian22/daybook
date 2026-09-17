@@ -1,14 +1,13 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
   <header class="safe-py-6 flex items-center justify-between gap-4">
     <div>
-      <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">Upcoming</p>
-      <h1 class="mt-0.5 font-display text-display font-semibold">{{ range() }}</h1>
+      <h1 class="font-display text-display font-semibold">{{ range() }}</h1>
     </div>
 
     <div class="flex items-center gap-1">
       <button
         type="button"
-        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
+        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:text-text-disabled disabled:hover:bg-transparent disabled:hover:text-text-disabled"
         [disabled]="week() === 0"
         aria-label="Previous week"
         (click)="week.set(week() - 1)"
@@ -17,7 +16,7 @@
       </button>
       <button
         type="button"
-        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
+        class="grid h-9 w-9 place-items-center rounded-card text-text-muted transition hover:bg-hover-strong hover:text-text disabled:text-text-disabled disabled:hover:bg-transparent disabled:hover:text-text-disabled"
         [disabled]="week() >= maxWeek"
         aria-label="Next week"
         (click)="week.set(week() + 1)"

@@ -4,9 +4,16 @@
     hexes. It draws a *page*, and a page that stayed white on a dark screen
     would be the brightest thing in the app sitting inside the emptiest one.
 
-    Green stays literal, because the tick means completed and that does not
-    change meaning with the light. The caret and the front sheet's edge were
-    literal indigo for the same reason until the retheme, when the thing they
+    Green does not change meaning with the light, so the tick is the same
+    green in both themes — but it reads `--color-done-500` rather than a
+    literal, because "the same in both themes" is a property of the *token*
+    and hard-coding it means the illustration silently stops matching the
+    app the moment the green moves. It did: D5 darkened done-500 to clear
+    the contrast floor on the real checkbox, the heat map and the chart bars
+    followed, and this tick was left behind as the old #10b981.
+
+    The caret and the front sheet's edge were literal indigo until the
+    retheme, when the thing they
     were drawing — a stroke of ink on paper — stopped being the brand colour
     and became the pen. Both read `--color-pen-text`, so they follow the theme
     like every other written mark. Coral could not take this job: it is a fill,
@@ -47,7 +54,7 @@
             />
             <path
               [attr.d]="'M58 ' + row + 'l3.5 3.5L68 ' + (row - 5)"
-              stroke="#10b981"
+              stroke="var(--color-done-500)"
               stroke-width="3"
             />
           }
