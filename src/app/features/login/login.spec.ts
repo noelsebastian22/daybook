@@ -50,9 +50,16 @@ describe('Login', () => {
     expect(page.query('h1')?.querySelector('app-logo')).not.toBeNull();
   });
 
-  it('says what Daybook is before asking anyone to sign in', async () => {
+  it('says what is on the other side before asking anyone to sign in', async () => {
     const page = await renderLogin();
-    expect(page.el.textContent).toContain('One page per day');
+    expect(page.el.textContent).toContain("Today's page is waiting.");
+  });
+
+  it('offers the email link as the second way in, not a competing one', async () => {
+    const page = await renderLogin();
+    expect(page.query('label[for="email"]')?.textContent?.trim()).toBe(
+      'Or get a sign-in link by email',
+    );
   });
 
   it('signs in with Google', async () => {
