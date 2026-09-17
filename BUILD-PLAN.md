@@ -111,7 +111,7 @@ its own entry. §14 for the whole domain and email setup.
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **done on branch `retheme/paper`, 17 Sep**, not yet merged or deployed. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **What is left is not code**: the installed-PWA check on a real device, and the two deploys. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**, which is now the only outstanding item and is a verification, not work. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done**; what is left is the installed-PWA check on a real device. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -2552,7 +2552,19 @@ Not core. Revisit once the main app is solid.
   digest_last_sent_on = digest_last_sent_on - 1` makes the user due on the next
   five-minute tick. `due_digests` fires when `digest_last_sent_on <` the user's
   local date, so leaving it at today does **not** suppress tomorrow's 07:00
-  send.
+  send. **Re-confirmed 18 Sep** on the v14 deploy: backdated at 08:03 local, the
+  22:05Z tick sent it and flipped `digest_last_sent_on` back to today on its own,
+  so there is nothing to restore afterwards.
+
+  **And the send can be verified from the receiving end without leaving the
+  agent**, which is worth knowing given how long the Gmail-discard bug above
+  took to see: the Gmail MCP reads the delivered message, so the hexes and the
+  subject can be diffed against `notify/index.ts` directly. On 18 Sep the 22:05Z
+  digest and the 21:00Z one an hour before it sat in the same inbox with
+  `Daybook: ` and `Daybook — ` subjects respectively, which is what proved the
+  deploy had actually taken rather than merely uploaded. `labelIds` containing
+  `INBOX` is the assertion that matters — a `250 OK` from the sending side never
+  was.
 - **Dark mode has never been seen below `lg`, and neither has the toggle.** It
   was verified on a real signed-in Today at desktop width in both themes, and
   the same viewport limit described in the next item still applies. The mobile
