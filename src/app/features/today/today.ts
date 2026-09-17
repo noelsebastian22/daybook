@@ -14,7 +14,7 @@ import { TaskRow } from './task-row';
 import { EmptyState } from '../../shared/empty-state';
 import { withViewTransition } from '../../core/view-transition';
 import { Nav } from '../../core/nav';
-import { addDays, friendlyDate, today } from '../../core/dates';
+import { addDays, friendlyDate, fromLocalDate, today } from '../../core/dates';
 import type { Task } from '../../core/models';
 
 @Component({
@@ -37,10 +37,23 @@ export class Today implements OnInit {
   /** Open by default so a completing row is seen travelling into it. */
   protected readonly doneOpen = signal(true);
 
-  protected readonly heading =
-    friendlyDate(today()) +
-    ', ' +
-    new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+  /**
+   * The page header is the day itself, split so the weekday can carry the
+   * display face on its own with the rest of the date beside it.
+   *
+   * Both halves are formatted from the one `today()` string through
+   * `fromLocalDate`, not from two fresh `Date`s, so they cannot end up either
+   * side of midnight. `toISOString()` would be wrong here for the usual
+   * reason — see core/dates.ts.
+   */
+  private readonly date = fromLocalDate(today());
+
+  protected readonly weekday = this.date.toLocaleDateString(undefined, { weekday: 'long' });
+
+  protected readonly dayAndMonth = this.date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+  });
 
   protected readonly filters = ENERGY_FILTERS;
 

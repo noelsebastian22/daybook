@@ -1,7 +1,7 @@
 import { signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { addDays, today as todayDate } from '../../core/dates';
 import { Nav } from '../../core/nav';
@@ -12,9 +12,9 @@ import { render, type Rendered } from '../../../testing/render';
 import { Today } from './today';
 
 /**
- * Today's header is the app's only summary of the day, and the three headings
- * it can show are three different statements: work left, a day finished, and a
- * day not started. They are not interchangeable.
+ * Today's header names the day and then summarises it. The three summaries it
+ * can show are three different statements: work left, a day finished, and a day
+ * not started. They are not interchangeable.
  */
 
 let openTasks: WritableSignal<Task[]>;
@@ -45,6 +45,11 @@ function chip(page: Rendered<Today>, label: string): HTMLElement {
   const found = page.queryAll('button').find((b) => (b.textContent ?? '').trim() === label);
   if (!found) throw new Error(`no chip named ${label}`);
   return found;
+}
+
+/** The supporting line under the date, with its layout whitespace squeezed out. */
+function summary(page: Rendered<Today>): string {
+  return (page.query('header p')?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
 describe('Today', () => {
@@ -108,22 +113,64 @@ describe('Today', () => {
   });
 
   describe('the header', () => {
+    /**
+     * The heading is the date now, so these run on a pinned day.
+     *
+     * Only `Date` is faked. `render()` waits on `whenStable()`, which in a
+     * zoneless app is waiting on real timers and microtasks, and faking those
+     * as well hangs every render in this block.
+     */
+    const NOW = new Date(2026, 8, 17, 9, 0);
+    const longWeekday = (d: Date) => d.toLocaleDateString(undefined, { weekday: 'long' });
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(NOW);
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it('names the day, because that is which page this is', async () => {
+      const page = await renderToday();
+      const h1 = page.query('h1')?.textContent ?? '';
+
+      expect(h1).toContain(longWeekday(NOW));
+      expect(h1).toContain(NOW.toLocaleDateString(undefined, { day: 'numeric', month: 'long' }));
+    });
+
+    it('takes the local day and not the UTC one', async () => {
+      const page = await renderToday();
+
+      // 9am in Sydney is still the previous day in UTC, so a header built
+      // through toISOString() would say Wednesday here. The assertion only
+      // bites in a zone ahead of UTC, which is where this app is written and
+      // used; it is a tripwire, not a proof.
+      expect(page.query('h1')?.textContent).not.toContain(longWeekday(new Date(2026, 8, 16)));
+    });
+
+    it('keeps one h1, so the page has a single heading', async () => {
+      const page = await renderToday();
+      expect(page.queryAll('h1')).toHaveLength(1);
+    });
+
     it('counts what is left when there is work to do', async () => {
       openCount.set(2);
       const page = await renderToday();
-      expect(page.query('h1')?.textContent?.trim()).toBe('2 to go');
+      expect(summary(page)).toBe('2 to go');
     });
 
     it('says the day is clear only once something has actually been finished', async () => {
       openCount.set(0);
       completedCount.set(1);
       const page = await renderToday();
-      expect(page.query('h1')?.textContent?.trim()).toBe('All clear');
+
+      expect(summary(page)).toContain('All clear');
+      expect(summary(page)).not.toContain('to go');
     });
 
     it('says nothing yet on a day that has not been started', async () => {
       const page = await renderToday();
-      expect(page.query('h1')?.textContent?.trim()).toBe('Nothing yet');
+      expect(summary(page)).toBe('Nothing yet');
     });
 
     it('reports what has been done today, once there is any', async () => {

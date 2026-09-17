@@ -3,12 +3,26 @@
     No Add task button here any more. It lives at the top of the drawer,
     where it is reachable from every page instead of only this one.
   -->
+
+  <!--
+    The page header is the date. This page answers "which page am I on"
+    before it answers "how much is left", so the day carries the heading and
+    the counts sit under it as the supporting line.
+
+    The uppercase tracked eyebrow that used to sit above the count is gone
+    with the retheme — see the copy rules in docs/RETHEME-PLAN.md §7.
+
+    The count line is one flex row rather than one run of text: the separator
+    then comes from `gap`, so no interpolation has to end in a space that
+    Angular's whitespace collapsing might take away.
+  -->
   <header class="safe-py-6">
-    <div>
-      <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">
-        {{ heading }}
-      </p>
-      <h1 class="mt-1 font-display text-display font-semibold">
+    <h1 class="flex flex-wrap items-baseline gap-2">
+      <span class="font-display text-display font-semibold">{{ weekday }}</span>
+      <span class="text-subtitle text-text-subtle">{{ dayAndMonth }}</span>
+    </h1>
+    <p class="mt-1 flex flex-wrap items-baseline gap-2 text-body text-text-muted">
+      <span>
         @if (tasks.openCount() === 0 && tasks.completedCount() > 0) {
           All clear
         } @else if (tasks.openCount() === 0) {
@@ -16,11 +30,12 @@
         } @else {
           {{ tasks.openCount() }} to go
         }
-      </h1>
+      </span>
       @if (tasks.completedCount() > 0) {
-        <p class="mt-1 text-body text-done-text">{{ tasks.completedCount() }} done today</p>
+        <span aria-hidden="true">&middot;</span>
+        <span class="text-done-text">{{ tasks.completedCount() }} done today</span>
       }
-    </div>
+    </p>
   </header>
 
   <!-- energy -->

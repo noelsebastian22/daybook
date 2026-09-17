@@ -122,18 +122,32 @@
           finishing something carried four times is the win, and this is
           the only thing on the row that says so.
 
-          It goes neutral once done, though. Red is reserved for overdue
-          or badly avoided, and a finished task is neither — keeping the
-          escalation would read as a reprimand for work that just got
-          done.
+          It drops back to the pen stamp once done, though. Red is reserved
+          for overdue or badly avoided, and a finished task is neither —
+          keeping the escalation would read as a reprimand for work that
+          just got done.
+
+          A stamp rather than a chip: an outline in pen, pressed a couple of
+          degrees off square, because this is the one thing on the row that
+          was put there by the app rather than by the person. The tilt is
+          decoration and nothing else hangs off it — `rotate` does not touch
+          the layout box, and at 2deg on a 24px badge the corners move under
+          two pixels, well inside the row's own padding. `inline-block` is
+          belt and braces: a rotate on a bare inline element is a silent
+          no-op, and this span is only blockified today because its parent
+          happens to be a flex container.
+
+          The escalated version keeps the crimson *and* its fill. Losing the
+          wash would have made "carried seven times" quieter than it is now,
+          and the count going red is the whole point of it.
         -->
         @if (task().carried_over_count > 0) {
           <span
-            class="rounded-full px-2 py-1 font-medium"
+            class="inline-block -rotate-2 rounded-control border px-2 py-1 font-medium"
             [class]="
               task().carried_over_count >= 3 && !done()
-                ? 'bg-late-tint text-on-late-tint'
-                : 'bg-fill text-text-muted'
+                ? 'border-late-text bg-late-tint text-on-late-tint'
+                : 'border-pen-text text-pen-text'
             "
             [title]="
               done()
