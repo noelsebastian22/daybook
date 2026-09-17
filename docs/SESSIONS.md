@@ -11,6 +11,101 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-17 · cowork · paper retheme, phases 0 and 1
+
+**Did**
+- Brainstormed a retheme with Noel. Three directions sketched; **"Paper and biro"
+  chosen**, then **coral `#EC7F72`** chosen as the brand over ink, blue-black and
+  plum. Hero and colour options mocked on a Claude design canvas ("Daybook welcome
+  hero": desktop, mobile, colour options). The canvas is reference only; nothing
+  in the repo reads it.
+- Wrote `docs/RETHEME-PLAN.md`: decisions, token tables for both themes, measured
+  contrast, call-site audit, phases 0 to 8, risks, final copy deck, open decisions
+  D1 to D5. **Read it before touching colour.**
+- Branch **`retheme/paper`** off `master`. Two commits, not pushed: `0fed13d`
+  (docs), `dbbe135` (tokens).
+- Phase 0: `BUILD-PLAN.md` gained phase 9 in §3, a pointer in §4, the superseded
+  brand line in §5.4, a §9 entry "The paper retheme, 17 Sep", a reversal note on
+  the no-webfont paragraph. `AGENTS.md` Colour and Typeface rewritten for coral
+  as fill, pen as text, `on-brand` ink, `on-status`, one self-hosted display face.
+- Phase 1, `src/styles.css`: `ink-*` warmed (same names), `brand-*` is coral,
+  new `pen-*` palette (50/100/300/500/600/700), `late-*` moved to crimson
+  (`#d92d4a` / `#a3122f`), every semantic token re-pointed in both columns, dark
+  column is warm charcoal. New tokens: `on-status`, `pen-text`, `pen-text-hover`,
+  `pen-tint`, `pen-tint-strong`, `on-pen-tint`, `focus`. The global
+  `:focus-visible` ring now reads `--color-focus` (pen-500 light, pen-300 dark).
+- **`on-brand` flipped from white to `#2b1310`.** The three status-fill sites moved
+  to `text-on-status` in the same commit: `task-row.html`, `task-detail.html`,
+  `toasts.html` (error tone, including its Undo, which was `text-brand-100`).
+- `brand-text` / `brand-text-hover` kept as **deprecated aliases of `pen-text`** so
+  the ~27 `text-brand-text` sites stay readable until Phase 2 renames them.
+- New `tools/contrast-check.mjs`: parses `@theme` and the first `.dark` block,
+  measures 31 pairs per theme plus the heat-map top step, two expected failures
+  that encode why coral is never text, one known gap. Passes.
+- 680 tests / 37 files passing. `ng build` 438.94 kB initial (107.53 kB transfer),
+  styles 44.84 kB. Both run on a Linux copy of the working tree, see Didn't work.
+- Screenshotted `/welcome` and `/login` from the production build in both themes.
+  Warm, readable, still the old always-dark poster layout, as expected.
+
+**Decided**
+- All of it is in `BUILD-PLAN.md` §9 "The paper retheme" and `RETHEME-PLAN.md` §1.
+  Short form: coral is a fill and never text (4.21:1 as text, 2.68:1 under white,
+  neighbour of overdue red); a blue-black pen does brand-as-text; `on-brand` is
+  ink in both themes; Fraunces self-hosted for welcome, login and app page titles
+  only; welcome and login stop being dark in both themes; the hero becomes a
+  try-it page on the real `parse-capture`, nothing saved.
+- The plan lives in `docs/RETHEME-PLAN.md`, not `BUILD-PLAN.md`, at Noel's choice.
+  `BUILD-PLAN.md` holds state and decisions only and points at it.
+- `on-status` had to land in Phase 1, not Phase 2 as first planned. `on-brand`
+  cannot flip while anything uses it on green.
+
+**Didn't work**
+- **`ng test` and `ng build` cannot run through Cowork's shell on Noel's Mac.**
+  That shell is a Linux VM mounting the folder, and `node_modules` holds darwin
+  binaries: `lightningcss` throws `MODULE_NOT_FOUND`. Do not `npm install` there,
+  it would break the Mac install. Worked around by tarring the tree without
+  `node_modules`, `npm ci` in the cloud container, and running there. Claude Code
+  on the Mac has no such problem.
+- The cloud container ships Node 22.22.2, which Angular 22 refuses. `nodejs.org`
+  is not needed: `npm i --prefix <dir> node@24` gives a working binary from the
+  npm registry.
+- **git could not remove its own `.git/index.lock` from that shell** until Noel
+  granted delete permission for the folder. That is where the `tmp_obj_*` and
+  `*.lock` files in `_to_delete/` came from in earlier sessions.
+- `git commit` there has no identity. Used `-c user.name/-c user.email` per
+  command with Noel's existing author line; no config was written.
+- First version of the token script matched the dark block by exact whitespace
+  and aborted before writing. Replaced with a regex over the whole `.dark` block.
+
+**Open**
+- **Nobody has looked at a signed-in screen on this branch.** Run `npm start` on
+  `retheme/paper` and click through Today, composer, task detail, calendar, heat
+  map, reporting, settings, toasts, both themes. Expect half-finished: primary
+  buttons still say `bg-brand-600`, now the darker hover coral.
+- D5: white tick on `done-500` is 2.54:1, predates this work, BUILD-PLAN §12.
+- D1 to D4 in the plan: handwriting font or inline SVG, keep amber/violet for
+  quick/deep, active nav wash, final crimson.
+- Hexes outside the stylesheet are still indigo: `public/icon.svg`, manifest
+  `theme_color`, `index.html` theme-color and pre-paint script, `core/theme.ts`,
+  `brand/logo.html`, `brand/logo.ts`, `empty-state.html`, `welcome.css`,
+  `supabase/functions/notify/index.ts`. That is Phase 3, and `notify` is its own
+  deploy.
+- `_to_delete/` still holds ~180 stale git temp files. Delete is now possible;
+  left alone because nobody asked.
+
+**Next**
+- Phase 2 of `docs/RETHEME-PLAN.md`. First build the audit table at the bottom of
+  that file: `grep -rnE "brand-[a-z0-9/-]+" src/app --include=*.html --include=*.ts`
+  minus specs, one row per site with the new class and the rule from §4 applied
+  (fill or selection stays brand as `bg-brand-500 hover:bg-brand-600
+  text-on-brand`; text, icons, checkbox borders and rings go to pen; active-nav
+  wash is `brand-tint`; parsed-input wash is `pen-tint`). Show Noel the table, then
+  apply it, then delete the `brand-text` aliases from `styles.css`.
+
+**Touched** — `docs/RETHEME-PLAN.md`, `BUILD-PLAN.md`, `AGENTS.md`, `src/styles.css`,
+`tools/contrast-check.mjs`, `src/app/features/today/task-row.html`,
+`src/app/features/today/task-detail.html`, `src/app/shared/toasts.html`
+
 ## 2026-09-11 · claude-code · 0005 applied, notify deployed whole
 
 **Did**

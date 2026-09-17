@@ -2350,6 +2350,20 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **The tick on a completed checkbox is 2.54:1. Found 17 Sep, not fixed.** White
+  on `done-500` (`#10b981`) is under the 3:1 floor for a meaningful glyph. It
+  predates the paper retheme: the green did not move. `tools/contrast-check.mjs`
+  found it on its first run and reports it every run as a non-fatal known gap.
+  The filled box carries the state on its own, so nothing is unreadable. Closing
+  it means darkening a reserved colour to about `#0E9F6E` (3.4:1), which also
+  moves the calendar heat map and the reporting charts, so it is a decision and
+  not a tweak. Open decision D5 in `docs/RETHEME-PLAN.md`.
+- **The retheme's signed-in screens have not been seen by anyone, 17 Sep.** Phase
+  1 changed every colour in the app through the tokens. Only `/welcome` and
+  `/login` were screenshotted, in both themes, from a production build, because
+  the rest needs a session. Until Phase 2 lands, primary buttons still say
+  `bg-brand-600`, which is now the darker hover coral, not the brand.
+
 - **Gmail silently dropped the digest for two days. Diagnosed and fixed,
   6 Sep.** The first two sends from `digest@send.noel-sebastian.com` — 5 Sep
   21:00Z and 6 Sep 10:05Z — never appeared in any Gmail folder, while every
