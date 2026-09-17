@@ -94,6 +94,7 @@ const PAIRS = [
   ['on-late-tint', 'late-tint', 4.5, 'carried ×4 badge'],
   ['on-quick-tint', 'quick-tint', 4.5, '!quick badge'],
   ['on-deep-tint', 'deep-tint', 4.5, '!deep badge'],
+  ['on-status', 'done-500', 3, 'the tick on a completed checkbox'],
   ['focus', 'surface', 3, 'focus ring on the page'],
   ['focus', 'surface-sunken', 3, 'focus ring on the desk'],
   ['focus', 'surface-raised', 3, 'focus ring on an overlay'],
@@ -110,12 +111,12 @@ const EXPECTED_FAILURES = [
  * Reported every run, never fatal, so they cannot be forgotten and cannot
  * block unrelated work. Fixing one means moving it up into PAIRS.
  *
- * The white tick on done-500 was 2.54:1 before the retheme and still is: the
- * green did not move. The filled box carries the state on its own, so this is
- * a polish gap and not a blocker. Closing it means darkening a reserved colour
- * that the heat map and the charts also use (RETHEME-PLAN.md, D5).
+ * Empty, and that is the point: the list is kept so the next gap has an
+ * obvious place to go that is not a comment nobody reads. The one entry it
+ * ever held — the white tick on done-500, 2.54:1 — was closed on 17 Sep by
+ * darkening the green to #0e9f6e (3.39:1) and is now enforced in PAIRS.
  */
-const KNOWN_GAPS = [['on-status', 'done-500', 3, 'the tick on a completed checkbox']];
+const KNOWN_GAPS = [];
 
 let failed = 0;
 const line = (ok, r, label) => console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${r.toFixed(2).padStart(6)}  ${label}`);

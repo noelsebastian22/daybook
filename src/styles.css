@@ -28,6 +28,38 @@
 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+  The one webfont. Fraunces, Latin subset, variable, 38 kB, self-hosted.
+  Built by tools/build-font.sh; the .woff2 is committed, so no build step
+  and no checkout needs Python. Licence in public/fonts/OFL.txt.
+
+  `swap` is not negotiable. The face is decoration on a title — blocking
+  paint on it, or hiding text for the 3s a `block` period allows, would
+  trade the app's whole latency argument for a serif.
+
+  Both axes are live. `opsz` 9..144 is why this is Fraunces and not any
+  serif: the browser sets it from the font size on its own, because
+  `font-optical-sizing: auto` is the initial value, so a 44px hero gets
+  the dramatic high-contrast cut and a 15px date header gets the sturdy
+  one with no call site having to ask. Do not pin it.
+
+  `wght` is clamped to 400..700 at build time to match the three weights
+  AGENTS.md allows. Asking for 800 here silently gets you 700.
+*/
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  /* Plain `woff2`, not the legacy `woff2-variations`: every browser that
+     can render a variable font loads one from `format('woff2')`, and the
+     older keyword is unrecognised by some of them, which skips the src
+     entirely and silently falls back to the system serif. */
+  src: url('/fonts/fraunces-var.woff2') format('woff2');
+  unicode-range: U+0020-007E, U+00A0, U+00B7, U+00D7, U+2013, U+2018-2019, U+201C-201D,
+    U+2026;
+}
+
 /* ------------------------------------------------------------------
    Daybook palette: paper, ink, coral and a pen.
    A daybook is a paper book with one page per day, and the palette is
@@ -96,8 +128,14 @@
   --color-pen-600: #27356b;
   --color-pen-700: #1b2650;
 
+  /* done-500 darkened from #10b981 on 17 Sep so the white tick on a
+     completed checkbox clears the 3:1 floor for a meaningful glyph:
+     2.54:1 before, 3.39:1 now (RETHEME-PLAN D5). It is a fill, not text,
+     so the floor is 3 and not 4.5. The heat map alphas below are the
+     same green and moved with it. done-700, the text colour, did not
+     need to move and did not. */
   --color-done-100: #d1fae5;
-  --color-done-500: #10b981;
+  --color-done-500: #0e9f6e;
   --color-done-700: #047857;
 
   /* Crimson, not the tomato red this used to be (#ef4444 / #b91c1c): the
@@ -106,23 +144,39 @@
   --color-late-500: #d92d4a;
   --color-late-700: #a3122f;
 
-  --color-quick-100: #fef3c7;
+  /* The two energy tags. Judged on the real Today list in both themes on
+     17 Sep (RETHEME-PLAN D2): violet read fine, amber did not. Measured
+     against the paper surface, every other tint separates from the page
+     by 1.11 to 1.19:1 and amber managed 1.09 — the weakest of the set,
+     because a pale yellow on warm paper is the one tint that shares the
+     page's own hue.
+
+     Both ends moved one step rather than neutralising the hues: the tint
+     to 1.18:1, level with violet, and the ink to quick-800 so the badge
+     text goes 4.51:1 (which the plan flagged as passing with no margin)
+     to 5.90:1. Deepening the tint alone would have pushed it under 4.5.
+     quick-800 exists only for this. */
+  --color-quick-100: #fceaa8;
   --color-quick-700: #b45309;
+  --color-quick-800: #92400e;
   --color-deep-100: #ede9fe;
   --color-deep-700: #6d28d9;
 
   /* ------------------------------------------------------------------
      Typeface.
 
-     The app asked for Inter for months and never loaded it — no
-     @font-face, no link, nothing in public/ — so every screen ever
-     reviewed was actually rendering in system-ui. Rather than fetch
-     Inter and change how the whole app looks, the stack now names what
-     was really on screen the whole time, on purpose.
+     Two stacks, and the split is the whole policy: `sans` is the system
+     and carries every word the app is actually used to read; `display`
+     is one self-hosted serif and carries titles only.
 
-     No webfont, deliberately (see BUILD-PLAN §9). Todoist ships the
-     same decision, and a PWA that has to be usable offline should not
-     have a face that arrives over the network.
+     UI text: no webfont, deliberately (see BUILD-PLAN §9). The app asked
+     for Inter for months and never loaded it — no @font-face, no link,
+     nothing in public/ — so every screen ever reviewed was actually
+     rendering in system-ui. Rather than fetch Inter and change how the
+     whole app looks, the stack now names what was really on screen the
+     whole time, on purpose. Todoist ships the same decision, and a PWA
+     that has to be usable offline should not have its body text arrive
+     over the network.
 
      'Segoe UI' must be named before `system-ui`. On Windows `system-ui`
      resolves to the locale's UI font, and under CJK locales that is
@@ -130,10 +184,25 @@
      Latin glyphs are wider and heavier than Segoe's and which have no
      semibold. Naming Segoe explicitly keeps Latin text stable across
      locales while CJK still falls through below it.
+
+     Display: Fraunces, self-hosted, 38 kB, built by tools/build-font.sh.
+     Decided 17 Sep, reversing "no webfont anywhere" for titles only —
+     the theme is paper and ink, and a system sans cannot say that. The
+     rule that replaced it is narrow: one face, self-hosted, never from a
+     third-party host at runtime, never blocking first paint, and only on
+     welcome, the login lockup, `text-display` page titles,
+     `text-display-lg` figures and Today's date header.
+
+     The fallback is a real design, not a formality. `font-display: swap`
+     means the system serif renders first on every cold load, and if the
+     file never arrives — offline before the service worker has it, or a
+     blocked request — the pages still read as deliberate rather than
+     broken. Check them with the font disabled before changing this.
      ------------------------------------------------------------------ */
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  --font-display: 'Fraunces', ui-serif, 'New York', Georgia, 'Times New Roman', serif;
 
   /* ------------------------------------------------------------------
      Type scale.
@@ -332,8 +401,8 @@
   --color-late-tint: #fde3e8; /* late-100 */
   --color-on-late-tint: #a3122f;
 
-  --color-quick-tint: #fef3c7; /* quick-100 */
-  --color-on-quick-tint: #b45309; /* quick-700 */
+  --color-quick-tint: #fceaa8; /* quick-100 — 1.18:1 vs the page, see D2 */
+  --color-on-quick-tint: #92400e; /* quick-800 — 5.90:1 on the tint */
 
   --color-deep-tint: #ede9fe; /* deep-100 */
   --color-on-deep-tint: #6d28d9; /* deep-700 */
@@ -438,17 +507,17 @@
    record of nothing done, and it should read as the page.
    ------------------------------------------------------------------ */
 :root {
-  --heat-1: rgba(16, 185, 129, 0.16);
-  --heat-2: rgba(16, 185, 129, 0.34);
-  --heat-3: rgba(16, 185, 129, 0.55);
-  --heat-4: rgba(16, 185, 129, 0.78);
+  --heat-1: rgba(14, 159, 110, 0.16);
+  --heat-2: rgba(14, 159, 110, 0.34);
+  --heat-3: rgba(14, 159, 110, 0.55);
+  --heat-4: rgba(14, 159, 110, 0.78);
 }
 
 .dark {
-  --heat-1: rgba(16, 185, 129, 0.15);
-  --heat-2: rgba(16, 185, 129, 0.28);
-  --heat-3: rgba(16, 185, 129, 0.4);
-  --heat-4: rgba(16, 185, 129, 0.5);
+  --heat-1: rgba(14, 159, 110, 0.15);
+  --heat-2: rgba(14, 159, 110, 0.28);
+  --heat-3: rgba(14, 159, 110, 0.4);
+  --heat-4: rgba(14, 159, 110, 0.5);
 }
 
 html,

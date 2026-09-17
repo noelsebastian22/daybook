@@ -246,6 +246,26 @@ flat field compresses where a gradient does not.
   Note: installed PWAs refresh their icon slowly or never. Expect to reinstall to see it on iOS.
 
 ### Phase 4. Typeface
+**Done 17 Sep.** 39.9 kB inside the 40 kB budget, built reproducibly by `tools/build-font.sh`
+(the `.woff2` is committed, so no build and no checkout needs Python). Three things came out of
+doing it that the section below did not anticipate:
+
+1. **`rvrn` must be retained by the subsetter.** It is a *required* feature and Fraunces drives it
+   from `FeatureVariations` to swap glyph forms across the `opsz` axis. `pyftsubset` drops it
+   unless asked. A build without it renders correctly at 15 px and wrongly at display sizes,
+   which is the worst available failure mode. The script now names it and says why.
+2. **`format('woff2')`, never `format('woff2-variations')`.** The legacy keyword is unrecognised
+   by some browsers, which skips the `src` and silently falls back to the system serif — a
+   failure indistinguishable from the font simply not loading.
+3. **Fraunces has no `tnum` and its digits are proportional**, so `tabular-nums` is a no-op under
+   it. The two `text-display-lg` reporting figures had that class; it was removed rather than
+   left claiming something untrue. They sit left-aligned in separate cards, so nothing needs to
+   line up and there is no jitter to prevent.
+
+`opsz` is deliberately left unpinned: `font-optical-sizing: auto` is the initial value, so the
+browser sets the axis from the font size on its own and a 44 px hero gets the dramatic cut while
+a 15 px date header gets the sturdy one, with no call site having to ask.
+
 - Self-host one variable file: Fraunces, Latin subset, `wght` 400 to 700 and the `opsz` axis, as
   `public/fonts/fraunces-var.woff2`. Target 40 kB or less. No Google Fonts request at runtime.
 - `styles.css`: `@font-face` with `font-display: swap`, and `--font-display: 'Fraunces', ui-serif, 'New York', Georgia, serif`.
@@ -358,12 +378,12 @@ uppercase tracked eyebrow labels.
 
 ## 8. Open decisions
 
-- **D1. Handwriting.** Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.
-- **D2. `quick` and `deep`.** Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues. Decide on real screens in Phase 7. **Seen on the real Today list in both themes, 17 Sep:** violet `deep` reads fine in both; amber `quick` barely separates from the paper surface in light, because the tint and the page share the same warmth. Recommendation, not yet decided: keep both hues and take `quick`'s tint one step deeper rather than neutralise them.
+- **D1. Handwriting.** ~~Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.~~ **Decided 17 Sep: inline SVG paths, generated from Caveat at build time by `tools/build-notes.sh`.** Neither option as written was right. Hand-authoring convincing handwriting paths is a coin flip, and shipping a second `@font-face` contradicts the "one display face, self-hosted, and nothing else" rule that Phase 0 had already written into `AGENTS.md`. Converting the two fixed strings to outlines takes the third door: the handwriting is genuinely Caveat's, no second font is requested at runtime, there is no FOUT on a decorative mark, and the cost is about 4 kB of path data inside a lazy-loaded route. Caveat never ships as a font, so the OFL applies to nothing in the bundle — outlines of rendered text are not font software, per the OFL FAQ.
+- **D2. `quick` and `deep`.** ~~Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues.~~ **Decided 17 Sep: keep both hues, take `quick` one step deeper at both ends.** Confirmed by measurement, not just the eye: against the paper surface every other tint separates from the page by 1.11–1.19:1 and amber managed **1.09**, the weakest of the whole set, because a pale yellow on warm paper is the one tint that shares the page's own hue. `quick-100` goes `#fef3c7` → `#fceaa8` (1.18:1, level with violet). Deepening the tint alone would have pushed the badge text under the floor, so `on-quick-tint` moves to a new `quick-800` `#92400e` — which also closes the "passes with no margin, watch it" note on that pair, 4.51:1 → **5.90:1**. Violet was left alone; it was already fine. Dark theme untouched, where neither was ever a problem.
 - **D3. Active nav item.** ~~Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.~~ **Decided 17 Sep, Phase 2: blush `brand-tint` + `on-brand-tint`.** Both were rendered side by side against the live tokens in both themes. `fill` lost on function, not taste: it is the same value as `hover-strong` in light (`#F1EADA`) and 3 steps from it in dark, so a `fill` active item is indistinguishable from a hovered inactive one. The blush wash reads clearly as "you are here" in both themes and is the one quiet echo of the brand in the chrome.
 - **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button. **Attempted 17 Sep and blocked:** the account has no overdue task, so the only crimson anywhere in the signed-in app is the calendar legend's "carried off" dot and Settings' `Delete` links. Neither is the comparison this asks for. It needs a back-dated task, or a day where today's task goes unfinished and comes back overdue.
-- **D6. The `filtered` illustration's title line.** New, 17 Sep. `shared/empty-state.html` paints the front sheet's title line in blush `brand-tint-strong`. It harmonised with the indigo border it sat beside; against the navy pen edge Phase 3 gave that sheet, it reads as a smudge rather than a title, and it is the only pink in any illustration. Recommendation: `border-strong`, matching every other scene, since the navy edge already marks the sheet as the one being looked at. Unchanged in the code pending Noel.
-- **D5. The tick on a completed checkbox.** Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph. It was the same before the retheme. Closing it means darkening the reserved green to about `#0E9F6E` (3.4:1), which also moves the heat map and the charts. Listed as a known gap in the script, reported every run, not fatal.
+- **D6. The `filtered` illustration's title line.** ~~New, 17 Sep. `shared/empty-state.html` paints the front sheet's title line in blush `brand-tint-strong`.~~ **Decided 17 Sep: `border-strong`, as recommended.** It harmonised with the indigo border it sat beside; against the navy pen edge Phase 3 gave that sheet it read as a smudge rather than a title, and it was the only pink in any illustration. The pen edge already marks which sheet is being looked at, so the line does not need to carry that job as well. The reasoning is in a comment at the call site so it does not get "restored".
+- **D5. The tick on a completed checkbox.** ~~Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph.~~ **Closed 17 Sep: `done-500` is `#0e9f6e`, and the tick is 3.39:1.** Taken rather than left as a known gap, because a check mark is the one glyph in the app that carries state on its own. The floor is 3 and not 4.5 because it is a fill and not text. Everything reading that green moved with it — the four heat-map alphas and the chart bars — and `done-700`, the text colour, did not need to move and did not. `KNOWN_GAPS` in the contrast checker is now empty and the pair is enforced in `PAIRS`.
 
 ---
 

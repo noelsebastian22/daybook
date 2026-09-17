@@ -1,14 +1,21 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-24">
   <header class="safe-py-6">
     <p class="text-caption font-medium uppercase tracking-wider text-text-subtle">Reporting</p>
-    <h1 class="mt-0.5 text-display font-semibold tracking-tight">The last fortnight</h1>
+    <h1 class="mt-0.5 font-display text-display font-semibold">The last fortnight</h1>
   </header>
 
   <!-- headline -->
   <div class="grid grid-cols-2 gap-3">
     <div class="rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
       <p class="text-caption text-text-subtle">Done this week</p>
-      <p class="mt-1 text-display-lg font-semibold tabular-nums tracking-tight text-done-text">
+      <!--
+        No `tabular-nums` on either figure any more. Fraunces ships no `tnum`
+        feature and its digits are proportional, so the class was doing
+        nothing but claiming otherwise. These two sit left-aligned in their
+        own cards rather than stacked in a column, so nothing needs to line
+        up vertically and there is no jitter to prevent.
+      -->
+      <p class="mt-1 font-display text-display-lg font-semibold text-done-text">
         {{ thisWeek() }}
       </p>
       <p class="mt-1 text-caption text-text-subtle">
@@ -22,7 +29,7 @@
 
     <div class="rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
       <p class="text-caption text-text-subtle">Open right now</p>
-      <p class="mt-1 text-display-lg font-semibold tabular-nums tracking-tight">
+      <p class="mt-1 font-display text-display-lg font-semibold">
         {{ tasks.openCount() }}
       </p>
       <p class="mt-1 text-caption text-text-subtle">on today</p>
