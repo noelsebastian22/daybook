@@ -11,6 +11,91 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-18 · claude-code · retheme shipped, threads closed
+
+**Did**
+- Verified `retheme/paper` before merging: 697 tests / 38 files, initial bundle
+  **436.61 kB** (107.37 kB transfer), styles 42.66 kB, `contrast-check` green.
+- Fast-forwarded `master` to `retheme/paper` and pushed. 21 commits, carrying
+  `4149347` and `1fcf2b8`, the digest/key-rotation pair nobody had pushed.
+  Re-ran the suite on the merged result: still 697.
+- Production verified serving the new build: `fonts/fraunces-var.woff2` is
+  byte-identical to the repo (40,948 B) and `theme-color` is `#fffdf7`.
+- `supabase functions deploy notify --project-ref zzacswfongmzpnhcjiqp` → **v14**,
+  new `ezbr_sha256`. Forced a digest with the §12 recipe; the 22:05Z tick sent it.
+- **Digest confirmed from the inbox, not the sending side.** Delivered HTML
+  carries `#1f1b16`, `#6b6353`, `#a3122f`, green still `#047857` — every hex
+  matching `notify/index.ts` — subject `Daybook: `, `labelIds: [INBOX]`.
+- Fixture indigo closed: `fakes.ts` `makeCategory` colour `#6366f1` → `#64748b`,
+  and `settings.spec.ts:399`'s explicit `#6366f1` → `#3b82f6`. It was in **two**
+  places, not the one the last entry named.
+- Re-counted fractional spacing: still **41**. Scoped in `BUILD-PLAN.md` §4 with
+  the per-file breakdown. Not started.
+- Schema untouched — the only live write was an `update user_settings` on the
+  forcing recipe. `list_migrations` still 7 live against 5 in the folder.
+
+**Decided**
+- **Ship ahead of the installed-PWA check.** Noel's call, asked explicitly. The
+  check is a verification, not work, and now runs against production; rollback
+  is still `daybook-bay.vercel.app`, served without a redirect.
+- **Receiver-side confirmation is the assertion that matters for the digest.**
+  The Gmail MCP reads the delivered message, so hexes and subject diff straight
+  against `notify/index.ts`. `labelIds` containing `INBOX` is the proof; a `250`
+  from Resend never was — that is exactly what the 6 Sep Gmail-discard bug was.
+  The 22:05Z send and the 21:00Z one an hour earlier sat in the same inbox with
+  `Daybook: ` and `Daybook — ` subjects, which is what proved v14 had taken
+  rather than merely uploaded. Recorded in §12.
+- **`makeDefaultCategories`' comment was the bug, not its data.** It claimed to
+  mirror what `ensure_user_setup` seeds; it never has. Real seed is
+  Freelance/Work/Family/Health, fixture is Work/Home/Health/Admin, and three
+  `task.store.spec.ts` specs look up `slug === 'home'`, which the real seed has
+  no equivalent of. Corrected the comment rather than renaming the fixture and
+  breaking three specs for no gain.
+- **A fixture's default should be the column default.** `#64748b` is what
+  `0001_core_schema.sql` actually assigns, so an unspecified colour is now
+  truthful rather than decorative.
+
+**Didn't work**
+- **The last entry's merge claim was wrong twice.** It said "clean fast-forward,
+  17 commits": it was **19**, and `dfc3f64` had never reached
+  `origin/retheme/paper`, so the Vercel preview was one commit behind the branch.
+  Harmless — that commit is docs-only — but "the branch is pushed" was not true
+  of its tip. Check `git log --oneline retheme/paper..master` and the upstream
+  ahead-count, not the log's number.
+- **`grep -rni 6366f1 .` is unusable in this repo.** `docs/reference/brand/*.svg`
+  carry C2PA provenance manifests as base64, so the sweep returned 390 kB of
+  metadata. Scope colour greps to `src supabase tools public`.
+- **`timeout` does not exist on macOS**, so the skill-style `timeout 45 supabase …`
+  guard fails with `command not found` and the exit code still reads 0.
+- **The Supabase CLI is authenticated here but not linked** — no
+  `supabase/.temp/project-ref`. `supabase projects list` works while anything
+  project-scoped says "Cannot find project ref". Pass `--project-ref`; do not run
+  `supabase link`, and do not reach for the MCP `deploy_edge_function`, which
+  would have re-rooted the entrypoint path away from
+  `supabase/functions/notify/index.ts`.
+- Trailing `*.css` in a `grep --include` list is a zsh glob error, not a grep one.
+
+**Open**
+- **Installed-PWA check is the only outstanding Phase 9 item**: status bar, safe
+  areas, no white flash, offline load with the font, coral icon after a reinstall.
+  Needs Noel's iPhone against `https://daybook.noel-sebastian.com`.
+- **`retheme/paper` still exists locally and on origin.** Deliberately not
+  deleted; `master` carries everything, so it can go whenever Noel says.
+- Phase 7 blockers 4 and 5 (rotate `service_role` into Vault, leaked-password
+  protection) remain dashboard-only. Gate 1 — push delivering off the new table —
+  still unseen.
+- The Gmail "Never send it to Spam" filter still does not generalise to a second
+  user. Domain warming is the real fix and is unsolved.
+- 41 fractional spacing steps, scoped but not started.
+
+**Next**
+- Noel does the PWA check on the installed production app. If it holds, Phase 9
+  closes entirely and `retheme/paper` can be deleted locally and on origin.
+
+**Touched** — `src/testing/fakes.ts`,
+`src/app/features/settings/settings.spec.ts`, `BUILD-PLAN.md`, `AGENTS.md`,
+`docs/SESSIONS.md`
+
 ## 2026-09-17 · claude-code · retheme phases 4 to 8, decisions closed
 
 _Ran past midnight; the branch push landed early on 18 Sep. Every decision in

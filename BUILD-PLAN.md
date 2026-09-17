@@ -859,10 +859,14 @@ tracked.
     owner** — **fixed 5 Sep**, it now sends as
     `Daybook <digest@send.noel-sebastian.com>` from a verified domain (§14),
     which removes the hard blocker on a second user; and
-    the "Yesterday you finished" branch of the template has still never
-    rendered, because nothing scheduled on 20 Aug was completed. **The cron is
+    the "Yesterday you finished" branch of the template had never rendered,
+    because nothing scheduled on 20 Aug was completed — **closed 18 Sep**, the
+    v14 digest read "Yesterday you finished 2" over two real completions, so
+    every branch of the template has now been seen in a delivered message.
+    **The cron is
     live as of 21 Aug**, so the first unprompted digest is 22 Aug after 07:00
-    Sydney and nothing further is needed to make it arrive.
+    Sydney and nothing further is needed to make it arrive. Re-verified end to
+    end on 18 Sep against the retheme's colours (§3 Phase 9, §12).
 13. **Weekly review**: tasks carried over or rescheduled most often, plus a
     completion trend. State: **done**, at `/reporting`.
 14. **Simple visual stats**, e.g. a glanceable weekly bar chart of tasks
