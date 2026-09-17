@@ -348,6 +348,27 @@ multi-tenancy.
 - ~~**Load a typeface.**~~ **Closed 25 Aug, the other way.** Inter is not
   fetched; `--font-sans` now names the system stack it was always really
   rendering (§9, §12).
+- **Migrate the 41 surviving fractional spacing steps.** Scoped 18 Sep; not
+  started. The design-tokens bullet above restricted spacing to 1/2/3/4/6/8,
+  and `AGENTS.md` claimed for months that the fractional steps were "gone".
+  They are not: a re-count on 18 Sep confirms **41** across `src/app`, holding
+  steady since the 17 Sep sweep. `mt-0.5` ×12, `py-1.5` ×10, `py-0.5` ×6,
+  `px-2.5` ×5, `gap-1.5` ×4, `gap-0.5` ×2, `mt-1.5` ×1, `mx-0.5` ×1, across ten
+  templates — `today/task-detail.html` alone holds 13, then `settings.html` and
+  `reporting.html` at 5 each, `welcome/try-page.html` and `calendar.html` at 4,
+  `shared/date-picker.html` 3, `today/task-row.html`, `today/capture.html` and
+  `calendar/day-detail.html` 2 each, `shared/install-hint.html` 1. Re-count with
+  the grep in `AGENTS.md` § Spacing.
+
+  **This is deliberately its own piece of work and must not be smuggled into an
+  unrelated change** (`docs/RETHEME-PLAN.md` §2 — the paper retheme declined it
+  on purpose). Every one of the 41 is a *visual* decision, not a mechanical
+  rename: rounding `py-1.5` to `py-1` or `py-2` moves a control's height by 2px
+  either way, and the sanctioned `0.5` alignment exception on `task-row.ts`'s
+  checkbox proves at least some of them are load-bearing optical centring
+  rather than sloppy spacing. Each site needs a look on screen and a decision to
+  round or to keep-and-comment; a keeper gets the comment that explains why, per
+  `AGENTS.md`. Do not add new ones meanwhile.
 - **Code quality.** No specific list yet. `core/task.store.ts` at 655 lines,
   `features/today/capture.ts` at 550 and `features/welcome/welcome.ts` at 511
   are the three obvious candidates. **Corrected 3 Sep** — this said capture and
@@ -2378,7 +2399,23 @@ later phases settled, beyond what the plan had planned for:
   a `--color-scrim` token), six `opacity`-as-disabled controls, seven banned
   uppercase eyebrows, and a full-colour emoji alarm clock.
 - **`AGENTS.md` overstated the spacing cleanup** and now says so: 41 fractional
-  steps survive in `src/app`, where the doc claimed they were gone.
+  steps survive in `src/app`, where the doc claimed they were gone. Re-counted
+  18 Sep — still 41 — and scoped as its own work item in §4, with the per-file
+  breakdown and the reason it cannot be a mechanical find-and-replace.
+- ~~**`src/testing/fakes.ts` seeded the retired brand indigo.**~~ **Closed
+  18 Sep.** `makeCategory` defaulted `colour` to `#6366f1`, a shade the paper
+  retheme removed from the app entirely, and `settings.spec.ts`'s recolour test
+  named it explicitly. Harmless test data that read as though the indigo were
+  still live. The default is now `#64748b`, the actual column default in
+  `0001_core_schema.sql`, so an unspecified colour matches what Postgres would
+  assign; the spec starts from `#3b82f6`, a really-seeded blue. The same pass
+  found `makeDefaultCategories`' doc comment claiming it mirrored the four
+  categories `ensure_user_setup` seeds — it never has. The real seed is
+  Freelance/Work/Family/Health; the fixture is Work/Home/Health/Admin, and
+  three `task.store.spec.ts` specs look up `slug === 'home'`, which the real
+  seed has no equivalent of. **The comment was the bug, not the data** — it has
+  been corrected in place rather than renaming the fixture and breaking three
+  specs for no gain.
 
 Two things were settled while Phase 3 landed the assets, 17 Sep:
 

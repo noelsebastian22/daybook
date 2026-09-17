@@ -396,7 +396,7 @@ describe('Settings', () => {
     });
 
     it('recolours', async () => {
-      const category = makeCategory({ name: 'Health', colour: '#6366f1' });
+      const category = makeCategory({ name: 'Health', colour: '#3b82f6' });
       categories.set([category]);
       const page = await renderSettings();
       const swatch = page.query('[aria-label="Colour for Health"]') as HTMLInputElement;

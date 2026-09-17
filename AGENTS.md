@@ -312,7 +312,9 @@ icon against a line of text — alignment, not spacing — on the checkbox in
 A Phase 7 sweep on 17 Sep counted **41** across `src/app`: `mt-0.5` ×12,
 `py-1.5` ×10, `py-0.5` ×6, `px-2.5` ×5, `gap-1.5` ×4, plus a few singles. The
 2026 cleanup removed eighteen from the core surfaces and the doc was written
-as though it had finished the job. Re-check with:
+as though it had finished the job. Re-counted 18 Sep, still 41, and now scoped
+as its own work item in `BUILD-PLAN.md` §4 with the per-file breakdown. Re-check
+with:
 
 ```
 grep -rhoE '\b(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap)-[0-9]+\.5\b' src/app | sort | uniq -c

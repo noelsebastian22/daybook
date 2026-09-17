@@ -73,14 +73,27 @@ export function makeCategory(over: Partial<Category> = {}): Category {
     user_id: USER_ID,
     name: 'Home',
     slug: 'home',
-    colour: '#6366f1',
+    // The schema default (`0001_core_schema.sql`), so an unspecified colour here
+    // is the one Postgres would actually assign. This used to be `#6366f1`, the
+    // brand indigo the paper retheme retired — a shade that no longer exists
+    // anywhere in the app.
+    colour: '#64748b',
     sort_order: 0,
     created_at: `${TODAY}T09:00:00.000Z`,
     ...over,
   };
 }
 
-/** The four categories `ensure_user_setup` seeds on first login. */
+/**
+ * Four categories, for a spec that wants a populated store rather than one row.
+ *
+ * **Not the set `ensure_user_setup` seeds** — that is Freelance, Work, Family,
+ * Health (`0002_rpcs.sql`), and this comment claimed otherwise until 18 Sep.
+ * These names are the fixture's own: three specs in `task.store.spec.ts` look up
+ * `slug === 'home'`, and `#home` is the tag the capture-box specs parse. Match
+ * them to the real seed and those specs break for no gain. If a spec genuinely
+ * needs the seeded set, spell it out there.
+ */
 export function makeDefaultCategories(): Category[] {
   return ['Work', 'Home', 'Health', 'Admin'].map((name, i) =>
     makeCategory({ name, slug: name.toLowerCase(), sort_order: i }),
