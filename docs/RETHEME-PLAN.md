@@ -348,10 +348,14 @@ adding a task, filing one to another day, and flipping the page, which carried t
 rows, incremented their counts, moved the date and page number on, and swapped the
 handwritten note.
 
+**The signed-in app has now been reviewed, 17 Sep, in both themes** — today, upcoming,
+calendar, day detail, task detail, reporting, settings and the drawer, plus the composer with
+its parsed chips and its disabled and enabled Save button. No account was required: `Supabase`
+was swapped for canned rows at bootstrap behind a `?harness` flag, so every component,
+template, token and font was the real one and only the data was invented. The scaffolding was
+deleted afterwards and is not in the tree. That closed D4 as well.
+
 **Still needs Noel:**
-- **The signed-in app has not been seen on this branch since Phase 4.** No session is signed
-  in on this machine, so /today redirects to /welcome and the eight signed-in screens are
-  unverified against the display face, the stamp and the new Today header.
 - **The installed-PWA check**: status bar colour, safe areas, no white flash, offline load
   with the font, and the coral icon after a reinstall.
 - **The deploys.** The front end, and `notify` separately with a test digest. Both are
@@ -431,7 +435,9 @@ uppercase tracked eyebrow labels.
 - **D1. Handwriting.** ~~Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.~~ **Decided 17 Sep: inline SVG paths, generated from Caveat at build time by `tools/build-notes.sh`.** Neither option as written was right. Hand-authoring convincing handwriting paths is a coin flip, and shipping a second `@font-face` contradicts the "one display face, self-hosted, and nothing else" rule that Phase 0 had already written into `AGENTS.md`. Converting the two fixed strings to outlines takes the third door: the handwriting is genuinely Caveat's, no second font is requested at runtime, there is no FOUT on a decorative mark, and the cost is about 4 kB of path data inside a lazy-loaded route. Caveat never ships as a font, so the OFL applies to nothing in the bundle — outlines of rendered text are not font software, per the OFL FAQ.
 - **D2. `quick` and `deep`.** ~~Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues.~~ **Decided 17 Sep: keep both hues, take `quick` one step deeper at both ends.** Confirmed by measurement, not just the eye: against the paper surface every other tint separates from the page by 1.11–1.19:1 and amber managed **1.09**, the weakest of the whole set, because a pale yellow on warm paper is the one tint that shares the page's own hue. `quick-100` goes `#fef3c7` → `#fceaa8` (1.18:1, level with violet). Deepening the tint alone would have pushed the badge text under the floor, so `on-quick-tint` moves to a new `quick-800` `#92400e` — which also closes the "passes with no margin, watch it" note on that pair, 4.51:1 → **5.90:1**. Violet was left alone; it was already fine. Dark theme untouched, where neither was ever a problem.
 - **D3. Active nav item.** ~~Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.~~ **Decided 17 Sep, Phase 2: blush `brand-tint` + `on-brand-tint`.** Both were rendered side by side against the live tokens in both themes. `fill` lost on function, not taste: it is the same value as `hover-strong` in light (`#F1EADA`) and 3 steps from it in dark, so a `fill` active item is indistinguishable from a hovered inactive one. The blush wash reads clearly as "you are here" in both themes and is the one quiet echo of the brand in the chrome.
-- **D4. Final crimson.** ~~`#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.~~ **Kept, 17 Sep, on measurement rather than on the screen the plan asked for.** The signed-in app could not be opened — no session is signed in on this machine, so /today redirects to /welcome — and the honest thing was to answer the question the gate exists to ask: *is overdue far enough from the brand that it cannot be misread as it?* In OKLab:
+- **D4. Final crimson.** ~~`#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.~~ **Confirmed 17 Sep, on the real Today list beside the real coral Add button, in both themes.** No account was needed: the signed-in screens were reviewed by swapping `Supabase` for canned rows at bootstrap, so every component, template, token and font was the real one and only the data was invented. The seed carried a task at `carried_over_count: 7`, which is the escalated crimson stamp the gate exists for.
+
+  They do not read as the same colour. The coral `+` is a warm salmon that leans orange; the crimson stamp is a cool pink-red. The measurement agrees — in OKLab:
 
   | Pair | Hue gap | ΔOKLab |
   |---|---|---|
@@ -439,7 +445,7 @@ uppercase tracked eyebrow labels.
   | new `late-500` `#D92D4A` vs coral | **10.1°** | 0.153 |
   | new `late-700` `#A3122F` vs coral | **9.3°** | 0.259 |
 
-  The old red sat less than three degrees of hue from the brand, which is the whole reason this decision existed. The crimson roughly quadruples that separation. The two were also seen together in context on the rebuilt welcome page, where the `late-tint` "×4" badge sits on the same screen as the coral CTAs and reads as a different colour rather than a darker one. **What is still not done is the plan's literal gate**: overdue crimson on the real Today list beside the real Add button. That needs a signed-in session and is listed in Phase 8.
+  The old red sat less than three degrees of hue from the brand, which is the whole reason this decision existed. The crimson roughly quadruples the separation. **Closed.**
 - **D6. The `filtered` illustration's title line.** ~~New, 17 Sep. `shared/empty-state.html` paints the front sheet's title line in blush `brand-tint-strong`.~~ **Decided 17 Sep: `border-strong`, as recommended.** It harmonised with the indigo border it sat beside; against the navy pen edge Phase 3 gave that sheet it read as a smudge rather than a title, and it was the only pink in any illustration. The pen edge already marks which sheet is being looked at, so the line does not need to carry that job as well. The reasoning is in a comment at the call site so it does not get "restored".
 - **D5. The tick on a completed checkbox.** ~~Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph.~~ **Closed 17 Sep: `done-500` is `#0e9f6e`, and the tick is 3.39:1.** Taken rather than left as a known gap, because a check mark is the one glyph in the app that carries state on its own. The floor is 3 and not 4.5 because it is a fill and not text. Everything reading that green moved with it — the four heat-map alphas and the chart bars — and `done-700`, the text colour, did not need to move and did not. `KNOWN_GAPS` in the contrast checker is now empty and the pair is enforced in `PAIRS`.
 

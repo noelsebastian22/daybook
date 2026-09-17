@@ -38,11 +38,17 @@ it turned out wrong, say so in a new one.
 - `_to_delete/` no longer exists. Nothing to clean.
 
 **Decided**
-- **D4 was decided on measurement, not on the screen the plan asked for.** No
-  session is signed in here, so /today redirects to /welcome. In OKLab the old
-  `#EF4444` sat **2.7°** of hue from coral; `#D92D4A` sits **10.1°** away. The
-  literal gate — crimson on the real Today list beside the coral Add button — is
-  still open.
+- **D4 is closed on the screen its gate asked for.** The coral `+` and the
+  crimson `carried ×7` were seen together on the real Today list in both themes.
+  They do not read as the same colour. In OKLab the old `#EF4444` sat **2.7°** of
+  hue from coral; `#D92D4A` sits **10.1°** away.
+- **The signed-in screens can be reviewed without an account, and this is worth
+  reusing.** Swap `Supabase` for canned rows at bootstrap behind a `?harness`
+  flag in `main.ts`. Every component, template, token and font stays real and
+  only the data is invented — which is enough for a visual pass and is the only
+  way to see these surfaces with no session. Seed an overdue task at
+  `carried_over_count: 7` and the escalated crimson stamp is on screen. The
+  scaffolding was deleted afterwards; it is about 130 lines.
 - **The wordmark is the one piece of app chrome that gets Fraunces**, because it
   is the brand and not UI text. Its cap-height constant moved 0.72 → 0.70, read
   off the face. Survivable under `swap` only because `--font-display` falls back
@@ -77,9 +83,6 @@ it turned out wrong, say so in a new one.
   caught a real defect the eye would not have: the task name rendered at **0px**.
 
 **Open**
-- **The signed-in app has not been seen since Phase 4.** Nothing is signed in on
-  this machine. Eight screens are unverified against the display face, the stamp
-  and the new Today header. This is the main thing left.
 - **Nothing is deployed.** Front end and `notify` are both committed and both
   unpushed; `notify` is its own deploy and wants a test digest.
 - Installed-PWA check outstanding: status bar, safe areas, no white flash,
@@ -90,10 +93,11 @@ it turned out wrong, say so in a new one.
   retired brand indigo. Harmless test data, but confusing to read.
 
 **Next**
-- Sign in and click through the eight signed-in screens in both themes, looking
-  at Today's new header, the carried stamp on a real row, and D4's crimson
-  against the coral Add button. Then merge and deploy the front end, and deploy
-  `notify` separately with a test digest.
+- Decide how this branch lands: merge `retheme/paper` to `master`, then deploy
+  the front end, and deploy `notify` separately with a test digest. Nothing is
+  pushed. The only verification left that needs hardware is the installed PWA —
+  status bar, safe areas, no white flash, offline load with the font, and the
+  coral icon after a reinstall.
 
 **Touched** — `tools/build-font.sh`, `tools/build-notes.sh`, `tools/contrast-check.mjs`,
 `public/fonts/*`, `src/styles.css`, `ngsw-config.json`,

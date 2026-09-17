@@ -111,7 +111,7 @@ its own entry. §14 for the whole domain and email setup.
 | 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **done on branch `retheme/paper`, 17 Sep**, not yet merged or deployed. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **What is left is not code**: the signed-in app has not been seen since Phase 4 because nothing is signed in on this machine, the installed-PWA check is outstanding, and neither the front end nor `notify` has been deployed. §12 |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **done on branch `retheme/paper`, 17 Sep**, not yet merged or deployed. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **What is left is not code**: the installed-PWA check on a real device, and the two deploys. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -2430,19 +2430,22 @@ Not core. Revisit once the main app is solid.
     that shares the page's own hue. `quick-100` -> `#FCEAA8` (1.18:1) and a new
     `quick-800` `#92400E` carries its text, which also took that badge from
     4.51:1 to 5.90:1.
-  - **D4**, the crimson: kept, on measurement. The signed-in app could not be
-    opened (see the gap below), so the question the gate exists to ask was
-    answered numerically instead. In OKLab the old `#EF4444` sat **2.7°** of
-    hue from coral; the new `#D92D4A` sits **10.1°** away, roughly quadrupling
-    the separation. The plan's literal gate — crimson on the real Today list
-    beside the coral Add button — is still not done.
+  - **D4**, the crimson: kept, and confirmed on the real Today list beside the
+    real coral Add button in both themes, with a task seeded at seven carries
+    so the escalated stamp was on screen. They do not read as the same colour —
+    the coral leans orange, the crimson leans pink. The measurement agrees: in
+    OKLab the old `#EF4444` sat **2.7°** of hue from coral and `#D92D4A` sits
+    **10.1°** away, roughly quadrupling the separation.
 
-- **The signed-in app has not been seen since Phase 4, 17 Sep.** No session is
-  signed in on this machine, so `/today` redirects to `/welcome` and the eight
-  signed-in screens are unverified against the display face, the new carried
-  stamp and the rebuilt Today header. Welcome and login were checked by hand in
-  both themes, and the try-it hero was driven through a full flip. This is the
-  main thing the retheme still needs a person for.
+- ~~**The signed-in app has not been seen since Phase 4, 17 Sep.**~~ **Closed the
+  same day.** All eight signed-in screens were reviewed in both themes — today,
+  upcoming, calendar, day detail, task detail, reporting, settings and the
+  drawer — plus the composer with its parsed chips and both states of its Save
+  button. Nothing was signed in, so `Supabase` was swapped for canned rows at
+  bootstrap behind a `?harness` flag: every component, template, token and font
+  was the real one and only the data was invented. The scaffolding was removed
+  afterwards. This is a reusable trick and is worth remembering — it is the
+  only way to look at this app's signed-in surfaces without an account.
 
 - **The category swatches now fight the palette, 17 Sep.** The seeded defaults
   put Freelance on an orange that sits beside coral and Health on a green that
