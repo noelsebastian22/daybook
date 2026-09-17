@@ -1,5 +1,5 @@
 <div
-  class="rounded-panel bg-surface-raised p-1 shadow-sm ring-1 ring-border focus-within:ring-2 focus-within:ring-brand-500"
+  class="rounded-panel bg-surface-raised p-1 shadow-sm ring-1 ring-border focus-within:ring-2 focus-within:ring-focus"
 >
   <div class="relative">
     <!-- The mirror and the textarea must share an identical line box or the
@@ -15,7 +15,7 @@
       @for (s of parts(); track $index) {
         @switch (s.kind) {
           @case ('date') {
-            <span class="rounded-control bg-brand-tint-strong text-brand-text">{{ s.text }}</span>
+            <span class="rounded-control bg-pen-tint-strong text-on-pen-tint">{{ s.text }}</span>
           }
           @case ('category') {
             <span class="rounded-control bg-fill text-text-muted">{{ s.text }}</span>
@@ -57,7 +57,7 @@
       <button
         #dateChip
         type="button"
-        class="rounded-full bg-brand-tint px-2 py-1 font-medium text-brand-text transition hover:bg-brand-tint-strong"
+        class="rounded-full bg-pen-tint px-2 py-1 font-medium text-on-pen-tint transition hover:bg-pen-tint-strong"
         [attr.aria-expanded]="pickerOpen()"
         [attr.aria-label]="'Scheduled for ' + when() + '. Change the date'"
         (click)="toggle(pickerOpen)"
@@ -78,7 +78,7 @@
 
     @if (reminderTime(); as t) {
       <span
-        class="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-1 font-medium text-brand-text"
+        class="inline-flex items-center gap-1 rounded-full bg-pen-tint px-2 py-1 font-medium text-on-pen-tint"
       >
         <button
           type="button"
@@ -90,7 +90,7 @@
         </button>
         <button
           type="button"
-          class="text-brand-text/60 transition hover:text-brand-text"
+          class="text-on-pen-tint/60 transition hover:text-on-pen-tint"
           [attr.aria-label]="'Clear the ' + clock(t) + ' reminder'"
           (click)="clearReminder()"
         >
@@ -157,7 +157,7 @@
               type="button"
               class="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-body transition hover:bg-hover"
               [class]="
-                c.slug === parsed().categorySlug ? 'font-semibold text-brand-text' : 'text-text'
+                c.slug === parsed().categorySlug ? 'font-semibold text-pen-text' : 'text-text'
               "
               [attr.aria-pressed]="c.slug === parsed().categorySlug"
               (click)="chooseCategory(c.slug)"
@@ -225,7 +225,7 @@
             <button
               type="button"
               class="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-body transition hover:bg-hover"
-              [class]="e === parsed().energy ? 'font-semibold text-brand-text' : 'text-text'"
+              [class]="e === parsed().energy ? 'font-semibold text-pen-text' : 'text-text'"
               [attr.aria-pressed]="e === parsed().energy"
               (click)="chooseEnergy(e)"
             >
@@ -250,7 +250,7 @@
         </button>
         <button
           type="button"
-          class="rounded-control bg-brand-600 px-3 py-1.5 font-medium text-on-brand transition hover:bg-brand-700 disabled:opacity-40"
+          class="rounded-control bg-brand-500 px-3 py-1.5 font-medium text-on-brand transition hover:bg-brand-600 disabled:opacity-40"
           [disabled]="!value().trim()"
           (click)="commit()"
         >

@@ -120,11 +120,11 @@
   -->
   <button
     type="button"
-    class="mb-3 flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-semibold text-brand-text transition hover:bg-brand-tint"
+    class="mb-3 flex w-full items-center gap-3 rounded-card px-3 py-2 text-body font-semibold text-pen-text transition hover:bg-brand-tint"
     (click)="menuOpen.set(false); nav.openComposer()"
   >
     <span
-      class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-on-brand"
+      class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-500 text-on-brand"
       aria-hidden="true"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" class="h-3 w-3">
@@ -148,7 +148,7 @@
       <li>
         <a
           [routerLink]="item.path"
-          routerLinkActive="bg-brand-tint text-brand-text"
+          routerLinkActive="bg-brand-tint text-on-brand-tint"
           #active="routerLinkActive"
           class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
           [class]="active.isActive ? '' : 'text-text-muted hover:bg-hover-strong'"
@@ -173,7 +173,7 @@
   <div class="border-t border-border-soft pt-2">
     <a
       routerLink="/settings"
-      routerLinkActive="bg-brand-tint text-brand-text"
+      routerLinkActive="bg-brand-tint text-on-brand-tint"
       #settingsActive="routerLinkActive"
       class="flex items-center gap-3 rounded-card px-3 py-2 text-body font-medium transition"
       [class]="settingsActive.isActive ? '' : 'text-text-muted hover:bg-hover-strong'"

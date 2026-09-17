@@ -11,6 +11,68 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-17 · claude-code · retheme phase 2, call sites
+
+**Did**
+- Built the Phase 2 audit table as `RETHEME-PLAN.md` §9 — every `brand-*` site
+  outside specs, one row each with the new class and the §4 rule — then applied
+  it: 41 sites across 16 files. `text-brand-text` → `text-pen-text`; primary
+  fills `bg-brand-600` → `bg-brand-500 hover:bg-brand-600`; capture and
+  task-detail info chips `brand-tint` → `pen-tint`/`on-pen-tint`; hand-rolled
+  focus rings → `ring-focus`/`outline-focus`; checkbox hover borders →
+  `pen-500`; calendar today marker and cell-hover rings → `ring-pen-text`.
+- Deleted `--color-brand-text`/`-hover` from both columns of `src/styles.css`.
+- New `--color-knob: #fff` (both themes) for the settings toggle knobs, which
+  were `before:bg-on-brand` — white only because `on-brand` used to be white.
+- `login.html:88` email-input focus moved to `pen-500`/`pen-tint-strong` now;
+  the rest of login's and welcome's poster decoration deferred to Phases 5/6.
+- 680 tests / 37 files pass, build 439.19 kB initial (107.56 kB transfer),
+  contrast check green bar the known D5 gap — all run after the alias deletion.
+
+**Decided**
+- **D3: active nav is `bg-brand-tint text-on-brand-tint`.** Both variants were
+  rendered against the live tokens in both themes. `fill` lost on function:
+  it is identical to `hover-strong` in light (#F1EADA), so a `fill` active item
+  cannot be told apart from a hovered one. Recorded in `RETHEME-PLAN.md` §8.
+- Knob is its own token, not `on-status` — a knob is not text on a status fill.
+- Phase 2's done-gate amended (`RETHEME-PLAN.md` §9): the grep returns only
+  `welcome.html`'s two `text-brand-100` lines until Phase 5 rebuilds that page.
+
+**Didn't work**
+- **Signed-in screens are unreachable from an agent**: localhost has no session
+  and signing in is Noel's to do. Checked D3 by injecting both nav variants
+  into the running dev page with `javascript_tool` — the compiled stylesheet is
+  global, so the mock renders the real tokens. Good enough for a token
+  decision; not a substitute for the click-through.
+- First Chrome screenshot after flipping `.dark` off showed a stale frame with
+  dark-theme colours; computed styles proved the DOM right. Re-shoot before
+  believing a theme-flip screenshot.
+- `ng serve ... | head -20` in a background task kills the server once head
+  exits. Run it unpiped.
+
+**Open**
+- **Still nobody has clicked through the signed-in app on this branch.** The
+  D3 mock is the only rendered evidence; primary buttons, chips and rings are
+  verified by token maths, not by eye.
+- D1, D2, D4, D5 unchanged in `RETHEME-PLAN.md` §8.
+- Hexes outside the stylesheet still indigo (Phase 3 list unchanged);
+  `notify` is its own deploy.
+- `_to_delete/` still holds ~180 stale git temp files.
+
+**Next**
+- Phase 3 of `docs/RETHEME-PLAN.md`: `public/icon.svg` to flat coral +
+  `tools/build-icons.mjs`, manifest and `index.html`/`core/theme.ts`
+  theme-colors to `#F6EEDC`/`#161410`, `empty-state.html` pen token,
+  `brand/logo.*` coral tile, `notify/index.ts` hexes as its own commit/deploy.
+  Or first: Noel runs `npm start` and clicks through both themes.
+
+**Touched** — `docs/RETHEME-PLAN.md`, `src/styles.css`, `src/app/app.ts`,
+`shared/shell.html`, `shared/date-picker.ts`, `shared/date-picker.html`,
+`shared/theme-toggle.html`, `features/today/{capture,today,task-row,task-detail}.html`,
+`features/upcoming/upcoming.html`, `features/calendar/{calendar.html,calendar.ts,day-detail.html}`,
+`features/reporting/reporting.html`, `features/settings/settings.html`,
+`features/login/login.html`
+
 ## 2026-09-17 · cowork · paper retheme, phases 0 and 1
 
 **Did**

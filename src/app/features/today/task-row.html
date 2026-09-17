@@ -33,7 +33,7 @@
       </span>
       <span
         class="flex items-center gap-2 transition-opacity"
-        [class]="swipe.armed() ? 'text-brand-text' : 'text-brand-500/60'"
+        [class]="swipe.armed() ? 'text-pen-text' : 'text-pen-text/60'"
         [class.opacity-0]="swipe.offset() >= 0"
       >
         {{ pushLabel() }} <span aria-hidden="true">&rarr;</span>
@@ -60,7 +60,7 @@
       [class]="
         done()
           ? 'border-done-500 bg-done-500 text-on-status'
-          : 'border-border-strong hover:border-brand-500'
+          : 'border-border-strong hover:border-pen-500'
       "
       [attr.aria-pressed]="done()"
       [attr.aria-label]="done() ? 'Mark as not done' : 'Mark as done'"

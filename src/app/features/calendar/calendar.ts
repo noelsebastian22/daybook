@@ -110,7 +110,7 @@ export class Calendar {
   }
 
   protected cellClass(cell: Cell): string {
-    if (cell.isToday) return 'text-brand-text ring-2 ring-brand-500';
+    if (cell.isToday) return 'text-pen-text ring-2 ring-pen-text';
     if (cell.past) return 'text-text-muted';
     return 'text-text';
   }

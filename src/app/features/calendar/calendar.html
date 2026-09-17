@@ -44,7 +44,7 @@
         @if (cell) {
           <a
             [routerLink]="['/calendar', cell.date]"
-            class="relative grid aspect-square place-items-center rounded-control text-body transition hover:ring-2 hover:ring-brand-500"
+            class="relative grid aspect-square place-items-center rounded-control text-body transition hover:ring-2 hover:ring-pen-text"
             [style.background]="cell.past ? heat(cell) : null"
             [class]="cellClass(cell)"
             [attr.aria-label]="describe(cell)"

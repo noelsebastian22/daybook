@@ -1,6 +1,6 @@
 # Daybook retheme plan: Paper and coral
 
-Status: **approved 17 Sep 2026, in progress on branch `retheme/paper`.** Phases 0 and 1 done 17 Sep. Next: Phase 2.
+Status: **approved 17 Sep 2026, in progress on branch `retheme/paper`.** Phases 0, 1 and 2 done 17 Sep. Next: Phase 3.
 
 This file plans one piece of work: moving Daybook from the navy and indigo look to the
 "Paper and coral" theme, and rebuilding the welcome hero. `BUILD-PLAN.md` stays the source of
@@ -206,7 +206,8 @@ Files: `src/styles.css`, new `tools/contrast-check.mjs`.
 - `tools/contrast-check.mjs`: reads the two token blocks, checks the pairs in §3.3, exits non-zero under 4.5:1 (3:1 for the focus ring).
 - Done when: the app runs, both themes are warm, nothing is unreadable, the script passes, tests are green. It will look half finished. That is expected.
 
-### Phase 2. Call sites
+### Phase 2. Call sites (done 17 Sep)
+Applied per the audit table in §9. Departures from the plan as written: the toasts sites had already moved in Phase 1; rings went to the `focus` token rather than literal `pen-500`; the settings toggle knob got a dedicated `--color-knob` (white in both themes) because `on-brand` went ink; welcome and login poster decoration is deferred to Phases 5 and 6, so the done-gate grep is amended in §9. D3 decided for `brand-tint` (§8). 680 tests, build 439.19 kB, contrast check passes bar the known D5 gap.
 Files: the 20 templates from the audit.
 - Build the audit table first (file, line, current class, new class, rule applied) as a section
   at the bottom of this file, then apply it. Mechanical, but reviewed line by line.
@@ -344,6 +345,101 @@ uppercase tracked eyebrow labels.
 
 - **D1. Handwriting.** Keep Caveat for the two notes on the welcome page (a second, tiny font file), or draw the two notes as inline SVG and ship no second font. Default: subset Caveat, welcome only.
 - **D2. `quick` and `deep`.** Keep amber and violet, or turn the energy tags into neutral chips with a small icon so the app has fewer hues. Decide on real screens in Phase 7.
-- **D3. Active nav item.** Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.
+- **D3. Active nav item.** ~~Blush `brand-tint` wash, or plain `fill` with ink text. Decide in Phase 2 by looking at both.~~ **Decided 17 Sep, Phase 2: blush `brand-tint` + `on-brand-tint`.** Both were rendered side by side against the live tokens in both themes. `fill` lost on function, not taste: it is the same value as `hover-strong` in light (`#F1EADA`) and 3 steps from it in dark, so a `fill` active item is indistinguishable from a hovered inactive one. The blush wash reads clearly as "you are here" in both themes and is the one quiet echo of the brand in the chrome.
 - **D4. Final crimson.** `#D92D4A` and `#A3122F` are proposed. Confirm on the Today list next to a coral Add button.
 - **D5. The tick on a completed checkbox.** Found by `tools/contrast-check.mjs` on its first run: white on `done-500` (`#10b981`) is 2.54:1, under the 3:1 floor for a meaningful glyph. It was the same before the retheme. Closing it means darkening the reserved green to about `#0E9F6E` (3.4:1), which also moves the heat map and the charts. Listed as a known gap in the script, reported every run, not fatal.
+
+---
+
+## 9. Phase 2 audit table (built and applied 17 Sep 2026)
+
+Every `brand-*` call site in `src/app` outside specs, from
+`grep -rnE 'brand-[a-z0-9/-]+' src/app --include='*.html' --include='*.ts'`.
+`toasts.html` is absent because Phase 1 already moved its three sites to `on-status` /
+`on-inverse-accent`. Comment-only mentions (`settings.store.ts:91`, `welcome.ts:14`,
+`logo.ts:13`) are ignored.
+
+Rules applied, from §4:
+
+- **fill** — a primary-action or selected fill stays brand; the step moves `600 → 500`
+  with `hover:600`, because the brand step is 500 and hover must darken.
+- **pen** — anything read (text, icons, links) becomes `pen-text` / `pen-text-hover`.
+- **focus** — a hand-rolled focus ring becomes `ring-focus` / `outline-focus`, the
+  per-theme token (pen-500 light, pen-300 dark). The plan's shorthand "rings to pen-500"
+  predates the `--color-focus` split; the token is what it meant.
+- **pen ring / pen border** — a non-focus ring or border that must stay visible in both
+  themes uses `pen-text` (pen-600 light, pen-300 dark); a hover-only affordance may use
+  raw `pen-500`, which is dim in dark but is only a hover.
+- **tint** — a wash behind the active or selected thing is `brand-tint` +
+  `on-brand-tint` (D3 still open); a wash behind parsed input or an info chip is
+  `pen-tint` + `on-pen-tint`.
+- **defer** — welcome is rebuilt in Phase 5, login's dark-poster decoration in Phase 6,
+  illustrations and the logo in Phase 3. Not touched here.
+
+| File:line | Current | New | Rule |
+|---|---|---|---|
+| `app.ts:16` | `border-t-brand-600` | `border-t-brand-500` | fill (spinner accent) |
+| `shared/shell.html:123` | `text-brand-text hover:bg-brand-tint` | `text-pen-text hover:bg-brand-tint` | pen; blush hover kept — it previews the coral action, revisit with D3 |
+| `shared/shell.html:127` | `bg-brand-600 text-on-brand` | `bg-brand-500 text-on-brand` | fill (Add-task plus badge) |
+| `shared/shell.html:151` | `routerLinkActive="bg-brand-tint text-brand-text"` | `routerLinkActive="bg-brand-tint text-on-brand-tint"` | tint, active nav. D3: `brand-tint` won, see §8 |
+| `shared/shell.html:176` | same | same as 151 | tint |
+| `shared/date-picker.ts:91` | `bg-brand-600 font-semibold text-on-brand` | `bg-brand-500 font-semibold text-on-brand` | fill (selected day) |
+| `shared/date-picker.ts:92` | `font-semibold text-brand-text hover:bg-brand-tint` | `font-semibold text-pen-text hover:bg-pen-tint` | pen (today is info, not the selection) |
+| `shared/date-picker.html:22` | `'font-semibold text-brand-text'` | `'font-semibold text-pen-text'` | pen (selected shortcut) |
+| `shared/date-picker.html:91` | `focus:ring-brand-500` | `focus:ring-focus` | focus |
+| `shared/theme-toggle.html:47` | `'font-semibold text-brand-text'` | `'font-semibold text-pen-text'` | pen (selected option) |
+| `today/capture.html:2` | `focus-within:ring-brand-500` | `focus-within:ring-focus` | focus |
+| `today/capture.html:18` | `bg-brand-tint-strong text-brand-text` | `bg-pen-tint-strong text-on-pen-tint` | tint (parsed input, the mirror highlight) |
+| `today/capture.html:60` | `bg-brand-tint text-brand-text hover:bg-brand-tint-strong` | `bg-pen-tint text-on-pen-tint hover:bg-pen-tint-strong` | tint (parsed chip) |
+| `today/capture.html:81` | `bg-brand-tint … text-brand-text` | `bg-pen-tint … text-on-pen-tint` | tint (reminder chip) |
+| `today/capture.html:93` | `text-brand-text/60 hover:text-brand-text` | `text-on-pen-tint/60 hover:text-on-pen-tint` | tint (the × inside the pen chip) |
+| `today/capture.html:160` | `'font-semibold text-brand-text'` | `'font-semibold text-pen-text'` | pen (selected category) |
+| `today/capture.html:228` | `'font-semibold text-brand-text'` | `'font-semibold text-pen-text'` | pen (selected energy) |
+| `today/capture.html:253` | `bg-brand-600 … text-on-brand hover:bg-brand-700` | `bg-brand-500 … text-on-brand hover:bg-brand-600` | fill (Save button) |
+| `today/today.html:95` | `text-brand-text hover:text-brand-text-hover focus-visible:outline-brand-500` | `text-pen-text hover:text-pen-text-hover focus-visible:outline-focus` | pen + focus |
+| `today/today.html:121` | `hover:text-brand-text` | `hover:text-pen-text` | pen (Add-task row) |
+| `today/today.html:125` | `text-brand-text group-hover:bg-brand-600 group-hover:text-on-brand` | `text-pen-text group-hover:bg-brand-500 group-hover:text-on-brand` | pen at rest, fill on hover |
+| `today/task-row.html:36` | `armed ? 'text-brand-text' : 'text-brand-500/60'` | `armed ? 'text-pen-text' : 'text-pen-text/60'` | pen (swipe push label; coral read as state here, exactly what §2 forbids) |
+| `today/task-row.html:63` | `hover:border-brand-500` | `hover:border-pen-500` | pen border, hover-only (checkbox) |
+| `today/task-detail.html:33` | `hover:border-brand-500` | `hover:border-pen-500` | pen border, hover-only (checkbox) |
+| `today/task-detail.html:64` | `bg-brand-tint … text-brand-text` | `bg-pen-tint … text-on-pen-tint` | tint (day chip is an info chip) |
+| `today/task-detail.html:69` | `bg-brand-tint … text-brand-text` | `bg-pen-tint … text-on-pen-tint` | tint (reminder chip) |
+| `today/task-detail.html:157` | `text-brand-text` | `text-pen-text` | pen (back link) |
+| `upcoming/upcoming.html:63` | `hover:text-brand-text` | `hover:text-pen-text` | pen (Add-task row) |
+| `upcoming/upcoming.html:68` | `text-brand-text group-hover:bg-brand-600 group-hover:text-on-brand` | `text-pen-text group-hover:bg-brand-500 group-hover:text-on-brand` | pen at rest, fill on hover |
+| `calendar/calendar.html:47` | `hover:ring-brand-500` | `hover:ring-pen-text` | pen ring (day-cell hover, must show in dark) |
+| `calendar/calendar.ts:113` | `'text-brand-text ring-2 ring-brand-500'` | `'text-pen-text ring-2 ring-pen-text'` | pen ring (today marker is info, not selection) |
+| `calendar/day-detail.html:86` | `hover:text-brand-text` | `hover:text-pen-text` | pen (Add-task row) |
+| `calendar/day-detail.html:90` | `text-brand-text group-hover:bg-brand-600 group-hover:text-on-brand` | `text-pen-text group-hover:bg-brand-500 group-hover:text-on-brand` | pen at rest, fill on hover |
+| `reporting/reporting.html:116` | `hover:text-brand-text` | `hover:text-pen-text` | pen (category link) |
+| `reporting/reporting.html:146` | `hover:text-brand-text` | `hover:text-pen-text` | pen (category link) |
+| `settings/settings.html:19` | `before:bg-on-brand … checked:bg-brand-600` | `before:bg-on-status … checked:bg-brand-500` | fill; knob must stay **white in both themes** — `on-brand` is now ink and an ink knob vanishes on the dark unchecked track. `on-status` is the one white-in-both token; see note below |
+| `settings/settings.html:30` | `focus:ring-brand-500` | `focus:ring-focus` | focus |
+| `settings/settings.html:54` | `focus:ring-brand-500` | `focus:ring-focus` | focus |
+| `settings/settings.html:66` | `text-brand-text hover:text-brand-text-hover` | `text-pen-text hover:text-pen-text-hover` | pen |
+| `settings/settings.html:90` | `before:bg-on-brand … checked:bg-brand-600` | `before:bg-on-status … checked:bg-brand-500` | fill, as line 19 |
+| `settings/settings.html:119` | `focus:ring-brand-500` | `focus:ring-focus` | focus |
+| `login/login.html:88` | `focus:border-brand-500 focus:ring-brand-tint-strong` | `focus:border-pen-500 focus:ring-pen-tint-strong` | pen border + tint (real control; migrated now even though the page is restyled in Phase 6) |
+| `login/login.html:16` | `bg-brand-600/35` blur glow | leave | defer, Phase 6 kills the dark poster |
+| `login/login.html:37` | `shadow-brand-700/20` | leave | defer, Phase 6 |
+| `welcome/welcome.html:37` | `text-brand-100/60` eyebrow | leave | defer, Phase 5 rebuilds the page; reads as blush on the dark poster meanwhile |
+| `welcome/welcome.html:45` | `text-brand-100` headline highlight | leave | defer, Phase 5 |
+| `welcome/welcome.html:56` | `hover:bg-brand-50` on the white CTA | leave | defer, Phase 5 |
+| `welcome/welcome.html:134` | `bg-brand-tint … text-on-brand-tint` | leave | already semantic; page rebuilt in Phase 5 anyway |
+| `welcome/welcome.html:245` | `hover:bg-brand-50` | leave | defer, Phase 5 |
+| `shared/empty-state.html:125` | `stroke="var(--color-brand-tint-strong)"` | leave | defer, Phase 3 restyles the illustrations |
+
+Notes for review:
+
+- **Toggle knob.** Resolved: Noel chose a dedicated `--color-knob: #fff` (both themes)
+  over stretching `on-status`. The table rows for `settings.html:19/90` were applied
+  with `before:bg-knob` instead.
+- **Phase 2 done-gate amendment.** `grep -rE "brand-text|text-brand-[0-9]" src/app`
+  cannot return nothing until Phase 5, because `welcome.html:37/45` keep `text-brand-100`
+  on the old poster. Gate for this phase: the grep returns **only** those two lines
+  (`--exclude-dir=welcome` version returns nothing). Phase 5 clears the rest.
+- **D3 lands here.** Done — both variants rendered side by side against the live tokens
+  in both themes; `brand-tint` won. The reasoning is recorded in §8.
+- After the table is applied: delete `--color-brand-text` / `--color-brand-text-hover`
+  from both columns of `src/styles.css`, re-run `node tools/contrast-check.mjs`, tests,
+  build.

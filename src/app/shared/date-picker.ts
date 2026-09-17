@@ -88,8 +88,8 @@ export class DatePicker {
   protected full = friendlyDate;
 
   protected dayClass(cell: string): string {
-    if (cell === this.date()) return 'bg-brand-600 font-semibold text-on-brand';
-    if (cell === this.todayDate) return 'font-semibold text-brand-text hover:bg-brand-tint';
+    if (cell === this.date()) return 'bg-brand-500 font-semibold text-on-brand';
+    if (cell === this.todayDate) return 'font-semibold text-pen-text hover:bg-pen-tint';
     return 'text-text hover:bg-hover-strong';
   }
 

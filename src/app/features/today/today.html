@@ -92,7 +92,7 @@
         <app-empty-state scene="filtered" title="Nothing matches that filter today.">
           <button
             type="button"
-            class="rounded-control text-body font-medium text-brand-text transition hover:text-brand-text-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            class="rounded-control text-body font-medium text-pen-text transition hover:text-pen-text-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             (click)="tasks.clearFilters()"
           >
             Clear filters
@@ -118,11 +118,11 @@
     @if (tasks.openTasks().length > 0) {
       <button
         type="button"
-        class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-text-subtle transition hover:text-brand-text"
+        class="group flex w-full items-center gap-3 px-2 py-3 text-left text-body font-medium text-text-subtle transition hover:text-pen-text"
         (click)="open.set(true)"
       >
         <span
-          class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-brand-text transition group-hover:bg-brand-600 group-hover:text-on-brand"
+          class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-pen-text transition group-hover:bg-brand-500 group-hover:text-on-brand"
           aria-hidden="true"
         >
           <svg

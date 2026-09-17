@@ -30,7 +30,7 @@
             [class]="
               done()
                 ? 'border-done-500 bg-done-500 text-on-status'
-                : 'border-border-strong hover:border-brand-500'
+                : 'border-border-strong hover:border-pen-500'
             "
             [attr.aria-pressed]="done()"
             [attr.aria-label]="done() ? 'Mark as not done' : 'Mark as done'"
@@ -61,12 +61,12 @@
 
         <!-- chips -->
         <div class="mt-4 flex flex-wrap items-center gap-1.5 text-caption">
-          <span class="rounded-full bg-brand-tint px-2.5 py-1 font-medium text-brand-text">
+          <span class="rounded-full bg-pen-tint px-2.5 py-1 font-medium text-on-pen-tint">
             {{ day() }}
           </span>
 
           @if (t.reminder_at; as at) {
-            <span class="rounded-full bg-brand-tint px-2.5 py-1 font-medium text-brand-text">
+            <span class="rounded-full bg-pen-tint px-2.5 py-1 font-medium text-on-pen-tint">
               {{ time(at) }}
             </span>
           }
@@ -154,7 +154,7 @@
   } @else if (tasks.loaded()) {
     <div class="rounded-panel border-2 border-dashed border-border-strong px-6 py-12 text-center">
       <p class="font-medium text-text-muted">That task is gone.</p>
-      <a routerLink="/today" class="mt-2 inline-block text-body font-medium text-brand-text">
+      <a routerLink="/today" class="mt-2 inline-block text-body font-medium text-pen-text">
         Back to today
       </a>
     </div>

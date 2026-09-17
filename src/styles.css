@@ -285,6 +285,11 @@
      does not move. This was `on-brand`'s job until `on-brand` went dark;
      using `on-brand` on a status fill now puts ink on green. */
   --color-on-status: #ffffff;
+  /* The knob of a switch. White in both themes, like the real thing on a
+     wall: it rides `fill-strong` when off and `brand-500` when on, and an
+     ink knob (`on-brand`) would vanish against the dark theme's off
+     track. Not `on-status` — a knob is not text on a status fill. */
+  --color-knob: #ffffff;
 
   /* The inverted chip: an active filter, a toast, the sign-in submit. It
      is the one thing that must oppose the page, so it is the one thing
@@ -303,12 +308,6 @@
   --color-pen-tint: #eef0f8; /* pen-50 */
   --color-pen-tint-strong: #e4e8f6; /* pen-100 */
   --color-on-pen-tint: #27356b; /* pen-600, 9.50:1 on tint-strong */
-  /* DEPRECATED, retheme Phase 2 removes these. Coral is never text, so
-     `brand-text` now simply points at the pen. It exists so the ~27 call
-     sites still written `text-brand-text` stay readable until they are
-     renamed. Do not use in new code. */
-  --color-brand-text: #27356b;
-  --color-brand-text-hover: #3b4a8c;
   /* The brand as a wash: an active nav item, a selected day. The text on
      it is ink, not coral. */
   --color-brand-tint: #fdedea; /* brand-50 */
@@ -386,6 +385,7 @@
 
   --color-on-brand: #2b1310; /* unchanged, and that is the point */
   --color-on-status: #ffffff; /* likewise */
+  --color-knob: #ffffff; /* likewise */
 
   --color-inverse: #f3ecdd;
   --color-inverse-hover: #ffffff;
@@ -397,8 +397,6 @@
   --color-pen-tint: #232a47;
   --color-pen-tint-strong: #2d3660;
   --color-on-pen-tint: #c7d0f5;
-  --color-brand-text: #aab6ee; /* deprecated alias of pen-text, see above */
-  --color-brand-text-hover: #c7d0f5;
   --color-brand-tint: #3a211d;
   --color-brand-tint-strong: #4a2a25;
   --color-on-brand-tint: #f8d9d3;
