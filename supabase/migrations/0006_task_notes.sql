@@ -1,0 +1,12 @@
+-- One body of standing detail per task.
+--
+-- A column rather than a task_notes table: an edit is then already a
+-- Partial<Task> patch and an add already carries the row whole, so the offline
+-- queue needs no new operation. A note is overwritten, never appended to, so
+-- there is nothing to order, author or timestamp. See docs/NOTES-PLAN.md §7.
+--
+-- No RLS change. The existing `for all to authenticated` policy on tasks has
+-- `auth.uid() = user_id` in both `using` and `with check`, which covers every
+-- column including this one. No index: notes are never filtered or searched,
+-- only read alongside a row that has already been fetched.
+alter table tasks add column notes text;

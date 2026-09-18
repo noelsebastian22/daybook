@@ -21,6 +21,7 @@ function task(id: string, over: Partial<Task> = {}): Task {
     energy: null,
     category_id: null,
     reminder_at: null,
+    notes: null,
     carried_over_count: 0,
     reschedule_count: 0,
     created_at: '2026-08-21T00:00:00.000Z',

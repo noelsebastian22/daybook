@@ -483,6 +483,7 @@ export const TaskStore = signalStore(
             energy: parsed.energy,
             category_id,
             reminder_at,
+            notes: null,
             carried_over_count: 0,
             reschedule_count: 0,
             created_at: new Date().toISOString(),

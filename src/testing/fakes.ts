@@ -50,6 +50,7 @@ export function makeTask(over: Partial<Task> = {}): Task {
     energy: null,
     category_id: null,
     reminder_at: null,
+    notes: null,
     carried_over_count: 0,
     reschedule_count: 0,
     created_at: `${TODAY}T09:00:00.000Z`,
