@@ -33,7 +33,13 @@
       <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
     </svg>
   </button>
-  <span class="text-body font-semibold tracking-tight">Daybook</span>
+  <!--
+    The lockup, not a styled word. `welcome` and `login` already render the
+    brand through this component; the drawer and this bar used to hand-roll
+    it in the system stack, which made two wordmarks set in two faces. See
+    the note in brand/logo.html — it always meant the drawer to have this.
+  -->
+  <app-logo variant="lockup" tone="primary" [size]="28" />
 </div>
 
 <!--
@@ -75,7 +81,7 @@
   aria-label="Main"
 >
   <div class="flex items-center justify-between gap-2 px-3 pb-3">
-    <p class="text-body font-semibold tracking-tight">Daybook</p>
+    <app-logo variant="lockup" tone="primary" [size]="28" />
 
     <!--
       Collapse lives at the drawer's top right, where the thing it acts on
@@ -186,12 +192,28 @@
         class="h-[18px] w-[18px] shrink-0"
         aria-hidden="true"
       >
+        <!--
+          Six teeth, generated rather than drawn: root radius 5.2, tip radius
+          7.4, tip half-angle 0.34 and root half-angle 0.66 of the half-pitch,
+          every point placed by trig about 12,12. The teeth are therefore
+          symmetric by construction, which the path this replaced was not — its
+          body sat at y 10.4 against a hub at y 12, so the icon leaned, and its
+          subpath ended 1.3 units from where it began and let `Z` draw a chord
+          across one lobe. Both faults are now asserted in shell.spec.ts.
+
+          Do not hand-edit a coordinate. Change a radius and regenerate the
+          whole path, or the symmetry the spec checks will break.
+
+          The hub is r=2.2 rather than 2.4 so the ring of paper between it and
+          the root circle survives at the 18px this renders at: 1.2 user units
+          of gap, 0.9px, after both 1.8 strokes are accounted for.
+        -->
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M10.3 4.3a1 1 0 0 1 1-.8h1.4a1 1 0 0 1 1 .8l.2 1.3 1.4.8 1.2-.5a1 1 0 0 1 1.2.4l.7 1.2a1 1 0 0 1-.2 1.3l-1 .8v1.6l1 .8a1 1 0 0 1 .2 1.3l-.7 1.2a1 1 0 0 1-1.2.4l-1.2-.5-1.4.8-.2 1.3a1 1 0 0 1-1 .8h-1.4a1 1 0 0 1-1-.8l-.2-1.3-1.4-.8-1.2.5a1 1 0 0 1-1.2-.4l-.7-1.2a1 1 0 0 1 .2-1.3l1-.8v-1.6l-1-.8a1 1 0 0 1-.2-1.3l.7-1.2a1 1 0 0 1 1.2-.4l1.2.5 1.4-.8Z"
+          d="M10.24 7.11L10.69 4.72A7.4 7.4 0 0 1 13.31 4.72L13.76 7.11A5.2 5.2 0 0 1 15.36 8.03L17.65 7.22A7.4 7.4 0 0 1 18.96 9.49L17.12 11.08A5.2 5.2 0 0 1 17.12 12.92L18.96 14.51A7.4 7.4 0 0 1 17.65 16.78L15.36 15.97A5.2 5.2 0 0 1 13.76 16.89L13.31 19.28A7.4 7.4 0 0 1 10.69 19.28L10.24 16.89A5.2 5.2 0 0 1 8.64 15.97L6.35 16.78A7.4 7.4 0 0 1 5.04 14.51L6.88 12.92A5.2 5.2 0 0 1 6.88 11.08L5.04 9.49A7.4 7.4 0 0 1 6.35 7.22L8.64 8.03A5.2 5.2 0 0 1 10.24 7.11Z"
         />
-        <circle cx="12" cy="12" r="2.4" />
+        <circle cx="12" cy="12" r="2.2" />
       </svg>
       Settings
     </a>
