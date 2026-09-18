@@ -168,10 +168,11 @@ describe('Upcoming', () => {
     area.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await page.settle();
 
-    expect(addFromCapture).toHaveBeenCalledWith('call physio', {
-      scheduled_date: TOMORROW,
-      reminder_at: null,
-    });
+    expect(addFromCapture).toHaveBeenCalledWith(
+      'call physio',
+      { scheduled_date: TOMORROW, reminder_at: null },
+      null,
+    );
     expect(page.query('app-composer')).toBeNull();
   });
 

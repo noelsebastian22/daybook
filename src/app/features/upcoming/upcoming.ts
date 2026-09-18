@@ -84,7 +84,7 @@ export class Upcoming implements OnInit {
 
   protected add(submit: CaptureSubmit): void {
     this.addingOn.set(null);
-    void this.tasks.addFromCapture(submit.text, submit.scheduling);
+    void this.tasks.addFromCapture(submit.text, submit.scheduling, submit.notes);
   }
 
   protected complete(task: Task): void {

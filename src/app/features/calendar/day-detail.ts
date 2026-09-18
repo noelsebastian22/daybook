@@ -98,7 +98,7 @@ export class DayDetail {
 
   protected add(submit: CaptureSubmit): void {
     this.composerOpen.set(false);
-    void this.tasks.addFromCapture(submit.text, submit.scheduling);
+    void this.tasks.addFromCapture(submit.text, submit.scheduling, submit.notes);
   }
 
   protected complete(task: Task): void {

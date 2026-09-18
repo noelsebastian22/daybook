@@ -116,6 +116,23 @@
             {{ e }}
           </span>
         }
+        @if (task().notes) {
+          <!--
+            Meaning, not decoration, so it is labelled rather than aria-hidden.
+            Quieter than every chip beside it on purpose: a note is the least
+            urgent thing a row can carry and must not out-shout the category,
+            the energy or the carried stamp. No text and no preview — a first
+            line under the task would make rows two-line and variable-height,
+            which fights both the swipe layer and the re-sort.
+          -->
+          <span class="text-text-subtle" role="img" aria-label="Has a note">
+            <svg viewBox="0 0 16 16" fill="currentColor" class="h-3 w-3">
+              <path
+                d="M3 2.5A1.5 1.5 0 0 1 4.5 1h5.4L13 4.1v9.4a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-11Zm2.5 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5h-5Zm0 3a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5h-5Zm0 3a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z"
+              />
+            </svg>
+          </span>
+        }
         <!--
           The count survives completion. It used to vanish the instant the
           row was ticked, which dropped it at the moment it meant most:

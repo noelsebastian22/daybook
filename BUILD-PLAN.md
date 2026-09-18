@@ -108,10 +108,10 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**, which is now the only outstanding item and is a verification, not work. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done**; what is left is the installed-PWA check on a real device. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -374,17 +374,22 @@ multi-tenancy.
   are the three obvious candidates. **Corrected 3 Sep** — this said capture and
   welcome were "roughly double anything else in the repo", which stopped being
   true when the store outgrew both.
-- **Test coverage.** 55 tests across 4 files, against ~6,300 lines of source.
-  **Corrected 3 Sep: this said "the stores and `parse-capture` carry most of
-  it". The stores carry none of it.** The four spec files are `dates` (12),
-  `install` (13), `offline-queue` (7) and `parse-capture` (23); there is no
-  `session.store.spec.ts`, no `task.store.spec.ts`, no
-  `settings.store.spec.ts` and no `auth.guard.spec.ts`. Every client-side
-  tenant-isolation guarantee — `loadedFor`, `setupRanFor`, the guard's
-  resolve-then-decide — therefore rests on nothing, and `loadedFor` shipped on
-  2 Sep unverified because a second account was not to hand. **That, not the
-  offline queue, is now the highest-value thing to cover**, and it is Phase 7's
-  Gate 1.
+- ~~**Test coverage.**~~ **Largely done; corrected 18 Sep.** This bullet read
+  "55 tests across 4 files" and said flatly that `session.store.spec.ts`,
+  `task.store.spec.ts`, `settings.store.spec.ts` and `auth.guard.spec.ts` did
+  not exist and that every client-side tenant-isolation guarantee "rests on
+  nothing". **All four exist and the suite is 697 tests across 38 files.** The
+  four isolation files carry 112 of them — `task.store` 61, `session.store` 23,
+  `settings.store` 22, `auth.guard` 6 — and `loadedFor` is asserted in both
+  stores, including a flip to a second user id at `task.store.spec.ts:187`.
+  Phase 8 did this work and this bullet was never updated, which is why §3 read
+  Gate 1 as unstarted for a fortnight longer than was true.
+
+  **What that leaves of Gate 1 is the two-account pass on one device**, not the
+  specs. A spec proves the store does what it was written to do; it cannot
+  prove the browser hands the same push endpoint to two accounts, which is how
+  C1 happened. The remaining work is a human on one device with two accounts,
+  plus seeing push deliver off `push_subscriptions`.
 
 ### Phase 9, the paper retheme: in progress, 17 Sep
 
@@ -891,6 +896,14 @@ tracked.
     elevation problems it had to solve. Verified on a real signed-in Today in
     both themes; the toggle is a three-option radiogroup that shows what
     "system" currently resolves to.
+18. **A note on a task.** One body of free text per task, for standing detail —
+    the address, what to ask, the two things to bring. State: **done, 18 Sep.**
+    `tasks.notes`, added in `0006`. Typed inside `Capture` behind a collapsed
+    `Add notes` affordance, so the add box keeps its height and the same field
+    serves adding and editing; read on the task detail page; a quiet glyph
+    marks a row that carries one. Plain text, never parsed, excluded from the
+    digest. It is **not** a comment thread — see §9 and
+    [`docs/NOTES-PLAN.md`](./docs/NOTES-PLAN.md).
 
 ### 5.1 Signature interactions
 
@@ -1004,6 +1017,11 @@ present — it reads `Today` before a word is typed — and opens the picker;
 the reminder chip appears whenever a time is set and can be cleared from
 there. Typing a date afterwards overrides whatever the picker chose (§9).
 
+**Notes are not parsed.** The notes field sits below the chips, behind an
+`Add notes` affordance, and its contents are stored verbatim — a `#tag` or
+`!quick` typed into a note stays literal text. The parser owns the task line
+and nothing else.
+
 Parsing order matters: `#tags` and `!energy` are extracted before chrono runs,
 so chrono cannot claim a substring inside one of them. It will otherwise read
 "may" out of `#maybe`. Date tokens overlapping an already-claimed range are
@@ -1028,6 +1046,7 @@ create table tasks (
   energy             text check (energy in ('quick','deep')),
   category_id        uuid references categories on delete set null,
   reminder_at        timestamptz,
+  notes              text,                   -- added 0006, one body of standing detail
   carried_over_count int not null default 0, -- automatic rollover only
   reschedule_count   int not null default 0, -- manual pushes only
   created_at         timestamptz not null default now(),
@@ -2440,6 +2459,63 @@ Two things were settled while Phase 3 landed the assets, 17 Sep:
   number live in `public/icon.svg` so a later contrast sweep does not silently
   "correct" it, and `AGENTS.md` names it as the exemption.
 
+### A note on a task, 18 Sep
+
+Designed and built in one session; the working plan is
+[`docs/NOTES-PLAN.md`](./docs/NOTES-PLAN.md).
+
+**A note is a column, not a table.** `tasks.notes`, nullable text, added in
+`0006`. The alternative — a `task_notes` table — was rejected on a concrete
+cost rather than a preference: the offline queue's operations are
+`{ op: 'update'; id; patch: Partial<Task> }` and `{ op: 'insert'; row: Task }`,
+so a column rides both untouched, while a second table needs a new op in
+`core/offline-queue.ts`. That is the one file in this repo with a silent
+data-loss bug in its history (C2), and adding an operation to it to store a
+paragraph of text is a bad trade.
+
+**A note is not a comment, and this is the distinction §9 requires** for
+anything drawn from the Todoist captures. Todoist's comments are a thread —
+many entries, each timestamped and authored. That is the projects → sections →
+tasks → subtasks structure the captures are sorted against, and rejecting it
+still holds: there is one person here and the unit of time is a day, so there
+is no discussion to have per task. A note is the other thing entirely: one body
+of standing detail belonging to the task the way its text does. You overwrite
+it, you do not append to it. No table, no ordering, no author, no timestamp —
+and the absence of all four is what keeps it on the right side of the line.
+
+The append-only log was considered and rejected at the design stage. It is the
+better fit for "why does this keep being carried", but it is exactly the shape
+the captures reject, and `carried_over_count` and `reschedule_count` already
+answer that question numerically.
+
+**It lives in `Capture`, behind a collapsed affordance.** Noel's call, and it
+solved the objection to putting it there at all — the add box must not grow.
+The field costs nothing until `Add notes` is clicked, and because `Capture`
+serves the composer *and* the edit card, one change made notes work in both
+with no second editing surface anywhere.
+
+Three details that are easy to get wrong and are each pinned by a test:
+
+- **Notes never reach `parseCapture`.** A `#tag` in a note is literal text.
+- **Enter is a newline in the notes field**, not a commit; Cmd/Ctrl+Enter
+  commits. The task line keeps the opposite mapping, which is right for a
+  single line and wrong for a paragraph.
+- **Escape keeps one meaning** — cancel the capture — and had to be delegated
+  explicitly, because `onKeydown` is bound to the task-line textarea and the
+  notes field is its *sibling*, so nothing bubbles between them.
+
+**The regression this feature can cause is invisible in the happy path**: if
+`task-detail.ts`'s seed does not carry `t.notes`, editing a task silently wipes
+its note, and the only way to notice is to edit a task that had one and look
+afterwards. The type system caught it here because `CaptureSeed.notes` is
+required rather than optional, which is the reason it is required.
+
+One measurement worth keeping: **the line-break spec does not prove line
+breaks render.** `whitespace-pre-wrap` was removed as a mutation and the spec
+stayed green, because `textContent` carries a newline whether or not the class
+is there and jsdom computes no layout. The spec was renamed to what it actually
+asserts rather than left overstating its coverage.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2451,6 +2527,24 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **Task notes have not been seen surviving a round trip, 18 Sep.** The column
+  is live, the specs pass against `FakeSupabase`, and the optimistic patch is
+  proven — but nothing has confirmed a note typed on a real task comes back
+  after a reload, because that needs a signed-in device. The second half of the
+  same gap is the one regression the feature can cause: **editing a task that
+  has a note must not wipe it.** `CaptureSeed.notes` is required rather than
+  optional so the compiler catches a seed that forgets it, and it did catch
+  exactly that in `task-detail.ts` during the build. Both are checkboxes on
+  PR #1.
+
+- **A spec that reads as though it covers line breaks does not, 18 Sep.**
+  `task-detail.spec.ts`'s note test asserts both lines reach the DOM, not that
+  `whitespace-pre-wrap` renders the break. Removing the class was mutation-
+  tested and the spec stayed green: `textContent` carries the newline either
+  way and jsdom computes no layout. The spec was renamed to what it asserts.
+  **No jsdom test can close this** — it needs an eye or a real browser, and it
+  is the same class of blind spot as any assertion about layout in this suite.
 
 - ~~**The tick on a completed checkbox is 2.54:1.**~~ **Closed 17 Sep.**
   `done-500` darkened `#10b981` -> `#0E9F6E` and the white tick is now 3.39:1,

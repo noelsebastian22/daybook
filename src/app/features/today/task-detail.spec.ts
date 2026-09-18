@@ -266,10 +266,12 @@ describe('TaskDetail', () => {
       await page.click(button(page, 'Edit'));
       await page.click(button(page, 'Save'));
 
-      expect(editFromCapture).toHaveBeenCalledWith(task, 'call physio', {
-        scheduled_date: TODAY,
-        reminder_at: null,
-      });
+      expect(editFromCapture).toHaveBeenCalledWith(
+        task,
+        'call physio',
+        { scheduled_date: TODAY, reminder_at: null },
+        null,
+      );
     });
 
     it('carries the task’s own day into the edit, so typing does not re-date it to today', async () => {
@@ -360,6 +362,33 @@ describe('TaskDetail', () => {
       await pressEscape(page);
 
       expect(router.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('notes', () => {
+    // Asserts the whole note reaches the DOM, both lines of it — *not* that
+    // the line break is visible. That is `whitespace-pre-wrap`, and jsdom
+    // computes no layout, so `textContent` carries the newline whether the
+    // class is there or not. Removing the class was mutation-tested and this
+    // spec stayed green; the rendering is covered by eye, not here.
+    it('renders every line of the note', async () => {
+      const task = makeTask({ notes: 'Suite 4\n210 Crown St' });
+      hold(task);
+
+      const page = await renderDetail(task.id);
+
+      const note = page.byText('p', 'Suite 4');
+      expect(note).not.toBeNull();
+      expect(note?.textContent).toContain('210 Crown St');
+    });
+
+    it('shows nothing when there is no note', async () => {
+      const task = makeTask({ notes: null });
+      hold(task);
+
+      const page = await renderDetail(task.id);
+
+      expect(page.byText('h2', 'Notes')).toBeNull();
     });
   });
 });

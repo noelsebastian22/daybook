@@ -124,7 +124,7 @@ describe('Composer', () => {
     area.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await composer.settle();
 
-    expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null });
+    expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null, notes: null });
   });
 
   it('takes the caret on open, since it was opened by a deliberate act', async () => {

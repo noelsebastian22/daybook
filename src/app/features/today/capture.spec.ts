@@ -53,6 +53,37 @@ function chipByLabel(box: Rendered<Capture>, starts: string): HTMLElement | unde
     .find((b) => (b.getAttribute('aria-label') ?? '').startsWith(starts));
 }
 
+/** The notes textarea, or null when the field has not been opened. */
+function notesBox(box: Rendered<Capture>): HTMLTextAreaElement | null {
+  return box.query('#capture-notes') as HTMLTextAreaElement | null;
+}
+
+/** The affordance that opens the notes field. */
+function addNotes(box: Rendered<Capture>): HTMLElement {
+  const found = box.queryAll('button').find((b) => (b.textContent ?? '').trim() === 'Add notes');
+  if (!found) throw new Error('no Add notes button');
+  return found;
+}
+
+async function typeNote(box: Rendered<Capture>, text: string): Promise<void> {
+  const area = notesBox(box);
+  if (!area) throw new Error('notes field is not open');
+  area.value = text;
+  area.dispatchEvent(new Event('input', { bubbles: true }));
+  await box.settle();
+}
+
+async function pressInNote(
+  box: Rendered<Capture>,
+  key: string,
+  modifiers: { metaKey?: boolean } = {},
+): Promise<void> {
+  const area = notesBox(box);
+  if (!area) throw new Error('notes field is not open');
+  area.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...modifiers }));
+  await box.settle();
+}
+
 /**
  * An option inside whichever layer is open. Scoped, because the chip that
  * opened the layer usually carries the same word — the `#health` chip and the
@@ -249,7 +280,7 @@ describe('Capture', () => {
       await type(box, '  call physio  ');
       await press(box, 'Enter');
 
-      expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null });
+      expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null, notes: null });
     });
 
     it('leaves Shift+Enter to make a newline', async () => {
@@ -302,6 +333,7 @@ describe('Capture', () => {
       expect(submitted).toHaveBeenCalledWith({
         text: 'call physio',
         scheduling: { scheduled_date: addDays(today(), 1), reminder_at: null },
+        notes: null,
       });
     });
   });
@@ -346,7 +378,7 @@ describe('Capture', () => {
       await type(box, 'call physio');
       await box.click(buttonNamed(box, 'Add'));
 
-      expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null });
+      expect(submitted).toHaveBeenCalledWith({ text: 'call physio', scheduling: null, notes: null });
     });
   });
 
@@ -399,7 +431,115 @@ describe('Capture', () => {
       expect(submitted).toHaveBeenCalledWith({
         text: 'call physio',
         scheduling: { scheduled_date: day, reminder_at: null },
+        notes: null,
       });
+    });
+  });
+
+  describe('notes', () => {
+    it('hides the notes field until the affordance is clicked', async () => {
+      const box = await renderCapture();
+      expect(notesBox(box)).toBeNull();
+
+      await box.click(addNotes(box));
+
+      expect(notesBox(box)).not.toBeNull();
+    });
+
+    it('starts expanded when seeded with a note', async () => {
+      const box = await renderCapture({
+        seed: { text: 'call physio', scheduling: null, notes: 'Suite 4' },
+      });
+
+      expect(notesBox(box)?.value).toBe('Suite 4');
+    });
+
+    it('emits the note with the submission', async () => {
+      const box = await renderCapture();
+      const submitted = vi.fn();
+      box.component.submitted.subscribe(submitted);
+
+      await type(box, 'call physio');
+      await box.click(addNotes(box));
+      await typeNote(box, 'Suite 4');
+      await press(box, 'Enter');
+
+      expect(submitted).toHaveBeenCalledWith(
+        expect.objectContaining({ text: 'call physio', notes: 'Suite 4' }),
+      );
+    });
+
+    it('emits null for a whitespace-only note', async () => {
+      const box = await renderCapture();
+      const submitted = vi.fn();
+      box.component.submitted.subscribe(submitted);
+
+      await type(box, 'call physio');
+      await box.click(addNotes(box));
+      await typeNote(box, '   ');
+      await press(box, 'Enter');
+
+      expect(submitted).toHaveBeenCalledWith(expect.objectContaining({ notes: null }));
+    });
+
+    it('does not parse tokens inside a note', async () => {
+      const box = await renderCapture();
+      const submitted = vi.fn();
+      box.component.submitted.subscribe(submitted);
+
+      await type(box, 'call physio');
+      await box.click(addNotes(box));
+      await typeNote(box, 'ask about #physio !quick');
+      await press(box, 'Enter');
+
+      // The note is literal text: the task keeps its own words and the note
+      // keeps its hash and its bang. The parser owns the task line and nothing
+      // else.
+      expect(submitted).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: 'call physio',
+          notes: 'ask about #physio !quick',
+        }),
+      );
+    });
+
+    // Asserts that nothing was committed rather than that a newline landed:
+    // jsdom does not insert characters for a dispatched KeyboardEvent, so
+    // checking the value would be testing jsdom instead of the app.
+    it('treats Enter in the notes field as a newline, not a commit', async () => {
+      const box = await renderCapture();
+      const submitted = vi.fn();
+      box.component.submitted.subscribe(submitted);
+
+      await type(box, 'call physio');
+      await box.click(addNotes(box));
+      await pressInNote(box, 'Enter');
+
+      expect(submitted).not.toHaveBeenCalled();
+    });
+
+    it('commits from the notes field on Cmd+Enter', async () => {
+      const box = await renderCapture();
+      const submitted = vi.fn();
+      box.component.submitted.subscribe(submitted);
+
+      await type(box, 'call physio');
+      await box.click(addNotes(box));
+      await typeNote(box, 'Suite 4');
+      await pressInNote(box, 'Enter', { metaKey: true });
+
+      expect(submitted).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Suite 4' }));
+    });
+
+    it('cancels the whole box on Escape from the notes field', async () => {
+      const box = await renderCapture();
+      const cancelled = vi.fn();
+      box.component.cancelled.subscribe(cancelled);
+
+      await box.click(addNotes(box));
+      await pressInNote(box, 'Escape');
+
+      expect(cancelled).toHaveBeenCalled();
     });
   });
 });

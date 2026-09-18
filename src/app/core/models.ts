@@ -23,6 +23,8 @@ export interface Task {
   energy: Energy | null;
   category_id: string | null;
   reminder_at: string | null;
+  /** Standing detail. Null means none — never an empty string. */
+  notes: string | null;
   /** Automatic rollovers only. */
   carried_over_count: number;
   /** Manual pushes only. */
@@ -49,8 +51,8 @@ export interface UserSettings {
    * a browser install, not to a user, so holding one per user meant two
    * accounts on one device wrote the same endpoint into two rows and the cron
    * pushed user A's task text to a device user B was signed in on. Still on
-   * the table as the rollback path; dropped in migration 0006. Nothing reads
-   * it.
+   * the table as the rollback path; dropped in a later migration — 0006 went
+   * to task notes. Nothing reads it.
    */
   push_subscription?: unknown | null;
 }
