@@ -396,6 +396,28 @@
      colour for both themes while /welcome and /login were always dark. */
   --color-focus: #3b4a8c;
 
+  /* The aura: the two stops of the animated edge around the open
+     composer, violet → coral. Decoration and nothing else — it carries
+     no state, so it has no contrast floor and is not in
+     `tools/contrast-check.mjs`. The focus ring sits inside it and keeps
+     that job (see `.aura-edge` below).
+
+     **Pen is deliberately not one of these stops**, though it was for
+     one build. The aura sits flush against a 2px pen focus ring, so a
+     pen stop in the gradient merged the two into a single 4px purple
+     slab for most of the rotation and coral was the only thing that
+     ever separated them. Violet is the neighbouring hue and still reads
+     as distinct from the ring. Do not add pen back.
+
+     Semantic tokens rather than palette shades at the call site,
+     because violet has to move in the dark column: deep-700 is far too
+     dark on a near-black surface. The dark violet is the same #c4b5fd
+     already used as `on-deep-tint`, so the app gains no new colour.
+     Coral holds in both themes — it is a fill, and brand-500 is as
+     legible on ink as it is on paper. */
+  --color-aura-body: #6d28d9; /* deep-700 */
+  --color-aura-warm: #ec7f72; /* brand-500 */
+
   /* Status text and the 100-level tints.
 
      Green still means completed and red still means overdue — the hue is
@@ -482,6 +504,9 @@
   --color-brand-tint-strong: #4a2a25;
   --color-on-brand-tint: #f8d9d3;
   --color-focus: #aab6ee; /* pen-300 */
+
+  --color-aura-body: #c4b5fd; /* violet-300, as on-deep-tint */
+  --color-aura-warm: #ec7f72; /* brand-500, unmoved */
 
   --color-done-text: #34d399; /* 9.5:1 */
   --color-done-tint: #0f2e23;
@@ -650,6 +675,84 @@ body {
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+/* ------------------------------------------------------------------
+   The aura: a lit edge travelling round the open composer.
+
+   `--aura-angle` has to be a registered property. A plain custom
+   property is an untyped string to the animation engine, so it would
+   flip 0deg → 360deg at the halfway mark instead of sweeping; `syntax:
+   '<angle>'` is what makes it interpolate. This is the whole trick, and
+   it is why the rotation is on a variable rather than a `transform` —
+   a rotated box cannot stay a rounded rectangle.
+
+   **Geometry, measured outward from the panel edge E.** The capture box
+   inside carries `focus-within:ring-2 ring-focus`, an outset ring, so it
+   owns E→E+2. `inset: -4px` pushes this pseudo-element's outer edge to
+   E+4, and `padding: 2px` plus the xor mask leaves only its outer 2px
+   band visible: E+2→E+4. The two edges sit flush and concentric and
+   never overlap. That is deliberate — `capture.html` gives the textarea
+   `outline-none`, so the focus ring underneath *is* that textarea's
+   focus indicator and this must not cover it, recolour it, or replace
+   it. Change the inset and you have to move the padding with it.
+
+   The mask is the standard two-layer cut-out: paint the whole rounded
+   box, then subtract the content box, leaving the padding band. Both
+   spellings are needed, and the composites come after both shorthands
+   because `mask` resets `mask-composite`.
+
+   Reduced motion is already handled — the global block at the bottom of
+   this file clamps `*::before` animations to 0.01ms, which freezes the
+   ring at whatever angle it starts on rather than removing it. The edge
+   is decoration either way, so a still one loses nothing.
+   ------------------------------------------------------------------ */
+@property --aura-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.aura-edge {
+  position: relative;
+}
+
+.aura-edge::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  padding: 2px;
+  border-radius: calc(var(--radius-panel) + 4px);
+  /* Five stops, not three: two warm arcs per revolution rather than one,
+     so there is something moving on the edge at all times instead of a
+     single coral event the eye waits for. Body at both 0deg and 360deg
+     closes the seam. */
+  background: conic-gradient(
+    from var(--aura-angle),
+    var(--color-aura-body),
+    var(--color-aura-warm),
+    var(--color-aura-body),
+    var(--color-aura-warm),
+    var(--color-aura-body)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  /* It sits outside the box it decorates, so it must never eat a click
+     aimed at the scrim behind it. */
+  pointer-events: none;
+  animation: aura-spin 6s linear infinite;
+}
+
+@keyframes aura-spin {
+  to {
+    --aura-angle: 360deg;
+  }
 }
 
 /* ------------------------------------------------------------------
