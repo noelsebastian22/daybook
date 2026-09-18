@@ -108,10 +108,10 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. Gates 1–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
 
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
-| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**, which is now the only outstanding item and is a verification, not work. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done**; what is left is the installed-PWA check on a real device. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
+| 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -374,17 +374,22 @@ multi-tenancy.
   are the three obvious candidates. **Corrected 3 Sep** — this said capture and
   welcome were "roughly double anything else in the repo", which stopped being
   true when the store outgrew both.
-- **Test coverage.** 55 tests across 4 files, against ~6,300 lines of source.
-  **Corrected 3 Sep: this said "the stores and `parse-capture` carry most of
-  it". The stores carry none of it.** The four spec files are `dates` (12),
-  `install` (13), `offline-queue` (7) and `parse-capture` (23); there is no
-  `session.store.spec.ts`, no `task.store.spec.ts`, no
-  `settings.store.spec.ts` and no `auth.guard.spec.ts`. Every client-side
-  tenant-isolation guarantee — `loadedFor`, `setupRanFor`, the guard's
-  resolve-then-decide — therefore rests on nothing, and `loadedFor` shipped on
-  2 Sep unverified because a second account was not to hand. **That, not the
-  offline queue, is now the highest-value thing to cover**, and it is Phase 7's
-  Gate 1.
+- ~~**Test coverage.**~~ **Largely done; corrected 18 Sep.** This bullet read
+  "55 tests across 4 files" and said flatly that `session.store.spec.ts`,
+  `task.store.spec.ts`, `settings.store.spec.ts` and `auth.guard.spec.ts` did
+  not exist and that every client-side tenant-isolation guarantee "rests on
+  nothing". **All four exist and the suite is 697 tests across 38 files.** The
+  four isolation files carry 112 of them — `task.store` 61, `session.store` 23,
+  `settings.store` 22, `auth.guard` 6 — and `loadedFor` is asserted in both
+  stores, including a flip to a second user id at `task.store.spec.ts:187`.
+  Phase 8 did this work and this bullet was never updated, which is why §3 read
+  Gate 1 as unstarted for a fortnight longer than was true.
+
+  **What that leaves of Gate 1 is the two-account pass on one device**, not the
+  specs. A spec proves the store does what it was written to do; it cannot
+  prove the browser hands the same push endpoint to two accounts, which is how
+  C1 happened. The remaining work is a human on one device with two accounts,
+  plus seeing push deliver off `push_subscriptions`.
 
 ### Phase 9, the paper retheme: in progress, 17 Sep
 
