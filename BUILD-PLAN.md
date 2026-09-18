@@ -2528,6 +2528,24 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **Task notes have not been seen surviving a round trip, 18 Sep.** The column
+  is live, the specs pass against `FakeSupabase`, and the optimistic patch is
+  proven — but nothing has confirmed a note typed on a real task comes back
+  after a reload, because that needs a signed-in device. The second half of the
+  same gap is the one regression the feature can cause: **editing a task that
+  has a note must not wipe it.** `CaptureSeed.notes` is required rather than
+  optional so the compiler catches a seed that forgets it, and it did catch
+  exactly that in `task-detail.ts` during the build. Both are checkboxes on
+  PR #1.
+
+- **A spec that reads as though it covers line breaks does not, 18 Sep.**
+  `task-detail.spec.ts`'s note test asserts both lines reach the DOM, not that
+  `whitespace-pre-wrap` renders the break. Removing the class was mutation-
+  tested and the spec stayed green: `textContent` carries the newline either
+  way and jsdom computes no layout. The spec was renamed to what it asserts.
+  **No jsdom test can close this** — it needs an eye or a real browser, and it
+  is the same class of blind spot as any assertion about layout in this suite.
+
 - ~~**The tick on a completed checkbox is 2.54:1.**~~ **Closed 17 Sep.**
   `done-500` darkened `#10b981` -> `#0E9F6E` and the white tick is now 3.39:1,
   clear of the 3:1 floor for a meaningful glyph. Taken rather than deferred

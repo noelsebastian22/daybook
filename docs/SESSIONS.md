@@ -11,6 +11,105 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-18 · claude-code · task notes, phase 9 closed
+
+**Did**
+- PWA check passed on the installed production app. **Phase 9 closed with
+  nothing outstanding**, §3 updated. `retheme/paper` deleted locally and on
+  origin after `master..retheme/paper` came back empty at both ends.
+- Corrected §4's test-coverage bullet: it claimed `session.store.spec.ts`,
+  `task.store.spec.ts`, `settings.store.spec.ts` and `auth.guard.spec.ts` did
+  not exist and that tenant isolation "rests on nothing". **All four exist and
+  carry 112 tests**; `task.store.spec.ts:187` flips `loadedFor` to a second
+  user. §3 had been reading Gate 1 as unstarted off that one stale bullet.
+- Designed and built **task notes** — `docs/NOTES-PLAN.md` (design),
+  `docs/plans/2026-09-18-task-notes.md` (plan), five commits on
+  `feat/task-notes`, PR #1 open against master.
+- `0006_task_notes.sql` — `alter table tasks add column notes text` — applied
+  live as `20260918034736 daybook_task_notes`. **Live is now 8 migrations, the
+  folder holds 6.**
+- Notes are typed in `Capture` behind a collapsed `Add notes`, read on
+  `task-detail.html`, and marked by a labelled glyph in `task-row.html`.
+- **713 tests / 38 files**, initial bundle **436.71 kB** (107.45 kB transfer),
+  styles 42.76 kB, `contrast-check` green.
+
+**Decided**
+- **A column, not a `task_notes` table.** The offline queue's ops are already
+  `{op:'update', patch: Partial<Task>}` and `{op:'insert', row: Task}`, so a
+  column rides both untouched; a table needs a new op in the one file with a
+  silent data-loss bug in its history (C2). §9.
+- **A note is not a comment.** One overwritten body — no author, order or
+  timestamp. Recorded in §9 as a *distinction* rather than a reversal, which is
+  what the Todoist-captures rule requires. The append-only log was considered
+  and rejected: better for "why does this keep being carried", but exactly the
+  shape §9 rejects, and the two counts already answer that numerically.
+- **Notes live in `Capture` behind progressive disclosure** — Noel's call, and
+  it is what made putting them there acceptable at all, since the add box must
+  not grow. One component then serves add and edit with no second surface.
+- **Enter is a newline in the notes field**, Cmd/Ctrl+Enter commits. **Escape
+  keeps one meaning** and is delegated to `onKeydown`, which it has to be:
+  `onKeydown` is bound to the task-line textarea, and the notes field is its
+  *sibling*, so nothing bubbles between them.
+
+**Didn't work**
+- **`TaskDraft` was in the spec as gaining the field.** It is declared in
+  `models.ts` and referenced nowhere in `src` — dead code. Dropped from scope
+  rather than grown a field. Whether to delete it belongs to code-quality work.
+- **The plan scoped the store change to two call sites. There are four**:
+  `today.ts`, `upcoming.ts`, `calendar/day-detail.ts`, `today/task-detail.ts`.
+  Upcoming and the calendar day detail both add through the same composer.
+- **`grep -rn ": Task = {"` does not find every `Task` literal.**
+  `offline-queue.spec.ts` has its own `task()` builder whose returned object
+  carries no type annotation, so it matched nothing and broke the build.
+- **The line-break spec does not prove line breaks.** Removing
+  `whitespace-pre-wrap` left it green — `textContent` carries the newline
+  either way and jsdom computes no layout. Renamed to what it actually
+  asserts; recorded in §12 because no jsdom test can close it.
+- **Nine existing specs broke on the new field and parameter**: five assert the
+  `CaptureSubmit` payload with an exact object match, four assert
+  `addFromCapture` / `editFromCapture` call args by exact arity. Adding
+  anything to either shape means visiting all nine.
+- `--include=*.ts` unquoted is a **zsh** glob error, not a grep one — same
+  family as the `*.css` note in the last entry. Quote it.
+
+**Open**
+- **`master` is 3 commits ahead of `origin/master` and unpushed** — `5644230`,
+  `5767264`, `bc87018`. They reached origin only *inside* `feat/task-notes`, so
+  `origin/master` still has none of the Phase 9 closure or the Gate 1
+  correction.
+- **This entry is on `feat/task-notes`, not on master.** A session that starts
+  from master will not see that this one happened until PR #1 merges. Merge it,
+  or cherry-pick this entry across.
+- PR #1 carries two unticked device checks: a note surviving a reload, and
+  editing a task with a note not wiping it. §12.
+- **41 fractional spacing steps still untouched, and the split changed.** Notes
+  touched 17 of them — `task-detail.html` 13, `capture.html` 2, `task-row.html`
+  2 — so sweep all 41 in one pass *after* the merge rather than working around
+  an open PR.
+- **The composer sits at the bottom in the PWA.** Needs one answer from Noel:
+  iPhone or installed desktop? On iPhone that is the deliberate below-`lg`
+  bottom sheet (§10's thumb-reach argument) and changing it is a recorded
+  reversal, not a bug fix.
+- A subtle colourful glow behind the composer — wanted, not started.
+- Phase 7 blockers 4 and 5 remain dashboard-only; Gate 1's two-account pass is
+  the real remainder now that the specs are known to exist.
+
+**Next**
+- **Rotate the `service_role` key, with Noel** — he asked to do it together.
+  Order matters and is in §4 blocker 4: rotate in the dashboard first, because
+  the key was surfaced in a transcript and is leaked wherever it is stored;
+  then move the new key into Vault; then update `cron.job.command` in one go.
+
+**Touched** — `supabase/migrations/0006_task_notes.sql`,
+`src/app/core/models.ts`, `src/app/core/task.store.ts`,
+`src/app/features/today/capture.ts`, `src/app/features/today/capture.html`,
+`src/app/features/today/task-detail.ts`,
+`src/app/features/today/task-detail.html`,
+`src/app/features/today/task-row.html`, `src/app/features/today/composer.ts`,
+`src/app/features/today/today.ts`, `src/app/features/upcoming/upcoming.ts`,
+`src/app/features/calendar/day-detail.ts`, `src/testing/fakes.ts`,
+`BUILD-PLAN.md`, `docs/NOTES-PLAN.md`, `docs/plans/2026-09-18-task-notes.md`
+
 ## 2026-09-18 · claude-code · retheme shipped, threads closed
 
 **Did**
