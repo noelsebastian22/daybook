@@ -280,4 +280,21 @@ describe('TaskRow in a list', () => {
     expect(names).toHaveLength(2);
     expect(new Set(names).size).toBe(2);
   });
+
+  describe('the note mark', () => {
+    const mark = (row: { queryAll: (s: string) => HTMLElement[] }): HTMLElement | undefined =>
+      row.queryAll('[role="img"]').find((n) => n.getAttribute('aria-label') === 'Has a note');
+
+    it('marks a row that has a note', async () => {
+      const row = await renderRow(makeTask({ notes: 'Suite 4' }));
+
+      expect(mark(row)).toBeDefined();
+    });
+
+    it('leaves a row without a note unmarked', async () => {
+      const row = await renderRow(makeTask({ notes: null }));
+
+      expect(mark(row)).toBeUndefined();
+    });
+  });
 });
