@@ -51,7 +51,9 @@ export class Composer {
 
   protected readonly seed = computed<CaptureSeed | null>(() => {
     const day = this.day();
-    return day ? { text: '', scheduling: { scheduled_date: day, reminder_at: null } } : null;
+    return day
+      ? { text: '', scheduling: { scheduled_date: day, reminder_at: null }, notes: null }
+      : null;
   });
 
   private readonly panel = viewChild.required<ElementRef<HTMLDivElement>>('panel');

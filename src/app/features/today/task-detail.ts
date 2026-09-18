@@ -85,6 +85,10 @@ export class TaskDetail implements OnInit {
     return {
       text: toCaptureText(t.text, this.category()?.slug ?? null, t.energy),
       scheduling: { scheduled_date: t.scheduled_date, reminder_at: t.reminder_at },
+      // Without this the edit box would hand back a null note and silently
+      // wipe one that exists — invisible in the happy path, because the only
+      // way to notice is to edit a task that had a note and look afterwards.
+      notes: t.notes,
     };
   });
 

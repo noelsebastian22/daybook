@@ -25,6 +25,8 @@ export interface CaptureSubmit {
   text: string;
   /** Set only when the picker was used. Null means the text speaks for itself. */
   scheduling: Scheduling | null;
+  /** Standing detail. Trimmed; empty becomes null, never an empty string. */
+  notes: string | null;
 }
 
 /**
@@ -35,6 +37,7 @@ export interface CaptureSubmit {
 export interface CaptureSeed {
   text: string;
   scheduling: Scheduling | null;
+  notes: string | null;
 }
 
 /**
@@ -78,6 +81,19 @@ export class Capture {
   private readonly energyChip = viewChild.required<ElementRef<HTMLButtonElement>>('energyChip');
 
   protected readonly value = linkedSignal(() => this.seed()?.text ?? '');
+
+  protected readonly notes = linkedSignal(() => this.seed()?.notes ?? '');
+
+  /**
+   * Whether the notes field is showing.
+   *
+   * Seeded open when the task already has a note, so an edit never hides
+   * content that exists. Once open it stays open for the life of the box —
+   * collapsing it under the caret mid-thought would be worse than a card that
+   * is a few lines taller than it needs to be.
+   */
+  protected readonly notesOpen = linkedSignal(() => !!this.seed()?.notes);
+
   protected readonly pickerOpen = signal(false);
   protected readonly categoryOpen = signal(false);
   protected readonly energyOpen = signal(false);
@@ -275,9 +291,11 @@ export class Capture {
     const text = this.value().trim();
     if (!text) return;
 
+    const notes = this.notes().trim();
     const chosen = this.picked();
     this.submitted.emit({
       text,
+      notes: notes || null,
       scheduling: chosen
         ? {
             scheduled_date: chosen.date,
@@ -294,5 +312,37 @@ export class Capture {
     this.value.set('');
     this.inputEl().nativeElement.value = '';
     this.picked.set(null);
+    this.notes.set('');
+    this.notesOpen.set(false);
+  }
+
+  protected onNotesInput(event: Event): void {
+    this.notes.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  /**
+   * Enter is a newline here, unlike the task line where it commits. This is a
+   * multi-line field and that mapping would make it unusable. Cmd/Ctrl+Enter
+   * commits, so there is still a keyboard path out of the field.
+   *
+   * Escape keeps its one meaning — cancel the capture — and is delegated to
+   * {@link onKeydown} rather than reimplemented. It has to be delegated
+   * explicitly: `onKeydown` is bound to the task-line textarea, which is this
+   * field's *sibling* and not its ancestor, so nothing bubbles from here to
+   * there. A key that means two things depending on which field has focus is
+   * worse than a key that means one.
+   */
+  protected onNotesKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.onKeydown(event);
+      return;
+    }
+    if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
+    event.preventDefault();
+    this.commit();
+  }
+
+  protected openNotes(): void {
+    this.notesOpen.set(true);
   }
 }

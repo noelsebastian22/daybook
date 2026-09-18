@@ -269,4 +269,40 @@
       <span class="ml-auto text-text-subtle">Enter to add</span>
     }
   </div>
+
+  <!--
+    Progressive disclosure, so the add box keeps the height it has always had.
+    A note is usually written later than the task it belongs to, so the
+    affordance stays quiet and the field costs nothing until it is asked for.
+
+    The button is replaced by the field rather than sitting beside it, so
+    aria-expanded is only ever "false" while the button exists. That is honest:
+    the control describes the state it is in, not the state it leads to.
+  -->
+  @if (notesOpen()) {
+    <div class="px-4 pb-3">
+      <textarea
+        id="capture-notes"
+        rows="3"
+        class="w-full resize-y rounded-control bg-surface-sunken px-3 py-2 text-body text-text outline-none placeholder:text-text-subtle"
+        placeholder="Anything worth remembering"
+        aria-label="Notes"
+        [value]="notes()"
+        (input)="onNotesInput($event)"
+        (keydown)="onNotesKeydown($event)"
+      ></textarea>
+    </div>
+  } @else {
+    <div class="px-4 pb-3">
+      <button
+        type="button"
+        class="rounded-control px-2 py-1 text-caption font-medium text-text-subtle transition hover:bg-hover-strong hover:text-text-muted"
+        aria-expanded="false"
+        aria-controls="capture-notes"
+        (click)="openNotes()"
+      >
+        Add notes
+      </button>
+    </div>
+  }
 </div>
