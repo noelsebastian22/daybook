@@ -47,6 +47,15 @@ function chip(page: Rendered<Today>, label: string): HTMLElement {
   return found;
 }
 
+/**
+ * Every control on the page that opens the composer. Matched on the leading
+ * word rather than the whole label, because the invitation is worded for where
+ * it sits — "Add task" on a blank day, "Add another" on a finished one.
+ */
+function adds(page: Rendered<Today>): HTMLElement[] {
+  return page.queryAll('button').filter((b) => (b.textContent ?? '').trim().startsWith('Add'));
+}
+
 /** The supporting line under the date, with its layout whitespace squeezed out. */
 function summary(page: Rendered<Today>): string {
   return (page.query('header p')?.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -297,9 +306,47 @@ describe('Today', () => {
       expect(clearFilters).toHaveBeenCalledTimes(1);
     });
 
-    it('does not ask twice, so the trailing add row stays off an empty list', async () => {
+    /**
+     * This used to assert *no* add at all on an empty list, on the reasoning
+     * that the empty state already made the invitation. It did — in words, with
+     * nothing to press. Finishing the day's last task emptied the list and took
+     * the trailing add row with it, leaving "All clear for today." and no way to
+     * write anything down. The rule the old test was reaching for is still
+     * right, so it survives as a count: one add, never two.
+     */
+    it('offers exactly one add on an empty list, never the state and the row both', async () => {
       const page = await renderToday();
-      expect(page.byText('button', 'Add task')).toBeNull();
+      expect(adds(page)).toHaveLength(1);
+    });
+
+    it('invites another task once the day is finished', async () => {
+      doneTasks.set([makeDoneTask()]);
+      const page = await renderToday();
+
+      await page.click(page.byText('button', 'Add another') as HTMLElement);
+
+      expect(page.query('app-composer')).not.toBeNull();
+    });
+
+    it('opens the composer from the invitation on a day nothing has happened on', async () => {
+      const page = await renderToday();
+
+      await page.click(page.byText('button', 'Add task') as HTMLElement);
+
+      expect(page.query('app-composer')).not.toBeNull();
+    });
+
+    /**
+     * The filter is the one empty list that is not empty: work matched nothing
+     * only because something is hiding it. Clearing the filter is the offer
+     * there, and a second one would point away from the tasks that exist.
+     */
+    it('offers a way back to the hidden work rather than an add', async () => {
+      filtered.set(true);
+      const page = await renderToday();
+
+      expect(adds(page)).toEqual([]);
+      expect(page.byText('button', 'Clear filters')).not.toBeNull();
     });
   });
 

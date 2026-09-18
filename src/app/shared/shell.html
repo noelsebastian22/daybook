@@ -40,6 +40,31 @@
     the note in brand/logo.html — it always meant the drawer to have this.
   -->
   <app-logo variant="lockup" tone="primary" [size]="28" />
+
+  <!--
+    The app's primary action, outside the drawer, because on a phone the
+    drawer is shut on every cold load — so finishing the day's last task used
+    to leave Add task two taps away behind a menu. Coral fill rather than a
+    ghost icon: it is a primary action, and as a ghost it would be the third
+    identical grey glyph in a bar 40 pixels tall.
+
+    The spacer after it reserves the theme toggle's width. That toggle is
+    `fixed right-2` at h-9, so it floats over this bar rather than sitting in
+    it, and without something holding the space this button lands underneath
+    it. A width, not padding — 44px is off the spacing scale, and `w-` is a
+    size, which the scale does not govern (AGENTS.md).
+  -->
+  <button
+    type="button"
+    class="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-card bg-brand-500 text-on-brand transition hover:bg-brand-600"
+    aria-label="Add task"
+    (click)="nav.openComposer()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" class="h-4 w-4">
+      <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+    </svg>
+  </button>
+  <div class="w-9 shrink-0" aria-hidden="true"></div>
 </div>
 
 <!--
@@ -255,21 +280,46 @@
   every width this button appears at.
 -->
 @if (nav.collapsed()) {
-  <button
-    type="button"
-    class="fixed left-2 top-2 z-30 hidden h-9 w-9 place-items-center rounded-card bg-surface-raised text-text-muted shadow-sm ring-1 ring-border transition hover:text-text lg:grid"
-    aria-label="Expand the sidebar"
-    (click)="nav.toggleCollapsed()"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        fill-rule="evenodd"
-        d="M19 4.001H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2m-15 2a1 1 0 0 1 1-1h4v14H5a1 1 0 0 1-1-1zm6 13h9a1 1 0 0 0 1-1v-12a1 1 0 0 0-1-1h-9z"
-        clip-rule="evenodd"
-      ></path>
-    </svg>
-  </button>
+  <!--
+    A rail, not a button, since folding the drawer away also folds away the
+    Add task inside it. Both controls are the same 36px chip; only the add
+    takes the coral fill, because only it is a primary action rather than a
+    way of getting somewhere.
+  -->
+  <div class="fixed left-2 top-2 z-30 hidden flex-col gap-2 lg:flex">
+    <button
+      type="button"
+      class="grid h-9 w-9 place-items-center rounded-card bg-surface-raised text-text-muted shadow-sm ring-1 ring-border transition hover:text-text"
+      aria-label="Expand the sidebar"
+      (click)="nav.toggleCollapsed()"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill="currentColor"
+          fill-rule="evenodd"
+          d="M19 4.001H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2m-15 2a1 1 0 0 1 1-1h4v14H5a1 1 0 0 1-1-1zm6 13h9a1 1 0 0 0 1-1v-12a1 1 0 0 0-1-1h-9z"
+          clip-rule="evenodd"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      type="button"
+      class="grid h-9 w-9 place-items-center rounded-card bg-brand-500 text-on-brand shadow-sm transition hover:bg-brand-600"
+      aria-label="Add task"
+      (click)="nav.openComposer()"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" class="h-4 w-4">
+        <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
+  </div>
 }
 
 <main

@@ -306,6 +306,23 @@ describe('Shell', () => {
 
       expect(labelled(shell, 'Open the menu')?.getAttribute('aria-expanded')).toBe('false');
     });
+
+    /**
+     * The drawer's copy is not reachable on a phone without opening the sheet
+     * first, and the sheet is shut on every cold load. Finishing the day's last
+     * task then left the app's primary action two taps away behind a menu.
+     */
+    it('offers an add outside the drawer, which on a phone is shut by default', async () => {
+      const shell = await renderShell();
+      const outside = shell
+        .queryAll('button')
+        .filter((b) => !b.closest('nav') && b.getAttribute('aria-label') === 'Add task');
+
+      expect(outside).toHaveLength(1);
+
+      await shell.click(outside[0]);
+      expect(nav.openComposer).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('the desktop collapse', () => {
@@ -327,6 +344,29 @@ describe('Shell', () => {
       await shell.settle();
 
       expect(labelled(shell, 'Expand the sidebar')).toBeDefined();
+    });
+
+    /**
+     * Folding the drawer away also folds away the Add task inside it, so the
+     * rail that carries the way back in carries the add as well. Asserted as a
+     * sibling of the expand control rather than by count, because the mobile
+     * bar's add is in the DOM at every width too.
+     */
+    it('puts an add on the rail beside the way back in', async () => {
+      const shell = await renderShell();
+      nav.collapsed.set(true);
+      await shell.settle();
+
+      const rail = labelled(shell, 'Expand the sidebar')?.parentElement;
+      const add = [...(rail?.children ?? [])].find(
+        (el) => el.getAttribute('aria-label') === 'Add task',
+      );
+
+      expect(add).toBeDefined();
+
+      (add as HTMLElement).click();
+      await shell.settle();
+      expect(nav.openComposer).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -1,7 +1,11 @@
 <div class="mx-auto min-h-dvh max-w-2xl px-4 pb-28">
   <!--
-    No Add task button here any more. It lives at the top of the drawer,
-    where it is reachable from every page instead of only this one.
+    Still no Add task in this header, and now for a better reason than when
+    that was first written: the action is reachable from four places that do
+    not depend on this page's header existing — the drawer, the mobile top
+    bar, the rail that appears when the desktop drawer folds away, and
+    whichever of the trailing row or the empty state the list calls for below.
+    A fifth copy up here would be the busiest one and the least needed.
   -->
 
   <!--
@@ -103,6 +107,18 @@
         left but all of it done, something did match, so the finished day
         is the truer message.
       -->
+      <!--
+        Each state also carries its own add, worded for where it sits. This
+        file used to argue the opposite — that the states "each already make
+        their own invitation" — which was true of the words and false of the
+        page: they invited and gave nothing to press, and the trailing add row
+        below unmounts with the list. Finishing the day's last task therefore
+        removed the only way to start another one.
+
+        The filtered state is the exception and keeps only "Clear filters".
+        Nothing is missing there; something is hiding, and an add would point
+        away from the tasks that exist.
+      -->
       @if (tasks.filtered() && tasks.doneTasks().length === 0) {
         <app-empty-state scene="filtered" title="Nothing matches that filter today.">
           <button
@@ -114,9 +130,53 @@
           </button>
         </app-empty-state>
       } @else if (tasks.doneTasks().length > 0) {
-        <app-empty-state scene="clear" title="All clear for today." />
+        <app-empty-state scene="clear" title="All clear for today.">
+          <button
+            type="button"
+            class="group inline-flex items-center gap-2 rounded-control text-body font-medium text-pen-text transition hover:text-pen-text-hover"
+            (click)="open.set(true)"
+          >
+            <span
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-pen-text transition group-hover:bg-brand-500 group-hover:text-on-brand"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.6"
+                class="h-3 w-3"
+              >
+                <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            Add another
+          </button>
+        </app-empty-state>
       } @else {
-        <app-empty-state scene="blank" title="Write the first thing down." />
+        <app-empty-state scene="blank" title="Write the first thing down.">
+          <button
+            type="button"
+            class="group inline-flex items-center gap-2 rounded-control text-body font-medium text-pen-text transition hover:text-pen-text-hover"
+            (click)="open.set(true)"
+          >
+            <span
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-pen-text transition group-hover:bg-brand-500 group-hover:text-on-brand"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.6"
+                class="h-3 w-3"
+              >
+                <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            Add task
+          </button>
+        </app-empty-state>
       }
     }
 
@@ -126,9 +186,10 @@
       button does — the composer is modal, so where it was triggered from
       no longer changes where it appears.
 
-      Not shown against an empty list: the three empty states each already
-      make their own invitation, and a second one under them would be the
-      app asking twice.
+      Still guarded on a non-empty list, and now for the original reason
+      rather than the old one: below an empty list the empty state is already
+      carrying the add, and showing both would be the app asking twice. One
+      or the other, never both — `today.spec.ts` counts them.
     -->
     @if (tasks.openTasks().length > 0) {
       <button
