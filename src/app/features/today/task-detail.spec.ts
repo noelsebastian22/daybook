@@ -266,10 +266,12 @@ describe('TaskDetail', () => {
       await page.click(button(page, 'Edit'));
       await page.click(button(page, 'Save'));
 
-      expect(editFromCapture).toHaveBeenCalledWith(task, 'call physio', {
-        scheduled_date: TODAY,
-        reminder_at: null,
-      });
+      expect(editFromCapture).toHaveBeenCalledWith(
+        task,
+        'call physio',
+        { scheduled_date: TODAY, reminder_at: null },
+        null,
+      );
     });
 
     it('carries the task’s own day into the edit, so typing does not re-date it to today', async () => {

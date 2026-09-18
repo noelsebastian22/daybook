@@ -804,4 +804,43 @@ describe('TaskStore', () => {
       expect(store.upcomingOpen()).toBe(true);
     });
   });
+
+  describe('notes', () => {
+    it('carries a note into the inserted row', async () => {
+      await store.addFromCapture('call physio', null, 'Suite 4');
+
+      const sent = argsFor('tasks', 'insert')[0][0] as Task;
+      expect(sent.text).toBe('call physio');
+      expect(sent.notes).toBe('Suite 4');
+    });
+
+    it('inserts null when there is no note', async () => {
+      await store.addFromCapture('call physio');
+
+      const sent = argsFor('tasks', 'insert')[0][0] as Task;
+      expect(sent.notes).toBeNull();
+    });
+
+    it('patches the note on an edit', async () => {
+      const task = makeTask({ notes: null });
+      await seed([task]);
+
+      await store.editFromCapture(task, 'call physio', null, 'Suite 4');
+
+      const patch = argsFor('tasks', 'update')[0][0] as Partial<Task>;
+      expect(patch.notes).toBe('Suite 4');
+    });
+
+    // Clearing has to reach the server as null rather than being dropped from
+    // the patch, or a cleared note silently comes back on the next load.
+    it('clears a note back to null', async () => {
+      const task = makeTask({ notes: 'Suite 4' });
+      await seed([task]);
+
+      await store.editFromCapture(task, 'call physio', null, null);
+
+      const patch = argsFor('tasks', 'update')[0][0] as Partial<Task>;
+      expect(patch.notes).toBeNull();
+    });
+  });
 });

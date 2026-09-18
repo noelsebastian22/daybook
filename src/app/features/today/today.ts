@@ -70,7 +70,7 @@ export class Today implements OnInit {
 
   protected add(submit: CaptureSubmit): void {
     this.close();
-    void this.tasks.addFromCapture(submit.text, submit.scheduling);
+    void this.tasks.addFromCapture(submit.text, submit.scheduling, submit.notes);
   }
 
   /** Pressing an active chip clears it, so the filter needs no separate "All". */

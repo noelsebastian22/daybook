@@ -103,7 +103,7 @@ export class TaskDetail implements OnInit {
     const t = this.task();
     if (!t) return;
     this.editing.set(false);
-    void this.tasks.editFromCapture(t, submit.text, submit.scheduling);
+    void this.tasks.editFromCapture(t, submit.text, submit.scheduling, submit.notes);
   }
 
   /**

@@ -460,6 +460,7 @@ export const TaskStore = signalStore(
         async addFromCapture(
           input: string,
           scheduling: Scheduling | null = null,
+          notes: string | null = null,
         ): Promise<boolean> {
           const uid = session.userId();
           if (!uid || !input.trim()) return false;
@@ -483,7 +484,7 @@ export const TaskStore = signalStore(
             energy: parsed.energy,
             category_id,
             reminder_at,
-            notes: null,
+            notes,
             carried_over_count: 0,
             reschedule_count: 0,
             created_at: new Date().toISOString(),
@@ -552,6 +553,7 @@ export const TaskStore = signalStore(
           task: Task,
           input: string,
           scheduling: Scheduling | null = null,
+          notes: string | null = null,
         ): Promise<boolean> {
           const parsed = parseCapture(input);
           if (!parsed.text) {
@@ -568,6 +570,7 @@ export const TaskStore = signalStore(
             category_id,
             scheduled_date,
             reminder_at,
+            notes,
           };
 
           if (scheduled_date > task.scheduled_date) {

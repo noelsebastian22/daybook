@@ -260,10 +260,11 @@ describe('DayDetail', () => {
         .find((b) => (b.textContent ?? '').trim() === 'Add') as HTMLElement;
       await page.click(commit);
 
-      expect(addFromCapture).toHaveBeenCalledWith('call physio', {
-        scheduled_date: FUTURE,
-        reminder_at: null,
-      });
+      expect(addFromCapture).toHaveBeenCalledWith(
+        'call physio',
+        { scheduled_date: FUTURE, reminder_at: null },
+        null,
+      );
       expect(page.query('textarea')).toBeNull();
     });
   });

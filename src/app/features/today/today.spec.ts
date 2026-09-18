@@ -339,7 +339,7 @@ describe('Today', () => {
     area.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await page.settle();
 
-    expect(addFromCapture).toHaveBeenCalledWith('call physio', null);
+    expect(addFromCapture).toHaveBeenCalledWith('call physio', null, null);
     expect(page.query('app-composer')).toBeNull();
   });
 
