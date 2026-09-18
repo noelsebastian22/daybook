@@ -70,7 +70,11 @@ a feature.
 `core/models.ts`:
 
 - `Task` gains `notes: string | null`.
-- `TaskDraft` gains `notes: string | null`.
+
+**`TaskDraft` is deliberately left alone.** The first draft of this plan had it
+gaining the field too; it is declared in `models.ts` and referenced nowhere in
+`src`, so it is dead code and adding a field to it would be noise. Whether to
+delete it is a separate question for the code-quality work, not this one.
 
 `features/today/capture.ts`:
 
@@ -86,9 +90,10 @@ glyph.
 
 ### Phase 1. Schema and types
 
-`0006_task_notes.sql`, applied to the live project. `Task`, `TaskDraft`,
-`CaptureSubmit`, `CaptureSeed` gain the field. `src/testing/fakes.ts`
-`makeTask` defaults `notes: null`.
+`0006_task_notes.sql`, applied to the live project. `Task`, `CaptureSubmit` and
+`CaptureSeed` gain the field. `src/testing/fakes.ts` `makeTask` defaults
+`notes: null`, and the one `Task` literal in the app —
+`task.store.ts:476`'s optimistic row — gains it too, or the build breaks.
 
 Nothing in the UI reads it yet; the app builds and the suite stays green.
 
