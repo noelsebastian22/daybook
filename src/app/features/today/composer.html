@@ -29,8 +29,13 @@
     The radius is repeated here so the shadow is cast in the shape of the
     card rather than as a rectangle behind its rounded corners. The
     wrapper has no background of its own; it is only the shadow's shape.
+
+    `aura-edge` hangs the travelling gradient here rather than on the
+    capture box, because the capture box's ring is the textarea's focus
+    indicator. See the rule in `styles.css` for the geometry that keeps
+    the two edges from colliding.
   -->
-  <div class="mx-auto max-w-2xl rounded-panel lg:shadow-lg">
+  <div class="aura-edge mx-auto max-w-2xl rounded-panel lg:shadow-lg">
     <app-capture
       [seed]="seed()"
       [actions]="true"

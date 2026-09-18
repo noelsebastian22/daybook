@@ -151,6 +151,21 @@ describe('Composer', () => {
     expect(chip?.getAttribute('aria-label')).toBe('Scheduled for Today. Change the date');
   });
 
+  /**
+   * The aura is decoration, but decoration with a contract: it hangs on the
+   * wrapper and never on the capture box, because `capture.html` gives the
+   * textarea `outline-none` and leans on `focus-within:ring-2 ring-focus` as
+   * its focus indicator. Folding the two edges together to save a div would
+   * quietly take that indicator with it.
+   */
+  it('hangs the animated edge on the wrapper, leaving the capture box its focus ring', async () => {
+    const composer = await renderComposer();
+    const capture = composer.query('app-capture') as HTMLElement;
+
+    expect(capture.parentElement?.classList.contains('aura-edge')).toBe(true);
+    expect(capture.classList.contains('aura-edge')).toBe(false);
+  });
+
   describe('the focus trap', () => {
     it('wraps Tab from the last stop back to the first', async () => {
       const composer = await renderComposer();
