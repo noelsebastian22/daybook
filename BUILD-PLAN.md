@@ -348,21 +348,26 @@ multi-tenancy.
 - ~~**Load a typeface.**~~ **Closed 25 Aug, the other way.** Inter is not
   fetched; `--font-sans` now names the system stack it was always really
   rendering (§9, §12).
-- **Migrate the 41 surviving fractional spacing steps.** Scoped 18 Sep; not
+- **Migrate the 40 surviving fractional spacing steps.** Scoped 18 Sep; not
   started. The design-tokens bullet above restricted spacing to 1/2/3/4/6/8,
   and `AGENTS.md` claimed for months that the fractional steps were "gone".
-  They are not: a re-count on 18 Sep confirms **41** across `src/app`, holding
-  steady since the 17 Sep sweep. `mt-0.5` ×12, `py-1.5` ×10, `py-0.5` ×6,
-  `px-2.5` ×5, `gap-1.5` ×4, `gap-0.5` ×2, `mt-1.5` ×1, `mx-0.5` ×1, across ten
-  templates — `today/task-detail.html` alone holds 13, then `settings.html` and
-  `reporting.html` at 5 each, `welcome/try-page.html` and `calendar.html` at 4,
-  `shared/date-picker.html` 3, `today/task-row.html`, `today/capture.html` and
-  `calendar/day-detail.html` 2 each, `shared/install-hint.html` 1. Re-count with
-  the grep in `AGENTS.md` § Spacing.
+  They are not: a re-count on 18 Sep confirms **40** across `src/app`.
+  `mt-0.5` ×12, `py-1.5` ×10, `py-0.5` ×6, `px-2.5` ×5, `gap-1.5` ×4,
+  `gap-0.5` ×2, `mx-0.5` ×1, across ten templates — `today/task-detail.html`
+  alone holds 13, then `settings.html` 5, `reporting.html` 4,
+  `welcome/try-page.html` and `calendar.html` at 4, `shared/date-picker.html` 3,
+  `today/task-row.html`, `today/capture.html` and `calendar/day-detail.html`
+  2 each, `shared/install-hint.html` 1. Re-count with the grep in `AGENTS.md`
+  § Spacing.
+
+  **The count was 41 until 18 Sep**, when the chart rework rewrote the line
+  `reporting.html`'s sole `mt-1.5` sat on and it became `mt-2`. That is the last
+  `mt-1.5` in the app. It is not a precedent: the rule below still stands, and it
+  only moved because the row it lived on was being rebuilt for another reason.
 
   **This is deliberately its own piece of work and must not be smuggled into an
   unrelated change** (`docs/RETHEME-PLAN.md` §2 — the paper retheme declined it
-  on purpose). Every one of the 41 is a *visual* decision, not a mechanical
+  on purpose). Every one of the 40 is a *visual* decision, not a mechanical
   rename: rounding `py-1.5` to `py-1` or `py-2` moves a control's height by 2px
   either way, and the sanctioned `0.5` alignment exception on `task-row.ts`'s
   checkbox proves at least some of them are load-bearing optical centring
@@ -1210,6 +1215,84 @@ wish list, not a plan.
 ## 9. Decisions made during the build
 
 Not in the original Notion brief. Made while getting Phases 1 and 2 working.
+
+**Add task is reachable without opening the drawer, 18 Sep.** It used to live in
+the drawer alone. On a phone the drawer is shut on every cold load, so the app's
+primary action sat two taps behind a menu — and completing the day's last task
+unmounted the trailing add row, leaving "All clear for today." as an invitation
+with nothing to press. It now also appears in the mobile top bar, on the rail
+that replaces the drawer when it folds away on desktop, and inside the `clear`
+and `blank` empty states. The `filtered` state deliberately does **not** get one:
+nothing is missing there, something is hiding, and an add would point away from
+the tasks that exist. The trailing row keeps its non-empty guard so the page ever
+shows one add or the other, never both, and `today.spec.ts` counts them rather
+than asserting none — asserting none is what hid this for months.
+
+**A bottom-right FAB was rejected, and the reason is the toast stack.** Toasts
+are `fixed inset-x-0 bottom-0`, centred, `max-w-sm`, which is near the full width
+of a phone, and they carry Undo — this app's substitute for confirmation dialogs
+(§8). A floating button in that corner sits on top of the one control the user
+has to reach within a few seconds. Chrome in the bars costs nothing and collides
+with nothing.
+
+**The settings gear is generated, not drawn, 18 Sep.** The hand-written path had
+its body's bounding box centred at `(12, 10.4)` against a hub at `(12, 12)`, so
+the icon leaned, and its subpath ended 1.3 units from where it began and let `Z`
+draw a straight chord across one lobe. Both faults were invisible to every test
+in the app and visible to the eye as "skewed". The replacement is six teeth
+placed by trig about 12,12 and is therefore symmetric by construction. **Do not
+hand-edit a coordinate in it** — change a radius and regenerate the whole path,
+or the symmetry `shell.spec.ts` now asserts will break. The spec carries a small
+absolute/relative path parser for the purpose; a correct gear is mirror-symmetric
+through both its axes whatever its tooth count, which is the general statement and
+does not pin the teeth at six. It is *not* the same claim as equal width and
+height — a gear with a tooth pointing straight up is legitimately taller.
+
+**The wordmark has one rendering, and it is `shared/brand/logo.ts`, 18 Sep.**
+`welcome` and `login` already used the lockup while the drawer and the mobile bar
+hand-rolled `Daybook` in the system stack with `tracking-tight`. That was two
+wordmarks set in two faces, and `logo.html`'s own comment had said the drawer was
+meant to have the component since the retheme. `shell.spec.ts` now fails on any
+leaf element whose text is exactly "Daybook" outside an `app-logo`.
+
+**Chart marks carry `data-mark`, 18 Sep.** `reporting.spec.ts` located the
+unrecorded hairline by counting every `[aria-hidden="true"]` node on the page,
+which worked only while that hairline was the single decorative thing in the
+chart. A baseline, gridlines and a week divider are decorative too, so the proxy
+broke the moment the chart gained an axis. Marks are now named:
+`data-mark="bar" | "unrecorded" | "tick" | "day-label" | "week-divider"`. These
+are the first data attributes in the repo. They are a test hook and also
+self-documenting markup, and they are strictly better than the alternative here,
+which is asserting on Tailwind class strings — banned in `AGENTS.md` for good
+reasons that have not changed.
+
+**Chart gridlines use `border-border`, never `border-border-soft`, 18 Sep.** Soft
+is `#efe7d6` on white and reads correctly in the light theme. In dark it is
+`#2c2820` against a `#27231c` surface — five values apart per channel, which is
+nothing. A scale drawn in it would have existed in one theme and not the other.
+This is the same family of mistake as `bg-ink-900/30` for the mobile scrim: a
+token that is *soft* against a light ground can be *absent* against a dark one,
+and only rendering both themes catches it.
+
+**The chart scales against a round ceiling, not against its busiest day, 18 Sep.**
+Heights were `count / tallest`, so the top bar always touched the top of the plot:
+a best-day-of-three drew exactly like a best-day-of-thirty, and the whole chart
+silently restretched whenever the fortnight's peak moved. `ceiling()` rounds the
+peak up to an even number — even so the midpoint gridline is a whole number, since
+task counts are integers and a gridline reading 3.5 is nonsense — with
+`MIN_CEILING = 4` so a fortnight containing one completion does not render that
+one task as a full-height bar.
+
+**"Not opened" is an 8px stub, and it took three attempts, 18 Sep.** It must not
+look like a recorded zero, which draws nothing at all; that distinction is what
+`day_snapshots` exists for. It was a 1px hairline on the floor of the plot, which
+stopped working the moment a 1px baseline arrived underneath it and the two merged
+into one rule. A full-height wash replaced it and is correct against real data but
+wrong on a new account: no snapshots at all means thirteen full-height blocks on
+the first ever look at Reporting — a wall, for a state that means "nothing has
+happened yet". Eight pixels, square rather than `rounded-t` because the rounded cap
+is what says "bar", reads as a thickened axis en masse and as a distinct mark
+beside real bars.
 
 **The composer's aura sits outside the focus ring, and pen is not one of its
 colours, 18 Sep.** Three decisions in one rule, all of them load-bearing.
@@ -2640,6 +2723,30 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **The reach-and-readability branch has not been seen in the running app,
+  18 Sep.** `feat/reach-and-readability` carries the settings gear, the drawer
+  lockup, the Add task chrome and the reworked completion chart. It is **local
+  only — not pushed, no PR, `master` untouched.** The gear was checked old
+  against new at 18/48/96px with the hub axes drawn over it, and the chart in
+  both themes across four data shapes including a quiet fortnight and an account
+  with nothing recorded — but both were standalone harnesses carrying token
+  values lifted verbatim from `src/styles.css`, served over
+  `python3 -m http.server`, because everything signed-in is behind auth and the
+  Chrome MCP still rejects `file://`. What a harness cannot settle: how the coral
+  `+` and the coral logo tile sit together in a 40px bar on a real phone, and
+  whether the week divider reads as an annotation or as noise at true size.
+
+- **A green suite protected two of the bugs Noel reported, 18 Sep.** Both had
+  tests whose *premise* was the defect. `today.spec.ts`'s "does not ask twice"
+  asserted **zero** Add buttons on an empty list, which is precisely the hole —
+  an empty state that invites in words and offers no control. And
+  `reporting.spec.ts`'s "labels only every other day" asserted `TREND_DAYS / 2`
+  labels, passing because today is index 13 of 0..13 and therefore odd, so
+  **today's own label was never drawn at all**. Both are rewritten. The general
+  lesson is the one already recorded about `parse-capture.spec.ts`: a test that
+  passes either way is worse than no test, and a characterisation test written
+  from the code rather than the intent will faithfully preserve a bug.
 
 - **The composer's aura has never been seen in the running app, 18 Sep.** It is
   merged to `master`. Everything checkable without a signed-in session was
