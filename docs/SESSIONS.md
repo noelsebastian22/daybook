@@ -11,6 +11,99 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-18 · claude-code · try page reads and turns
+
+**Did**
+- PR #1 merged before this session started, so the last entry's "master is 3
+  commits unpushed" thread is closed. `origin/master` is `c5081a8`.
+- Two additions to the welcome hero, both Noel's observations from using it.
+  One commit, `4511591`, on `feat/try-page-live-parse` off `origin/master`.
+- **Live highlighting**: `try-page.html`'s `<input>` became a mirror `div` +
+  transparent `textarea`, fed by the real `segments()` / `parseCapture()`.
+  New `parsed` / `parts` / `readout` computeds on `TryPage`; `add()` now uses
+  `this.parsed()` instead of its own second `parseCapture` call.
+- **Readout** under the box — "→ tomorrow, 5:00 PM" — from `pageLabel()` +
+  `friendlyTime()`. `pageLabel` gained a `date === from → 'today'` branch.
+- **Card turn** replaces the per-row FLIP: `.try-card` carries
+  `view-transition-name`, the `li` carries none, four `card-turn-*` keyframes
+  in `src/styles.css`, direction by `:root:has(.try-card:not(.is-flipped))`.
+- **722 tests / 38 files**, initial bundle **438.17 kB** (107.66 kB transfer),
+  styles **44.22 kB** (was 42.76), `contrast-check` green, `tsc` clean.
+- Verified in Chrome: highlighting, wrapping onto a second line, the readout,
+  Enter-to-submit, and the `:has()` direction selector.
+
+**Decided**
+- **Centre vertical axis, not a left-edge hinge.** Noel asked what the better
+  UX was and the edge hinge was dropped: it swings the card across a lot of
+  screen *while* the card is also getting shorter, where turning in place
+  absorbs the height change. §9.
+- **The readout is gated on a date *token***, not on `scheduled_date`, which
+  `parseCapture` defaults to today regardless. Off the value it would claim
+  "today" on every keystroke of every task. Mutation-tested.
+- **The readout sits outside `aria-live`.** It changes per keystroke; the
+  outcome is announced there on submit instead.
+- **Still `withViewTransition`, not a keyframe on the card** — the transition
+  pseudo-elements render in the top layer, so the hero section's overflow
+  cannot clip the rotating card. A transform on the card would be clipped.
+- A named element is not painted into its ancestor's snapshot, so container
+  and child names are mutually exclusive. Added to `AGENTS.md`, Motion.
+
+**Didn't work**
+- **`[value]="draft()"` does not put a textarea back once someone has typed
+  into it.** After `add()` the mirror showed its placeholder while the
+  textarea kept the old sentence — invisible, text is transparent — and the
+  next keystroke appended to it. Fixed by `emptyBox()`, which clears the
+  element too, exactly as `capture.ts` `commit()` always has. **No spec here
+  can catch it**: assigning `.value` + dispatching `input` leaves Angular's
+  binding able to write, so the existing assertion passes either way. Only
+  real keystrokes reproduce it.
+- **The card turn has never been seen moving.** Chrome aborts a view
+  transition on a hidden document, and the MCP automation tab reports
+  `visibilityState: 'hidden'` while still returning correct screenshots —
+  `InvalidStateError: Transition was aborted ... Document hidden`, three times
+  in the console. The mutation lands, so the page looks right and just does
+  not animate. **The automation tab cannot verify any view transition**,
+  including the app's completion choreography. Needs a foreground window.
+- **`prettier --write` on `AGENTS.md` / `BUILD-PLAN.md` rewrapped ~89 lines of
+  hand-wrapped prose and realigned every markdown table** — 189/322 lines of
+  churn in the two docs. There is a `.prettierrc` and no `.prettierignore`, so
+  markdown is in scope, but nothing enforces it and the docs are hand-wrapped
+  at ~80 cols with compact `|---|---|` tables. Reverted and the content
+  re-applied by hand; the docs diff went to 129/4. **Do not run Prettier on
+  the `.md` files.** It is fine and wanted on `.ts` / `.html` / `.css`.
+- Two of my own new specs asserted `5:00 PM`; this ICU build renders `5:00 pm`.
+  The existing seeded-time test already asserts only `5:00` — that is why.
+- `mirrorRuns()` queries `form [aria-hidden="true"] > span`, not a class. The
+  notes `<p>` is also `aria-hidden` but sits outside the form.
+
+**Open**
+- **The turn is unverified and is the one thing waiting on Noel** — he said he
+  would check the merged build on his phone. §12.
+- `feat/try-page-live-parse` is committed and **not pushed**. No PR.
+- Local `master` is still 7 behind `origin/master`; `feat/task-notes` is fully
+  merged and still present locally and on origin. Offered, not done.
+- **`src/app/features/today/capture.spec.ts` is unformatted on `master`**, from
+  the notes session. Left alone rather than bundled into this change.
+- PR #1's two device checks are still unticked: a note surviving a reload, and
+  editing a task with a note not wiping it. §12.
+- 41 fractional spacing steps, unchanged by this session (try-page still 4).
+- The composer-at-bottom question still needs one answer: iPhone or installed
+  desktop? A subtle colourful glow behind the composer: wanted, not started.
+- Noel started a third request mid-session and withdrew it ("leave it").
+
+**Next**
+- Push `feat/try-page-live-parse` and open a PR, or merge it — then look at the
+  turn on a real screen, which is the only thing that can close §12's new gap.
+  The `service_role` rotation (§4 blocker 4) is still the oldest open item and
+  still needs Noel in the dashboard.
+
+**Touched** — `src/app/features/welcome/try-page.ts`,
+`src/app/features/welcome/try-page.html`,
+`src/app/features/welcome/try-page.spec.ts`,
+`src/app/features/welcome/try-page.helpers.ts`,
+`src/app/features/welcome/welcome.spec.ts`, `src/styles.css`, `AGENTS.md`,
+`BUILD-PLAN.md`
+
 ## 2026-09-18 · claude-code · task notes, phase 9 closed
 
 **Did**
