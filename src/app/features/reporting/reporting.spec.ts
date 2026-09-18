@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addDays, friendlyDate, today } from '../../core/dates';
+import { addDays, friendlyDate, shortWeekday, today } from '../../core/dates';
 import type { DaySnapshot, Task } from '../../core/models';
 import { TaskStore } from '../../core/task.store';
 import { makeDoneTask, makeSnapshot, makeTask, resetIds } from '../../../testing/fakes';
@@ -112,17 +112,24 @@ describe('Reporting', () => {
       expect(rowFor(page, addDays(START, 2)).count).toBe('0');
     });
 
-    it('draws a hairline in the chart instead of a bar', async () => {
+    /**
+     * These two counted every `aria-hidden` node on the page, which worked only
+     * while the hairline was the single decorative thing in it. The axis, its
+     * gridlines and the week divider are decorative too, so the count is now
+     * taken on the mark itself.
+     */
+    it('draws a mark of its own in the chart instead of a bar', async () => {
       const page = await renderReporting();
-      // Nothing is recorded at all, so every day but today is a hairline.
-      expect(page.queryAll('[aria-hidden="true"]')).toHaveLength(TREND_DAYS - 1);
+      // Nothing is recorded at all, so every day but today is unrecorded.
+      expect(page.queryAll('[data-mark="unrecorded"]')).toHaveLength(TREND_DAYS - 1);
     });
 
-    it('leaves no hairline once every day has a row', async () => {
+    it('leaves no such mark once every day has a row', async () => {
       snapshots.set(snapshotMap(everyDayRecorded()));
       const page = await renderReporting();
 
-      expect(page.queryAll('[aria-hidden="true"]')).toEqual([]);
+      expect(page.queryAll('[data-mark="unrecorded"]')).toEqual([]);
+      expect(page.queryAll('[data-mark="bar"]')).toHaveLength(TREND_DAYS);
     });
   });
 
@@ -257,14 +264,58 @@ describe('Reporting', () => {
     expect(page.query('[aria-live="polite"]')).not.toBeNull();
   });
 
-  it('labels only every other day on the axis, so a fortnight does not collide', async () => {
-    const page = await renderReporting();
-    const labels = page
-      .queryAll('span')
-      .map((s) => (s.textContent ?? '').trim())
-      .filter((t) => t !== '');
+  describe('the axis', () => {
+    it('labels every other day, so a fortnight of them does not collide', async () => {
+      const page = await renderReporting();
+      const labels = page
+        .queryAll('[data-mark="day-label"]')
+        .map((s) => (s.textContent ?? '').trim())
+        .filter((t) => t !== '');
 
-    expect(labels).toHaveLength(TREND_DAYS / 2);
+      // The seven even columns, plus today, which is column 13 and odd.
+      expect(labels).toHaveLength(TREND_DAYS / 2 + 1);
+    });
+
+    /**
+     * Today is index 13 of 0..13, so the every-other rule skipped it and the
+     * one column a reader is most likely to look for was the only unlabelled
+     * one on the chart.
+     */
+    it('labels today, which the every-other rule stepped over', async () => {
+      const page = await renderReporting();
+      const labels = page.queryAll('[data-mark="day-label"]');
+
+      expect((labels.at(-1)?.textContent ?? '').trim()).toBe(shortWeekday(today()));
+    });
+
+    /**
+     * Every value on this chart used to be hover-only, and a phone has no
+     * hover. The gridline values make a magnitude readable without touching
+     * anything.
+     */
+    it('prints a scale, so reading a magnitude needs no hover', async () => {
+      snapshots.set(snapshotMap(everyDayRecorded({ 0: 3 })));
+      const page = await renderReporting();
+      const ticks = page.queryAll('[data-mark="tick"]').map((t) => (t.textContent ?? '').trim());
+
+      expect(ticks).toEqual(['4', '2', '0']);
+    });
+
+    /**
+     * Heights came off the tallest day, so the top bar always touched the
+     * ceiling and a best-day-of-three drew identically to a best-day-of-thirty.
+     */
+    it('scales against a round ceiling rather than against the tallest day', async () => {
+      snapshots.set(snapshotMap(everyDayRecorded({ 0: 3 })));
+      const page = await renderReporting();
+
+      expect(page.queryAll('[data-mark="bar"]')[0].style.height).toBe('75%');
+    });
+
+    it('divides the fortnight where the headline compares across', async () => {
+      const page = await renderReporting();
+      expect(page.query('[data-mark="week-divider"]')).not.toBeNull();
+    });
   });
 
   it('splits the fortnight evenly into this week and last', async () => {

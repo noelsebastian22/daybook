@@ -18,6 +18,16 @@ export const LIST_SIZE = 5;
 export const MIN_BAR_PX = 3;
 
 /**
+ * The lowest the trend chart's ceiling is allowed to fall to.
+ *
+ * Heights are a fraction of a ceiling rounded up from the busiest day, and
+ * without a floor a fortnight containing a single completion would draw that
+ * one task as a full-height bar — a quiet week rendered identically to a
+ * record one. Four is low enough that a real four still fills the plot.
+ */
+export const MIN_CEILING = 4;
+
+/**
  * At this many carry-overs the count stops being neutral and turns red. Red
  * is reserved for badly avoided (AGENTS.md), and a task the app has moved
  * three times is exactly that.
