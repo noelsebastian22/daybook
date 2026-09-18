@@ -914,6 +914,11 @@ Treated as core, not polish.
   floating input over the list, with the date chip live from the moment it
   opens and explicit cancel and commit. Replaced the Magic Plus draggable FAB
   on 18 Aug; see §9 and §10. State: **done**, `features/today/composer.ts`.
+  **Carries an animated aura since 18 Sep**: a 2px conic-gradient band just
+  outside the focus ring, violet → coral with a specular glint, turning once
+  every 6s. `.aura-edge` in `src/styles.css`, the class on the panel wrapper.
+  State: **built and merged, never seen in the running app** — checked only
+  against a standalone harness, because the composer sits behind auth. §9, §12.
 - **Task as object.** Tapping a task expands it into a card while the rest of
   the list fades back, using the View Transitions API with
   `view-transition-name: task-{id}` per row. Implemented as a route so
@@ -1205,6 +1210,43 @@ wish list, not a plan.
 ## 9. Decisions made during the build
 
 Not in the original Notion brief. Made while getting Phases 1 and 2 working.
+
+**The composer's aura sits outside the focus ring, and pen is not one of its
+colours, 18 Sep.** Three decisions in one rule, all of them load-bearing.
+
+*It hangs on the panel wrapper, never on the capture box.* `capture.html`
+gives the textarea `outline-none`, which makes the box's
+`focus-within:ring-2 ring-focus` that textarea's actual focus indicator — not
+a decorative container edge. So the aura had to be additive. `inset: -4px`
+with `padding: 2px` and an xor mask puts the band at E+2→E+4 measured outward
+from the panel edge, leaving the ring its E→E+2. Flush, concentric, never
+overlapping. The two numbers move together or the edges collide.
+`composer.spec.ts` asserts the class is on the wrapper and not on
+`app-capture`, so a later tidy-up cannot fold them together and take the
+indicator with it.
+
+*Pen is deliberately absent from the gradient.* It was the first stop for one
+build — it is the app's signature "written line" colour and the obvious
+choice. But the ring immediately inside is also pen, so for most of the
+rotation the two read as a single 4px purple slab and coral was the only thing
+that ever separated them. Violet is the neighbouring hue and stays distinct
+against the ring. **Do not add pen back.** This was only ever visible in a
+screenshot; no spec can catch it.
+
+*`--color-aura-sheen` is the one aura token whose two themes are different
+colours rather than two lightnesses of one.* A near-white glint is far more
+convincingly metallic, and in the dark column it gets one. In light it would
+cross a white capture box and make the border appear to **break** where it
+passes, so light takes blush instead. Every other token in this file moves
+lightness and holds hue; this one does not, and the reason is that the
+backgrounds it crosses differ in kind, not degree.
+
+The rotation is a registered `@property --aura-angle`, not a `transform`: a
+plain custom property is an untyped string to the animation engine and would
+jump 0→360deg at the halfway mark instead of sweeping, and a rotated box
+cannot stay a rounded rectangle. Reduced motion needed no new rule — the
+global block already clamps `*::before` animations to 0.01ms, which freezes
+the ring rather than removing it.
 
 **`createClient()` was replaced by composing auth-js and postgrest-js, 4 Sep.**
 The initial bundle went **536.04 kB → 438.64 kB** (129.59 → 107.47 kB
@@ -2599,6 +2641,23 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **The composer's aura has never been seen in the running app, 18 Sep.** It is
+  merged to `master`. Everything checkable without a signed-in session was
+  checked: the mask draws in both themes, `aura-spin` reports
+  `playState: 'running'`, the angle advances, and the rule survives the build
+  with both mask spellings intact. But the composer sits behind auth, so all of
+  that was against a **standalone harness carrying the real token values** —
+  byte-identical rule, simulated backdrop. Two things the harness cannot
+  settle. The **6s duration**: the automation tab throttles CSS animations to
+  roughly a sixth of speed (`--aura-angle` advanced 12deg in 1200ms where
+  72deg was authored) while still reporting `visibilityState: 'visible'`, so
+  the turn was judged from stills, not motion. And the **conic sweep is
+  non-uniform on a wide box**: angle maps to perimeter unevenly, so the colour
+  races along the long top and bottom edges and lingers at the short sides.
+  Whether that reads as shimmer or as a stutter is a real-screen call. Unlike
+  the card turn below, this one *does* animate in an automation tab — only its
+  speed is unmeasurable there.
+
 - **Task notes have not been seen surviving a round trip, 18 Sep.** The column
   is live, the specs pass against `FakeSupabase`, and the optimistic patch is
   proven — but nothing has confirmed a note typed on a real task comes back
@@ -2606,8 +2665,9 @@ Not core. Revisit once the main app is solid.
   same gap is the one regression the feature can cause: **editing a task that
   has a note must not wipe it.** `CaptureSeed.notes` is required rather than
   optional so the compiler catches a seed that forgets it, and it did catch
-  exactly that in `task-detail.ts` during the build. Both are checkboxes on
-  PR #1.
+  exactly that in `task-detail.ts` during the build. Both were checkboxes on
+  PR #1 — **which merged on 18 Sep with them still unticked, and its branch is
+  deleted, so this entry is now the only record of them.**
 
 - **A spec that reads as though it covers line breaks does not, 18 Sep.**
   `task-detail.spec.ts`'s note test asserts both lines reach the DOM, not that

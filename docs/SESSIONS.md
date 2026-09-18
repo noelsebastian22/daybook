@@ -11,6 +11,92 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-18 · claude-code · a lit edge on the composer
+
+**Did**
+- Two commits on `feat/try-page-live-parse`, then **PR #2 merged to master as
+  `17028c8`**. The branch carried the try-page work from the previous session
+  too — Noel chose to bundle rather than split.
+- **`078d1df` the aura**: a 2px conic-gradient band outside the composer's
+  focus ring, violet → coral, rotated by a registered `@property --aura-angle`.
+  `.aura-edge` and `@keyframes aura-spin` in `src/styles.css`, the class on
+  `composer.html`'s existing shadow wrapper.
+- **`43cb2e1` the sheen**: `--color-aura-sheen` plus two narrow specular stops
+  per revolution — 8deg of flat peak, 26deg shoulders.
+- `composer.spec.ts` gained one test asserting the class is on the wrapper and
+  **not** on `app-capture`, which is the only thing stopping a future tidy-up
+  folding the two edges together.
+- **723 tests / 38 files**, initial bundle **439.31 kB** (107.82 kB transfer),
+  styles **45.36 kB** (was 44.22), `contrast-check` green, `tsc` and Prettier
+  clean. Schema untouched; live is still on eight migrations.
+- Cleaned up: local `master` fast-forwarded 12 commits to `origin/master`, and
+  `feat/try-page-live-parse` and `feat/task-notes` deleted locally and on
+  origin after confirming `master..<branch>` empty and both SHAs matching.
+
+**Decided**
+- **The aura hangs on the wrapper, never on the capture box.** `capture.html`
+  gives the textarea `outline-none`, so `focus-within:ring-2 ring-focus` *is*
+  that textarea's focus indicator. Aura takes E+2→E+4, the ring keeps E→E+2 —
+  flush, concentric, no overlap. Change `inset` and the `padding` moves with
+  it. §9.
+- **Pen is not a gradient stop, deliberately.** See below.
+- **`--color-aura-sheen` is the one aura token whose two themes are different
+  colours rather than two lightnesses of one.** White is the better glint but
+  cannot be used in light; blush cannot carry dark. §9.
+- Reduced motion needed nothing new — the global block already clamps
+  `*::before` to 0.01ms, which freezes the ring rather than removing it.
+
+**Didn't work**
+- **Pen → violet → coral, as first built and as Noel first picked it.** The
+  ring directly inside is also pen, so for most of the rotation the two merged
+  into a single 4px purple slab and coral was the only thing that ever
+  separated them. Only visible in a screenshot — no spec can see it. Dropped
+  pen; violet is the neighbouring hue and stays distinct. **Do not add pen
+  back.**
+- **A white sheen in the light theme.** It crosses a white capture box and the
+  border appears to *break* where the glint passes. That is what forced the
+  per-theme split rather than one sheen colour.
+- **`ng test --filter` is a test-name regex, not a file glob.**
+  `--filter="**/composer.spec.ts"` throws `Invalid regular expression:
+  Nothing to repeat`; `--filter="composer.spec"` silently skips all 38 files
+  and reports success. Run the whole suite — it is 2s.
+- **`npx vitest run <file>` does not work here at all** — no Angular linker, so
+  every `@angular/*` injectable fails JIT. Everything goes through `ng test`.
+- **The Chrome MCP rejects `file://`** with "Can't interact with
+  browser-internal or unparseable URLs". Served the harness over
+  `python3 -m http.server` instead.
+- The composer is behind auth and cannot be screenshotted directly, so the
+  aura was checked against a standalone harness carrying the real token
+  values. Byte-identical rule, simulated backdrop.
+- **The automation tab throttles CSS animations to roughly a sixth of speed** —
+  `--aura-angle` advanced 12deg in 1200ms where 72deg was authored — while
+  reporting `visibilityState: 'visible'`. Unlike a view transition it does
+  still *run*, so colour and geometry are checkable there and duration is not.
+
+**Open**
+- **The aura has never been seen in the running app**, only in the harness.
+  Noel judged the 6s turn "looks good" from stills.
+- The try page's **card turn is still unverified** and now shipped to master.
+  §12, unchanged by this session.
+- PR #1's two task-notes device checks are still unticked, and **PR #1 is now
+  merged and its branch deleted**, so those checkboxes no longer have a live
+  home. §12 still records them; that is the only copy now.
+- `service_role` rotation and leaked-password protection — §4 blockers 4 and
+  5, still the oldest open items, both dashboard work.
+- **Nothing is deployed.** This was a merge to `master` only; Vercel was not
+  touched.
+
+**Next**
+- Deploy `master` and look at the composer aura and the try page's card turn on
+  a real foreground screen — one deploy closes the only two motion gaps the
+  app has. Failing that, the `service_role` rotation, which needs Noel in the
+  Supabase dashboard and has been open longest.
+
+**Touched** — `src/styles.css`,
+`src/app/features/today/composer.html`,
+`src/app/features/today/composer.spec.ts`, `BUILD-PLAN.md`,
+`docs/SESSIONS.md`
+
 ## 2026-09-18 · claude-code · try page reads and turns
 
 **Did**
