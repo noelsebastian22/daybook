@@ -896,6 +896,14 @@ tracked.
     elevation problems it had to solve. Verified on a real signed-in Today in
     both themes; the toggle is a three-option radiogroup that shows what
     "system" currently resolves to.
+18. **A note on a task.** One body of free text per task, for standing detail —
+    the address, what to ask, the two things to bring. State: **done, 18 Sep.**
+    `tasks.notes`, added in `0006`. Typed inside `Capture` behind a collapsed
+    `Add notes` affordance, so the add box keeps its height and the same field
+    serves adding and editing; read on the task detail page; a quiet glyph
+    marks a row that carries one. Plain text, never parsed, excluded from the
+    digest. It is **not** a comment thread — see §9 and
+    [`docs/NOTES-PLAN.md`](./docs/NOTES-PLAN.md).
 
 ### 5.1 Signature interactions
 
@@ -1009,6 +1017,11 @@ present — it reads `Today` before a word is typed — and opens the picker;
 the reminder chip appears whenever a time is set and can be cleared from
 there. Typing a date afterwards overrides whatever the picker chose (§9).
 
+**Notes are not parsed.** The notes field sits below the chips, behind an
+`Add notes` affordance, and its contents are stored verbatim — a `#tag` or
+`!quick` typed into a note stays literal text. The parser owns the task line
+and nothing else.
+
 Parsing order matters: `#tags` and `!energy` are extracted before chrono runs,
 so chrono cannot claim a substring inside one of them. It will otherwise read
 "may" out of `#maybe`. Date tokens overlapping an already-claimed range are
@@ -1033,6 +1046,7 @@ create table tasks (
   energy             text check (energy in ('quick','deep')),
   category_id        uuid references categories on delete set null,
   reminder_at        timestamptz,
+  notes              text,                   -- added 0006, one body of standing detail
   carried_over_count int not null default 0, -- automatic rollover only
   reschedule_count   int not null default 0, -- manual pushes only
   created_at         timestamptz not null default now(),
@@ -2444,6 +2458,63 @@ Two things were settled while Phase 3 landed the assets, 17 Sep:
   reads as a rubber stamp instead of a page. The reasoning and the measured
   number live in `public/icon.svg` so a later contrast sweep does not silently
   "correct" it, and `AGENTS.md` names it as the exemption.
+
+### A note on a task, 18 Sep
+
+Designed and built in one session; the working plan is
+[`docs/NOTES-PLAN.md`](./docs/NOTES-PLAN.md).
+
+**A note is a column, not a table.** `tasks.notes`, nullable text, added in
+`0006`. The alternative — a `task_notes` table — was rejected on a concrete
+cost rather than a preference: the offline queue's operations are
+`{ op: 'update'; id; patch: Partial<Task> }` and `{ op: 'insert'; row: Task }`,
+so a column rides both untouched, while a second table needs a new op in
+`core/offline-queue.ts`. That is the one file in this repo with a silent
+data-loss bug in its history (C2), and adding an operation to it to store a
+paragraph of text is a bad trade.
+
+**A note is not a comment, and this is the distinction §9 requires** for
+anything drawn from the Todoist captures. Todoist's comments are a thread —
+many entries, each timestamped and authored. That is the projects → sections →
+tasks → subtasks structure the captures are sorted against, and rejecting it
+still holds: there is one person here and the unit of time is a day, so there
+is no discussion to have per task. A note is the other thing entirely: one body
+of standing detail belonging to the task the way its text does. You overwrite
+it, you do not append to it. No table, no ordering, no author, no timestamp —
+and the absence of all four is what keeps it on the right side of the line.
+
+The append-only log was considered and rejected at the design stage. It is the
+better fit for "why does this keep being carried", but it is exactly the shape
+the captures reject, and `carried_over_count` and `reschedule_count` already
+answer that question numerically.
+
+**It lives in `Capture`, behind a collapsed affordance.** Noel's call, and it
+solved the objection to putting it there at all — the add box must not grow.
+The field costs nothing until `Add notes` is clicked, and because `Capture`
+serves the composer *and* the edit card, one change made notes work in both
+with no second editing surface anywhere.
+
+Three details that are easy to get wrong and are each pinned by a test:
+
+- **Notes never reach `parseCapture`.** A `#tag` in a note is literal text.
+- **Enter is a newline in the notes field**, not a commit; Cmd/Ctrl+Enter
+  commits. The task line keeps the opposite mapping, which is right for a
+  single line and wrong for a paragraph.
+- **Escape keeps one meaning** — cancel the capture — and had to be delegated
+  explicitly, because `onKeydown` is bound to the task-line textarea and the
+  notes field is its *sibling*, so nothing bubbles between them.
+
+**The regression this feature can cause is invisible in the happy path**: if
+`task-detail.ts`'s seed does not carry `t.notes`, editing a task silently wipes
+its note, and the only way to notice is to edit a task that had one and look
+afterwards. The type system caught it here because `CaptureSeed.notes` is
+required rather than optional, which is the reason it is required.
+
+One measurement worth keeping: **the line-break spec does not prove line
+breaks render.** `whitespace-pre-wrap` was removed as a mutation and the spec
+stayed green, because `textContent` carries a newline whether or not the class
+is there and jsdom computes no layout. The spec was renamed to what it actually
+asserts rather than left overstating its coverage.
 
 ## 11. Backlog
 

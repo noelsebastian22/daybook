@@ -1,6 +1,14 @@
 # Daybook notes plan: a note on a task
 
-Status: **designed and approved, 18 Sep 2026. Not started.**
+Status: **complete, 18 Sep 2026.** Built on `feat/task-notes`; `0006` applied
+live as `20260918034736 daybook_task_notes`. 713 tests across 38 files, initial
+bundle 436.71 kB, `contrast-check` green. This file is frozen — record anything
+further in `BUILD-PLAN.md` §9.
+
+Two things this plan got wrong, corrected in the building and left here rather
+than tidied away: `TaskDraft` was listed as gaining the field and is dead code,
+and the store change was scoped to two call sites when there are **four** —
+Upcoming and the calendar day detail both add through the same composer.
 
 This file plans one piece of work: giving a task a free-text note.
 `BUILD-PLAN.md` stays the source of truth for what Daybook is. §7 below links
