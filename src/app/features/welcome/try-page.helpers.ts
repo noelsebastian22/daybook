@@ -36,6 +36,10 @@ export function daysInYear(date: string): number {
  */
 export function pageLabel(date: string, from: string): string {
   const d = fromLocalDate(date);
+  // The day the page is already showing. Without this the running readout
+  // says "Thursday" about the page whose own header says Thursday, which
+  // reads as a different day rather than this one.
+  if (date === from) return 'today';
   if (date === addDays(from, 1)) return 'tomorrow';
   if (date === addDays(from, -1)) return 'yesterday';
 

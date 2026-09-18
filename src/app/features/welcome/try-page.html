@@ -10,8 +10,15 @@
   The rows are ruled with a bottom border rather than a background
   gradient, so the ruling survives a row being added or removed and never
   drifts out of step with the text sitting on it.
+
+  `try-card` carries the `view-transition-name` and `is-flipped` selects the
+  direction of the turn; both are read from `src/styles.css`. The rows
+  deliberately carry no name of their own — see the comment on `flip()`.
 -->
-<div class="rounded-panel bg-surface p-4 shadow-xl ring-1 ring-border sm:p-6">
+<div
+  class="try-card rounded-panel bg-surface p-4 shadow-xl ring-1 ring-border sm:p-6"
+  [class.is-flipped]="flipped()"
+>
   <!-- the page's own header: what day this is, and where it falls in the year -->
   <div class="flex items-baseline justify-between gap-3 border-b border-border-strong pb-3">
     <p class="font-display text-subtitle font-semibold">{{ dateLine() }}</p>
@@ -25,10 +32,7 @@
   } @else {
     <ul class="mb-3">
       @for (t of tasks(); track t.id) {
-        <li
-          class="flex items-center gap-3 border-b border-border-soft py-3"
-          [style.view-transition-name]="'try-task-' + t.id"
-        >
+        <li class="flex items-center gap-3 border-b border-border-soft py-3">
           <!--
             A real toggle, not a checkbox input: it carries `aria-pressed`,
             which is what the app's own task rows use, and it keeps the tick
@@ -164,19 +168,75 @@
       Add something. Type it the way you'd say it.
     </label>
     <div class="mt-2 flex gap-2">
-      <input
-        id="try-input"
-        type="text"
-        name="try-input"
-        autocomplete="off"
-        placeholder="water the plants 5pm #home"
-        class="min-w-0 flex-1 rounded-card border border-border-strong bg-surface px-3 py-2 text-body outline-none focus:border-pen-500 focus:ring-2 focus:ring-pen-tint-strong"
-        [value]="draft()"
-        (input)="onInput($event)"
-      />
+      <!--
+        A styled mirror with the real textarea transparent on top of it, which
+        is how `capture.ts` paints a wash under the words as you type. The two
+        elements must share an identical line box or the wash drifts off the
+        text: text-body carries a unitless 1.45, so both are pinned to
+        leading-5 for an integer 20px. That is the second sanctioned
+        leading-* beside a type token, for the same reason as the first.
+
+        Not an `<input>`, and that is not a preference. Once the text passes
+        the box width an input scrolls horizontally while the mirror wraps, so
+        the highlight lands on the wrong words — one sentence away at 360px,
+        which is the width this page is most often read at. A textarea wraps
+        and the mirror sets the height, so the two cannot come apart.
+      -->
+      <div
+        class="relative min-w-0 flex-1 rounded-card border border-border-strong bg-surface focus-within:border-pen-500 focus-within:ring-2 focus-within:ring-pen-tint-strong"
+      >
+        <!-- mirror -->
+        <div
+          class="pointer-events-none px-3 py-2 text-body leading-5 whitespace-pre-wrap break-words"
+          aria-hidden="true"
+        >
+          @for (s of parts(); track $index) {
+            @switch (s.kind) {
+              @case ('date') {
+                <span class="rounded-control bg-pen-tint-strong text-on-pen-tint">{{
+                  s.text
+                }}</span>
+              }
+              @case ('category') {
+                <span class="rounded-control bg-fill text-text-muted">{{ s.text }}</span>
+              }
+              @case ('energy') {
+                <span class="rounded-control" [class]="energyTone(s.text)">{{ s.text }}</span>
+              }
+              @default {
+                <span>{{ s.text }}</span>
+              }
+            }
+          }
+          @if (!draft()) {
+            <!-- The placeholder lives here, not on the textarea: the
+                 textarea's own text is transparent, so a native placeholder
+                 would be invisible. -->
+            <span class="text-text-subtle">water the plants 5pm #home</span>
+          }
+          <!-- keeps the box from collapsing on an empty last line -->
+          <span>&nbsp;</span>
+        </div>
+
+        <!-- real input -->
+        <textarea
+          #box
+          id="try-input"
+          name="try-input"
+          rows="1"
+          autocomplete="off"
+          class="absolute inset-0 h-full w-full resize-none bg-transparent px-3 py-2 text-body leading-5 text-transparent caret-text outline-none"
+          [value]="draft()"
+          (input)="onInput($event)"
+          (keydown)="onKeydown($event)"
+        ></textarea>
+      </div>
+
+      <!-- self-start, so a box that has grown to two lines does not drag a
+           36px button into a 56px one -->
       <button
         type="submit"
-        class="shrink-0 rounded-card bg-brand-500 px-4 py-2 text-body font-medium text-on-brand transition hover:bg-brand-600"
+        class="shrink-0 self-start rounded-card bg-brand-500 px-4 py-2 text-body font-medium text-on-brand transition hover:bg-brand-600"
       >
         Add
       </button>
@@ -184,17 +244,34 @@
   </form>
 
   <!--
-    One line, always in the DOM so the live region exists before it has
-    anything to announce, and `min-h` so a message appearing does not shove
-    the button down the page.
+    One line, and `min-h` so something appearing here does not shove the
+    button down the page. Only ever one of the two paragraphs has text in it,
+    so they stack without taking a second line.
   -->
-  <p class="mt-3 min-h-5 text-caption text-text-subtle" aria-live="polite">
-    @if (message()) {
-      {{ message() }}
-    } @else if (!flipped()) {
-      Leave one unticked, then turn the page.
+  <div class="mt-3 min-h-5 text-caption text-text-subtle">
+    <!-- always in the DOM, so the live region exists before it has anything
+         to announce -->
+    <p aria-live="polite">
+      @if (message()) {
+        {{ message() }}
+      } @else if (!readout() && !flipped()) {
+        Leave one unticked, then turn the page.
+      }
+    </p>
+
+    @if (!message()) {
+      @if (readout(); as r) {
+        <!--
+          Deliberately outside the live region. This changes on every
+          keystroke, and a polite region that re-announces each one is
+          unusable with a screen reader — where the task actually went is
+          announced above on submit, which is the moment that carries news.
+          It is not aria-hidden either: it is ordinary text anyone can read.
+        -->
+        <p>&rarr; {{ r }}</p>
+      }
     }
-  </p>
+  </div>
 
   <div class="mt-3 flex justify-end">
     @if (flipped()) {

@@ -26,15 +26,35 @@ async function renderPage(): Promise<Rendered<TryPage>> {
   return render(TryPage);
 }
 
-/** Type into the demo's input and submit the form, as a person would. */
-async function type(page: Rendered<TryPage>, text: string): Promise<void> {
-  const input = page.query('input') as HTMLInputElement;
-  input.value = text;
-  input.dispatchEvent(new Event('input'));
+/**
+ * Type into the demo's box and stop there, which is where the highlight and
+ * the readout live. Everything they do has to happen before a submit or it is
+ * not the feature.
+ */
+async function typeOnly(page: Rendered<TryPage>, text: string): Promise<void> {
+  const box = page.query('textarea') as HTMLTextAreaElement;
+  box.value = text;
+  box.dispatchEvent(new Event('input'));
   await page.settle();
+}
+
+/** Type into the demo's box and submit the form, as a person would. */
+async function type(page: Rendered<TryPage>, text: string): Promise<void> {
+  await typeOnly(page, text);
   (page.query('form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
   await page.settle();
 }
+
+/**
+ * Every run the mirror split the text into, in order.
+ *
+ * Asserted as text runs rather than by colour: the wash is a Tailwind class
+ * and AGENTS.md rules those out, but the *splitting* is the behaviour — a
+ * mirror that rendered the sentence as one run would be highlighting nothing
+ * no matter what colour it painted.
+ */
+const mirrorRuns = (page: Rendered<TryPage>) =>
+  page.queryAll('form [aria-hidden="true"] > span').map((s) => s.textContent ?? '');
 
 const rowText = (page: Rendered<TryPage>) =>
   page.queryAll('li').map((li) => li.textContent?.replace(/\s+/g, ' ').trim() ?? '');
@@ -113,11 +133,19 @@ describe('TryPage', () => {
     // page" with the sentence still sitting in the box, and the next Enter
     // filed it again. Asserting on the element's own value rather than on
     // the signal is the point — the signal was never the broken half.
+    //
+    // It happened a second time, in the browser again, when the box became a
+    // mirror + textarea: `[value]="draft()"` does not put a textarea back
+    // once a person has typed into it, so `add()` now clears the element as
+    // well as the signal. **This assertion did not catch that and cannot.**
+    // Setting `.value` and dispatching `input`, which is all a spec can do,
+    // leaves Angular's binding able to write; only real keystrokes reproduce
+    // it. Kept because the shape is right, not because it is load-bearing.
     await type(page, 'call the dentist monday');
-    expect((page.query('input') as HTMLInputElement).value).toBe('');
+    expect((page.query('textarea') as HTMLTextAreaElement).value).toBe('');
 
     await type(page, 'water the plants');
-    expect((page.query('input') as HTMLInputElement).value).toBe('');
+    expect((page.query('textarea') as HTMLTextAreaElement).value).toBe('');
   });
 
   it('ticks and unticks, and says which it is doing', async () => {
@@ -202,5 +230,109 @@ describe('TryPage', () => {
 
     await page.click(page.byText('button', 'Flip to tomorrow') as HTMLElement);
     expect(page.query('[aria-live="polite"]')?.textContent).not.toContain('Leave one unticked');
+  });
+
+  it('splits a date, a category and an energy out of the text as it is typed', async () => {
+    const page = await renderPage();
+    await typeOnly(page, 'water the plants 5pm #home !quick');
+
+    // Each token is its own run, so each one can carry its own wash. The
+    // plain text between them stays plain.
+    const runs = mirrorRuns(page);
+    expect(runs).toContain('water the plants ');
+    expect(runs).toContain('5pm');
+    expect(runs).toContain('#home');
+    expect(runs).toContain('!quick');
+  });
+
+  it('shows the box empty-handed before anything is typed', async () => {
+    const page = await renderPage();
+
+    // The placeholder belongs to the mirror, not the textarea — the textarea's
+    // text is transparent, so a native placeholder would be invisible.
+    expect(mirrorRuns(page).join('')).toContain('water the plants 5pm #home');
+  });
+
+  it('says which day and time it understood, while you are still typing', async () => {
+    const page = await renderPage();
+    await typeOnly(page, 'call the dentist monday 5pm');
+
+    // Recognition is the claim the hero makes. Highlighting says "something
+    // was understood"; this says what.
+    //
+    // Asserted without the meridiem, as the seeded-time test above already
+    // is. `toLocaleTimeString` renders it "pm" under this ICU build and "PM"
+    // under others, and the case of two letters is not what is under test.
+    expect(page.el.textContent).toContain('Monday, 5:00');
+  });
+
+  it('names the day it is already showing as today, not by its weekday', async () => {
+    const page = await renderPage();
+    await typeOnly(page, 'water the plants today 5pm');
+
+    expect(page.el.textContent).toContain('today, 5:00');
+    expect(page.el.textContent).not.toContain('Thursday, 5:00');
+  });
+
+  it('gives a day with no time, and a time with no day, separately', async () => {
+    const page = await renderPage();
+
+    await typeOnly(page, 'call the dentist monday');
+    expect(page.el.textContent).toContain('Monday');
+    expect(page.el.textContent).not.toContain('Monday,');
+
+    await typeOnly(page, 'water the plants 5pm');
+    expect(page.el.textContent).toContain('today, 5:00');
+  });
+
+  it('claims no day at all when no day was typed', async () => {
+    const page = await renderPage();
+    await typeOnly(page, 'water the plants');
+
+    // The parser defaults `scheduled_date` to today whether or not a date was
+    // typed, so a readout driven off that value alone would assert "today"
+    // over every keystroke of every task. It is driven off the date *token*.
+    expect(page.el.textContent).not.toContain('→');
+    expect(page.query('[aria-live="polite"]')?.textContent).toContain('Leave one unticked');
+  });
+
+  it('keeps the running readout out of the live region', async () => {
+    const page = await renderPage();
+    await typeOnly(page, 'call the dentist monday 5pm');
+
+    // A polite region that re-announces on every keystroke is unusable. The
+    // outcome is announced there on submit instead, which is the moment that
+    // actually carries news.
+    expect(page.query('[aria-live="polite"]')?.textContent).not.toContain('Monday');
+    expect(page.el.textContent).toContain('Monday, 5:00');
+  });
+
+  it('stands the readout down once the task has gone somewhere', async () => {
+    const page = await renderPage();
+    await type(page, 'call the dentist monday 5pm');
+
+    expect(page.query('[aria-live="polite"]')?.textContent).toContain("Monday's page");
+    expect(page.el.textContent).not.toContain('→');
+  });
+
+  it('turns the whole card, and does not name its rows', async () => {
+    const page = await renderPage();
+
+    // The card is one `view-transition-name`, so the browser has two
+    // snapshots of it to rotate. A row carrying its own name would be lifted
+    // out of the card's snapshot by spec and animate separately — visibly,
+    // as rows floating over a turning card.
+    expect(page.query('.try-card')).not.toBeNull();
+    expect(page.queryAll('li').every((li) => li.getAttribute('style') === null)).toBe(true);
+
+    // What the turn direction is selected on. Forward and back have to differ
+    // or a back button that turns the same way as forward reads as broken.
+    expect(page.query('.try-card')?.classList.contains('is-flipped')).toBe(false);
+
+    await page.click(page.byText('button', 'Flip to tomorrow') as HTMLElement);
+    expect(page.query('.try-card')?.classList.contains('is-flipped')).toBe(true);
+
+    await page.click(page.byText('button', 'Back to today') as HTMLElement);
+    expect(page.query('.try-card')?.classList.contains('is-flipped')).toBe(false);
   });
 });

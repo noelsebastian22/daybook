@@ -967,6 +967,12 @@ chart live. State: **done**, `shared/shell.ts`, as a layout route.
   Daybook page running the real `parseCapture`, which you can type into, tick
   off and turn over before you have an account. Nothing is persisted. It
   replaced a looping CSS animation of the same argument.
+  **Extended 18 Sep with the two things that were missing from it**, both
+  Noel's observations from using it: it now **highlights as you type** (the
+  same mirror-and-transparent-textarea technique as `capture.ts`, fed by the
+  real `segments()`), tells you what it understood on a line under the box —
+  "→ tomorrow, 5:00 PM" — and **turns over as a whole card** on Flip to
+  tomorrow instead of sliding its rows. See §9.
 - Visually rich dashboard.
 - Premium-feeling login screen with Google sign-in.
 - AI-generated illustrations for the hero and empty states. **Superseded** —
@@ -2516,6 +2522,71 @@ stayed green, because `textContent` carries a newline whether or not the class
 is there and jsdom computes no layout. The spec was renamed to what it actually
 asserts rather than left overstating its coverage.
 
+### The try page learns to read, and turns over, 18 Sep
+
+Two things Noel noticed from using the hero: it did not show that it understood
+a date or a time while you typed, and "Flip to tomorrow" did not look like
+anything flipping.
+
+**The hero highlights with the app's own mirror, not a lookalike.** A styled
+`div` under a transparent `textarea`, fed by the real `segments()` and
+`parseCapture()` — the same two functions `capture.ts` calls. That keeps
+`try-page.ts`'s founding discipline: if the parser stops understanding "5pm",
+the hero stops on the same commit rather than drifting into a demo of a parser
+that no longer exists.
+
+**The box had to stop being an `<input>`.** Not a preference. Once text passes
+the box width an input scrolls horizontally while the mirror wraps, so the wash
+lands on the wrong words — about one sentence away at 360px, which is the width
+the landing page is most often read at. A `textarea` wraps, and the mirror sets
+the height, so the two cannot come apart. Enter then needs handling explicitly,
+because a form submits on Enter from an input on its own and a textarea takes
+the newline instead.
+
+**The readout is gated on a date *token*, not on `scheduled_date`.** That is
+the whole difference between a readout and a lie: `parseCapture` initialises
+`scheduled_date` to today whether or not a date was typed, so a line driven off
+the value would assert "today" over every keystroke of every task and carry no
+information. Mutating the gate away was checked, and it reddens the spec. The
+readout also sits **outside** the `aria-live` region — it changes on every
+keystroke, and a polite region that re-announces each one is unusable. What
+actually happened is announced there on submit.
+
+**The card turns as one object; its rows lost their names.** The hero used to
+name each `li` and let the browser FLIP the survivors, mirroring the app's own
+list. That is a correct animation nobody watching a hero for ten seconds can
+see. It is now one `view-transition-name` on the card and a rotation in
+`src/styles.css`. The two cannot be combined — an element with a
+`view-transition-name` is captured separately and is *not* painted into its
+ancestor's snapshot, so keeping the row names would leave rows animating over a
+turning card rather than on it.
+
+**Centre axis, not a hinge on the card's edge.** A page hinged at its edge
+swings across a lot of screen *and* the card is changing height at the same
+time, since ticked rows do not come along. Turning in place absorbs the height
+change and keeps what you were reading where the eye already is — and the
+centre-axis flip is the gesture people already have a model for. An edge hinge
+was the first proposal and was the paper metaphor over-indexed; Noel pushed
+back and was right.
+
+Three details carry the quality, and the axis is the least of them:
+`perspective(1200px)` inside the transform, without which a Y-rotation is a
+flat horizontal squash rather than a flip; one continuous rotation across two
+faces (old 0° → −90°, new +90° → 0°) so it reads as one object turning; and a
+30ms overlap between the halves, because two flush 220ms halves leave a frame
+edge-on at zero width that reads as a blink.
+
+**The direction needs no JavaScript.** `is-flipped` is on the card in the new
+state by the time the animations start, so
+`:root:has(.try-card:not(.is-flipped))` tells the two turns apart: forward is
+the default, back overrides. Verified in Chrome — the selector matches on the
+back turn and not on the forward one.
+
+Still through `withViewTransition` rather than a hand-rolled keyframe, and for
+a sharper reason than convention: the transition pseudo-elements render in the
+document's top layer, so the hero section's overflow cannot clip the rotating
+card. A CSS transform on the card itself would be sliced by its own ancestors.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2545,6 +2616,39 @@ Not core. Revisit once the main app is solid.
   way and jsdom computes no layout. The spec was renamed to what it asserts.
   **No jsdom test can close this** — it needs an eye or a real browser, and it
   is the same class of blind spot as any assertion about layout in this suite.
+
+- **The try page's card turn has never been seen moving, 18 Sep.** Everything
+  around it is verified in Chrome: `view-transition-name: try-card` resolves on
+  the card, all twelve CSS rules parse, and the `:has()` direction selector
+  matches on the back turn and not on the forward one. The motion itself did
+  not run, because Chrome aborts a view transition on a hidden document —
+  `InvalidStateError: Transition was aborted because of invalid state. Document
+  hidden` — and the browser-automation tab reports `visibilityState: 'hidden'`
+  even while screenshots come back correctly. The mutation still lands, so the
+  page looks right and simply does not animate. **Needs a foreground window or
+  a phone.** Note this makes the automation tab useless for checking *any* view
+  transition, the app's completion choreography included.
+
+- **On a flipped try page, a task with no date in it goes to the wrong day,
+  18 Sep.** `parseCapture` initialises `scheduled_date` to `today()` and
+  ignores its `ref` for that default, so typing a bare task on tomorrow's page
+  resolves to the real today and the demo says "Saved to yesterday's page."
+  Pre-existing, found while building the readout, and **left alone on purpose**:
+  the fix is in the parser every signed-in surface shares, and it is not worth
+  touching that for a marketing page's second screen. Its own item when the
+  parser is next opened.
+
+- **`[value]` does not put a textarea back, and no spec here can catch it,
+  18 Sep.** Found in Chrome with real keystrokes on the try page: `add()` set
+  `draft` to `''`, the mirror re-rendered and showed its placeholder, and the
+  textarea kept the old sentence as its value — invisible, because its text is
+  transparent, until the next keystroke appended to it. `add()` now clears the
+  element alongside the signal, which is what `capture.ts` has always done in
+  `commit()` and why the app's own capture box never showed this. **It does not
+  reproduce from a spec**: assigning `.value` and dispatching `input`, which is
+  all jsdom can do, leaves Angular's binding able to write, so the existing
+  assertion passes either way. Same family as the `whitespace-pre-wrap` gap
+  above — the suite is shaped to miss it.
 
 - ~~**The tick on a completed checkbox is 2.54:1.**~~ **Closed 17 Sep.**
   `done-500` darkened `#10b981` -> `#0E9F6E` and the white tick is now 3.39:1,

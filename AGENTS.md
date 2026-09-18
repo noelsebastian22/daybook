@@ -367,10 +367,19 @@ app scales with the browser font size:
 reaching for one is the same mistake as reaching for `rounded-lg`.
 
 Each step carries its own line height, so `leading-*` beside one of these is
-usually a mistake. There is exactly one deliberate exception: the capture box
-in `capture.ts` keeps `leading-6` because its mirror `div` and its `textarea`
-must share an integer line box or the syntax highlight drifts off the text.
-It is commented in place.
+usually a mistake. The deliberate exceptions are both the same exception, and
+it is the mirror technique: a highlighted `div` and the `textarea` over it must
+share an integer line box or the wash drifts off the text by a fraction of a
+line per row. There are two mirrors, so there are two:
+
+| File | Pinned to | Because |
+|---|---|---|
+| `today/capture.html` | `leading-6` | `text-subtitle` is 16px × 1.4 = 22.4px |
+| `welcome/try-page.html` | `leading-5` | `text-body` is 14px × 1.45 = 20.3px |
+
+Both are commented in place. **A third mirror needs a third pin**, computed the
+same way: the step's px size × its `--line-height`, rounded to the nearest
+`leading-*` integer. Nothing else may carry a `leading-*`.
 
 **`welcome.ts` is exempt, and it is the only file that is.** A marketing page
 needs a register the app never uses; its hero runs 44px to 60px, its closer
@@ -450,6 +459,18 @@ Latin glyphs are wider and heavier and which have no semibold.
   moved. It handles the zoneless `tick()` and the reduced-motion opt-out.
 - That name must be **unique across the live DOM**. A list showing the same
   task twice, or hidden rather than unmounted, silently kills the transition.
+- **A named element is not painted into its ancestor's snapshot.** So a name on
+  a container and names on its children are mutually exclusive: pick the level
+  you want to animate. The welcome hero turns as one card
+  (`view-transition-name: try-card`) and therefore its rows carry no name,
+  which is the opposite of the app's own list and is deliberate — see `flip()`
+  in `welcome/try-page.ts`.
+- **A view transition needs a visible document.** Chrome aborts one on a hidden
+  tab with `InvalidStateError: Transition was aborted ... Document hidden`, and
+  the mutation still lands, so the app looks correct and simply does not
+  animate. This is what makes a browser-automation tab useless for checking
+  one: the MCP tab group reports `visibilityState: 'hidden'` even while
+  screenshots come back fine. Verify motion on a real, foreground window.
 - The completion choreography is four beats and no more: the box fills, the
   tick pops, the strike draws, the row re-sorts. A completed row is **not**
   faded — see Colour.

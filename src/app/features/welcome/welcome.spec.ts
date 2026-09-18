@@ -58,7 +58,9 @@ describe('Welcome', () => {
     // again, this is the line that should stop them.
     expect(page.query('app-try-page')).not.toBeNull();
     expect(page.queryAll('[role="img"]')).toHaveLength(0);
-    expect(page.query('app-try-page input')).not.toBeNull();
+    // A box you can type into. It is a `textarea` rather than an `input`
+    // because it carries the live highlight — see try-page.html.
+    expect(page.query('app-try-page textarea')).not.toBeNull();
   });
 
   it('hides the handwritten notes from assistive technology', async () => {
