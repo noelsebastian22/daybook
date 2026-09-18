@@ -418,6 +418,16 @@
   --color-aura-body: #6d28d9; /* deep-700 */
   --color-aura-warm: #ec7f72; /* brand-500 */
 
+  /* The specular glint that makes the edge read as metal rather than as
+     a blend. This is the one aura stop whose two themes are genuinely
+     different colours rather than two lightnesses of one, and it has to
+     be: a white glint is the more convincing highlight, but in the light
+     theme it crosses a white capture box and the border appears to break
+     where it passes. Blush never vanishes because it is still a colour.
+     On the near-black dark surface nothing can vanish, so the dark
+     column takes the brighter one. */
+  --color-aura-sheen: #fbcfc8; /* brand-100, blush */
+
   /* Status text and the 100-level tints.
 
      Green still means completed and red still means overdue — the hue is
@@ -507,6 +517,7 @@
 
   --color-aura-body: #c4b5fd; /* violet-300, as on-deep-tint */
   --color-aura-warm: #ec7f72; /* brand-500, unmoved */
+  --color-aura-sheen: #fffdf7; /* the paper itself, as a highlight */
 
   --color-done-text: #34d399; /* 9.5:1 */
   --color-done-tint: #0f2e23;
@@ -723,17 +734,28 @@ body {
   inset: -4px;
   padding: 2px;
   border-radius: calc(var(--radius-panel) + 4px);
-  /* Five stops, not three: two warm arcs per revolution rather than one,
-     so there is something moving on the edge at all times instead of a
-     single coral event the eye waits for. Body at both 0deg and 360deg
-     closes the seam. */
+  /* Two warm arcs per revolution rather than one, so there is always
+     something moving on the edge instead of a single coral event the eye
+     waits for. Body at both 0deg and 360deg closes the seam.
+
+     The angles are explicit because the glint depends on them. Each
+     sheen stop is repeated 8deg apart to hold a flat peak, with 26deg
+     shoulders of coral either side. That tightness is the whole effect:
+     spread the highlight evenly and it stops being a highlight and
+     becomes a third colour in the blend. */
   background: conic-gradient(
     from var(--aura-angle),
-    var(--color-aura-body),
-    var(--color-aura-warm),
-    var(--color-aura-body),
-    var(--color-aura-warm),
-    var(--color-aura-body)
+    var(--color-aura-body) 0deg,
+    var(--color-aura-warm) 60deg,
+    var(--color-aura-sheen) 86deg,
+    var(--color-aura-sheen) 94deg,
+    var(--color-aura-warm) 120deg,
+    var(--color-aura-body) 180deg,
+    var(--color-aura-warm) 240deg,
+    var(--color-aura-sheen) 266deg,
+    var(--color-aura-sheen) 274deg,
+    var(--color-aura-warm) 300deg,
+    var(--color-aura-body) 360deg
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
