@@ -30,6 +30,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login').then((m) => m.Login),
   },
   {
+    // Where a stranger asks, and where a refused sign-in lands. Guest-only
+    // like its two siblings. Not preloaded: it is rare, and unreachable for
+    // the signed-in user who would be doing the downloading.
+    path: 'request-access',
+    title: 'Request access',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/request-access/request-access').then((m) => m.RequestAccess),
+  },
+  {
     // Everything signed-in hangs off one shell route, so the drawer mounts
     // once and only the outlet swaps. Login sits outside it deliberately —
     // there is nothing to navigate to until there is a session.
