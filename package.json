@@ -9,6 +9,7 @@
     "test": "ng test"
   },
   "private": true,
+  "license": "AGPL-3.0-only",
   "packageManager": "npm@10.9.7",
   "dependencies": {
     "@angular/common": "^22.1.0",

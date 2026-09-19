@@ -12,7 +12,8 @@ Related files:
 - `AGENTS.md` for repo conventions (how to write code here)
 - `docs/SESSIONS.md` for the chronological log (what happened when, and why)
 - `supabase/migrations/` for the applied schema
-- `README.md` for setup and the capture syntax
+- `README.md` for what the app is, how it differs and how to run it
+- `docs/OPERATIONS.md` for deploying, auth URLs, DNS and the asset pipeline
 
 ---
 
@@ -1209,6 +1210,25 @@ digest and reminders, but nothing else.
 
 **Upcoming looks 7 days ahead.** Anything beyond a week on a daily app is a
 wish list, not a plan.
+
+**The licence is AGPL-3.0-only**, chosen 19 Sep 2026. The repo reads as a
+portfolio piece and should stay open, but §1 keeps the door open to selling this
+to freelance clients, and a permissive licence would let anyone run Daybook as a
+hosted service off this work. AGPL's network clause is the one that covers a web
+app. **Noel keeps the copyright regardless**, so commercial licences can still be
+sold to anyone who does not want AGPL terms; that is dual licensing and it is
+normal. Chosen with the asymmetry in mind: a licence can always be loosened
+later, never tightened, because the last permissively-licensed commit stays
+permissive forever.
+
+All 23 direct dependencies are permissive (20 MIT, 2 Apache-2.0, 1 0BSD), so
+nothing constrained the choice. The bundled Fraunces subset is **not** covered by
+it and stays under the SIL Open Font License, shipped as `public/fonts/OFL.txt`.
+
+**Open, not yet acted on:** AGPL §13 expects a network service to offer its
+source to users. The obligation binds licensees rather than the copyright holder,
+so it does not bite Noel running his own build — but a "Source" link somewhere in
+the app would follow the spirit of the licence and costs nothing.
 
 ---
 
