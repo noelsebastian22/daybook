@@ -11,6 +11,81 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-19 · claude-code · a README and a licence
+
+**Did**
+- Rewrote `README.md` as the front door: product story, eight screenshots,
+  differentiation, stack, then setup. Ops detail split into
+  `docs/OPERATIONS.md`. Corrected the stale "production is
+  `daybook-bay.vercel.app`" claim — it has been the custom domain since 5 Sep.
+- Eight screenshots into `docs/screenshots/` (332 kB), shot against canned rows
+  by rebuilding the `?harness` swap from 17 Sep. Scaffolding deleted, not
+  committed.
+- `LICENSE` = verbatim AGPL-3.0 fetched from gnu.org (sha256 `0d96a4ff…`),
+  `package.json` gains `"license": "AGPL-3.0-only"`, reasoning in §8.
+- PR #4 merged as **`4321cc1`**, branch deleted both ends. Production deploy
+  `dpl_353stu5BEY8357cYL7xAFT4p21kF` **READY**. No file under `src/` changed, so
+  the bundle is byte-identical and nothing user-visible moved.
+- Build 439.63 kB initial / 107.90 kB transfer; **736 tests / 38 files**, green.
+  `main-SLSQE6OY.js` still matches production.
+- §12: two gaps closed. The composer aura and the dark-mode completion chart
+  have both now been seen in the *running* app.
+
+**Decided**
+- **The licence is AGPL-3.0-only.** The repo stays readable, but §1 keeps the
+  door open to selling this and a permissive licence would let anyone run
+  Daybook as a hosted service off it. Copyright is retained either way, so
+  commercial licences stay sellable. Picked on the asymmetry: a licence can be
+  loosened later, never tightened. §8.
+- **Screenshots are shot against canned rows, never a real account.** No real
+  task text ships in a public repo.
+- **The harness scaffolding stays uncommitted**, because `main.ts` importing it
+  pulls it into the initial chunk. It has now been written twice. **If it gets
+  written a third time, keep it out of the production graph instead** —
+  `docs/OPERATIONS.md` carries that note.
+
+**Didn't work**
+- **Three background `ng serve` runs "failed" with exit 127 and it was not the
+  toolchain.** Port 4200 was already held by a dev server that was already
+  running; the Angular CLI exits 127 for that. Two of those attempts were spent
+  chasing nvm and `PATH`. **Check `lsof -nP -iTCP:4200` before debugging node.**
+- **Chrome MCP clicks computed off a screenshot land ~4% high.** Screenshots
+  come back 1568px wide while the page reports `innerWidth` 1502, and the tool
+  does not reconcile them — clicking the drawer's `Add task` hit the row above
+  it twice, silently. **Drive the DOM** (`querySelectorAll('button')[n].click()`)
+  rather than coordinates. Typing into a composer that never opened also looks
+  identical to typing into one that did.
+- **`resize_window` cannot produce a mobile viewport.** `outerWidth` moved to
+  871 but `innerWidth` stayed 1502 and the layout never went mobile. No mobile
+  screenshot came out of this session.
+- **`/welcome` is unreachable in a browser holding a real session** — `guestGuard`
+  bounces to `/today`. The first attempt therefore photographed Noel's real
+  tasks; that image was discarded. Fixed with a `?harness=guest` mode reporting
+  a null session, which is the only way to shoot `/welcome` or `/login`.
+
+**Open**
+- **No mobile screenshot.** The coral `+` in the 40px bar is still unshot, and a
+  real handset would beat a simulated one anyway — fold it into the phone pass.
+- **AGPL §13 "Source" link not added.** The obligation binds licensees, not the
+  copyright holder, so it does not bite Noel's own build, but a link in the
+  drawer or Settings follows the licence's spirit. §8, five-minute job.
+- The aura is still unseen **in dark mode** and **on a phone**; only light mode
+  at 1440px was covered.
+- Three of the four PR #3 phone checks, task notes round-tripping, the two PR #1
+  device checks, `service_role` rotation and leaked-password protection — all
+  unchanged.
+- `daybook.theme.v1` left on `light` in the localhost browser. Cosmetic.
+
+**Next**
+- The phone pass, now carrying one extra item. Open
+  `daybook.noel-sebastian.com` on the handset and walk the three remaining PR #3
+  checks plus the composer aura in dark mode; take a real mobile screenshot
+  while there and drop it into `docs/screenshots/`, then reference it in the
+  README's *What it does* section.
+
+**Touched** — `README.md`, `docs/OPERATIONS.md`, `LICENSE`, `package.json`,
+`BUILD-PLAN.md`, `docs/screenshots/*.jpg`
+
 ## 2026-09-19 · claude-code · shipped reach and readability
 
 **Did**

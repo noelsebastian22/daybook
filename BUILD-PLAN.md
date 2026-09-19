@@ -1225,10 +1225,7 @@ All 23 direct dependencies are permissive (20 MIT, 2 Apache-2.0, 1 0BSD), so
 nothing constrained the choice. The bundled Fraunces subset is **not** covered by
 it and stays under the SIL Open Font License, shipped as `public/fonts/OFL.txt`.
 
-**Open, not yet acted on:** AGPL §13 expects a network service to offer its
-source to users. The obligation binds licensees rather than the copyright holder,
-so it does not bite Noel running his own build — but a "Source" link somewhere in
-the app would follow the spirit of the licence and costs nothing.
+AGPL §13 and a "Source" link in the app: §12.
 
 ---
 
@@ -2744,6 +2741,23 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
+- **No "Source" link in the app, 19 Sep.** AGPL §13 expects a network service to
+  offer its source to its users, and §8 put the repo under AGPL-3.0-only. The
+  obligation binds **licensees, not the copyright holder**, so it does not bite
+  Noel serving his own build from `master` — nothing is out of compliance. But
+  a link in the drawer or on Settings pointing at the GitHub repo follows the
+  spirit of the licence, costs nothing, and removes the question entirely if
+  anyone ever forks this. Deferred because the licence landed in a docs session
+  and this is a UI change.
+
+- **No mobile screenshot in the README, 19 Sep.** `resize_window` through the
+  Chrome MCP could not produce a mobile viewport — `outerWidth` moved but
+  `innerWidth` stayed at 1502 and the layout never crossed the breakpoint, so
+  the eight committed images are all desktop. The coral `+` in the 40px bar is
+  the one thing a README screenshot would show that the desktop shots cannot.
+  Take it on the real handset during the phone pass rather than fighting the
+  tooling.
+
 - **The reach-and-readability work has not been seen in the running app, 18 Sep —
   though it is now deployed, 19 Sep.** The settings gear, the drawer lockup, the
   Add task chrome and the reworked completion chart merged as PR #3 (`2fea963`)
@@ -2759,6 +2773,12 @@ Not core. Revisit once the main app is solid.
   `+` and the coral logo tile sit together in a 40px bar on a real phone, and
   whether the week divider reads as an annotation or as noise at true size.
 
+  **One of the four is now partly discharged, 19 Sep.** The completion chart was
+  seen in dark mode in the *running* app, against canned rows at 1440px, during
+  the README screenshot pass — `docs/screenshots/reporting-dark.jpg`. The floor
+  and the labelled ceiling behave. That was a harness question, not a phone
+  question, so it is genuinely closed; the other three still need a real handset.
+
 - **A green suite protected two of the bugs Noel reported, 18 Sep.** Both had
   tests whose *premise* was the defect. `today.spec.ts`'s "does not ask twice"
   asserted **zero** Add buttons on an empty list, which is precisely the hole —
@@ -2770,9 +2790,19 @@ Not core. Revisit once the main app is solid.
   passes either way is worse than no test, and a characterisation test written
   from the code rather than the intent will faithfully preserve a bug.
 
-- **The composer's aura has never been seen in the running app, 18 Sep — but it
-  has been *deployed* since then, and the 18 Sep session log was wrong to say
-  otherwise (corrected 19 Sep).** Vercel's git integration deploys `master` on
+- **The composer's aura has now been seen in the running app, 19 Sep. This gap is
+  closed.** It was photographed for the README at 1440px in light mode against
+  canned rows — the violet-to-coral band renders correctly just outside the focus
+  ring, alongside the inline highlighting and all four parsed chips
+  (`docs/screenshots/composer.jpg`). What is still unseen is the aura **in dark
+  mode** and **on a phone**, neither of which the screenshot pass covered.
+
+  The rest of this entry is the history, kept because it explains the deployment
+  rule underneath it.
+
+  *Previously: never seen in the running app, 18 Sep — but*
+  *deployed since then, and the 18 Sep session log was wrong to say*
+  *otherwise (corrected 19 Sep).* Vercel's git integration deploys `master` on
   push with no manual step, so `4b0bdbed` reached production as
   `dpl_Jb5zxL9Fu5ddh3zVYxjhveKXMyQy` the moment it was pushed. The aura and the
   try page's card turn have both been live on `daybook.noel-sebastian.com` since
