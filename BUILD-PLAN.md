@@ -2724,10 +2724,12 @@ Not core. Revisit once the main app is solid.
 
 ## 12. Known gaps, deliberately deferred
 
-- **The reach-and-readability branch has not been seen in the running app,
-  18 Sep.** `feat/reach-and-readability` carries the settings gear, the drawer
-  lockup, the Add task chrome and the reworked completion chart. It is **local
-  only — not pushed, no PR, `master` untouched.** The gear was checked old
+- **The reach-and-readability work has not been seen in the running app, 18 Sep —
+  though it is now deployed, 19 Sep.** The settings gear, the drawer lockup, the
+  Add task chrome and the reworked completion chart merged as PR #3 (`2fea963`)
+  and are live on `daybook.noel-sebastian.com`. **Nothing about them has been
+  looked at on a real screen**; the checklist is in the PR body. The gear was
+  checked old
   against new at 18/48/96px with the hub axes drawn over it, and the chart in
   both themes across four data shapes including a quiet fortnight and an account
   with nothing recorded — but both were standalone harnesses carrying token
@@ -2748,8 +2750,22 @@ Not core. Revisit once the main app is solid.
   passes either way is worse than no test, and a characterisation test written
   from the code rather than the intent will faithfully preserve a bug.
 
-- **The composer's aura has never been seen in the running app, 18 Sep.** It is
-  merged to `master`. Everything checkable without a signed-in session was
+- **The composer's aura has never been seen in the running app, 18 Sep — but it
+  has been *deployed* since then, and the 18 Sep session log was wrong to say
+  otherwise (corrected 19 Sep).** Vercel's git integration deploys `master` on
+  push with no manual step, so `4b0bdbed` reached production as
+  `dpl_Jb5zxL9Fu5ddh3zVYxjhveKXMyQy` the moment it was pushed. The aura and the
+  try page's card turn have both been live on `daybook.noel-sebastian.com` since
+  18 Sep and are checkable on any real device at any time. **"Merged but not
+  deployed" is not a state this project has** — assume a push to `master` is in
+  production within a couple of minutes.
+
+  Note also that **preview deployments cannot stand in for these checks**:
+  `ssoProtection` is `all_except_custom_domains`, so a preview URL 302s to a
+  Vercel login and only the custom domain is public. Anything needing a phone
+  goes through production.
+
+  Everything checkable without a signed-in session was
   checked: the mask draws in both themes, `aura-spin` reports
   `playState: 'running'`, the angle advances, and the rule survives the build
   with both mask spellings intact. But the composer sits behind auth, so all of

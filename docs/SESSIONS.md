@@ -11,6 +11,55 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-19 · claude-code · shipped reach and readability
+
+**Did**
+- Pushed `feat/reach-and-readability`, opened **PR #3**, merged it as **`2fea963`**,
+  branch deleted at both ends. Local `master` fast-forwarded.
+- **Production is live with it.** `daybook.noel-sebastian.com` serves
+  `main-SLSQE6OY.js` and `styles-VLV6XEMS.css` — both hashes identical to the local
+  `ng build`. Deployment `dpl_FeRnZMi4sYyKE2pmC5AYdWxvX6ar`, sha `2fea963`.
+- No build or test run this session beyond the hash comparison; the numbers in the
+  18 Sep entry still stand (736 tests / 38 files, initial 439.63 kB).
+
+**Decided**
+- Nothing new. The four decisions from 18 Sep are unchanged and now in production.
+
+**Didn't work**
+- **The preview deployment is not usable for the checks it exists for.** The project
+  has `ssoProtection: { deploymentType: "all_except_custom_domains" }`, so
+  `daybook-7b6qzn6qo-…vercel.app` answers **302** to a Vercel login while
+  `daybook.noel-sebastian.com` answers 200. Signing into Vercel in mobile Safari to
+  look at a preview is worse than the thing being checked. **Anything that needs a
+  real phone has to go to production** — which is why PR #3 was merged rather than
+  parked behind its own preview.
+- A first `until` loop written to wait for the deploy matched `main-[A-Za-z0-9]+\.js`
+  in general, which was already true of the old build, so it returned instantly and
+  reported the *previous* bundle as current. Wait on the specific expected hash.
+
+**Open**
+- **The 18 Sep entry's "Nothing is deployed" is wrong and cannot be edited, so it is
+  corrected here.** Vercel's git integration deploys `master` on push with no manual
+  step. `4b0bdbed` — the composer aura — went to production as
+  `dpl_Jb5zxL9Fu5ddh3zVYxjhveKXMyQy` at the time that entry was written. **The aura
+  and the try page's card turn have therefore been live on the custom domain since
+  18 Sep**, and both could have been checked on a real screen at any point since.
+  §12 corrected.
+- The four changes from PR #3 are deployed but **still unseen on a real screen**. The
+  PR body carries the checklist: the coral `+` beside the coral logo tile in the
+  mobile bar, the week divider at true size, the chart in dark mode on a real
+  display, and Add task from the collapsed desktop rail.
+- Task notes surviving a round trip, and the two PR #1 device checks. §12, unchanged.
+- `service_role` rotation and leaked-password protection — §4 blockers 4 and 5, still
+  the oldest open items, both dashboard work and untouched since 11 Sep.
+
+**Next**
+- Open `daybook.noel-sebastian.com` on the phone and walk the PR #3 checklist, plus
+  the composer aura and the card turn, which have been live for a day. Every visual
+  gap the app has is now checkable in one sitting on one device.
+
+**Touched** — `docs/SESSIONS.md`, `BUILD-PLAN.md`
+
 ## 2026-09-18 · claude-code · reach and readability
 
 **Did**
