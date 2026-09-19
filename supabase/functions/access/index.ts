@@ -79,7 +79,15 @@ async function sendMail(to: string, subject: string, html: string): Promise<void
   // failed when it did not.
   if (!response.ok) {
     console.error('resend failed', response.status, await response.text());
+    return;
   }
+
+  // Logged on success too, and that is not noise. Without it the happy path
+  // and "ACCESS_TO was never set" produce byte-identical logs — nothing at
+  // all — so a silently undelivered notification is indistinguishable from a
+  // delivered one. That cost an hour on 19 Sep.
+  const body = (await response.json().catch(() => null)) as { id?: string } | null;
+  console.log('resend ok', body?.id ?? '(no id)', 'to', to);
 }
 
 const escapeHtml = (s: string) =>
@@ -150,6 +158,12 @@ async function handleRequest(req: Request): Promise<Response> {
   const origin = Deno.env.get('SUPABASE_URL') ?? '';
   const link = `${origin}/functions/v1/access/decide?token=${encodeURIComponent(token)}`;
   const to = Deno.env.get('ACCESS_TO');
+
+  if (!to) {
+    // Never silent. The request is safely in the table, but nobody has been
+    // told about it, and that is worth shouting about in the logs.
+    console.error('ACCESS_TO is not set; nobody was notified about', email);
+  }
 
   if (to) {
     await sendMail(
