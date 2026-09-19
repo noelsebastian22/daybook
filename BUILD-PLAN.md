@@ -435,7 +435,7 @@ ships, the outcome is summarised in §9 and the plan file is frozen.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
-### The access gate — built 19 Sep, **not yet deployed**
+### The access gate — deployed 19 Sep, **one step from live**
 
 Signup becomes per-person: a stranger asks at `/request-access`, Noel approves
 from an email, and a Supabase **`Before User Created` auth hook** checks an
@@ -451,10 +451,18 @@ against seven crafted payloads, the four request outcomes and both decide
 routes over HTTP, and the approve path end to end from request to the hook
 returning `{}`.
 
-**What is left is Task 10, and it is all deployment.** None of it is
-reachable from the Supabase MCP, so it is Noel's to do. The order matters and
-is in `docs/ACCESS-PLAN.md` §2 — out of order there is a window with signup
-open and no gate.
+**Task 10 is done bar its last step.** `0007` is applied (live is on nine
+migration rows), the `access` function is deployed at **v4** with all four
+secrets set, the hook is **registered and ENABLED** as a Postgres hook on
+`public.hook_gate_signup`, and `noelsimc69@gmail.com` — the only row in
+`auth.users` — is seeded `approved` so a delete-and-recreate cannot lock the
+owner out. The live hook was checked directly: owner `{}`, owner mixed-case
+`{}`, stranger `daybook_not_approved`.
+
+**What remains is one dashboard toggle: "Allow new users to sign up" → ON.**
+It is deliberately last (`ACCESS-PLAN.md` §2) — out of order there is a window
+with signup open and no gate. Until it is flipped the gate is not actually
+working, because the toggle refuses approved users too.
 
 - **This reverses the mechanism decided 3 Sep** (§9). The Auth dashboard's
   "Allow new users to sign up" toggle **stays on**, because turning it off
@@ -949,16 +957,15 @@ tracked.
 19. **An access gate in front of signup.** A stranger asks at
     `/request-access`, Noel approves or denies from an email, and a
     `Before User Created` auth hook checks the allowlist on **every**
-    provider. State: **built 19 Sep, not yet deployed.** Migration `0007`
+    provider. State: **deployed 19 Sep; one toggle from live.** Migration `0007`
     (`access_requests`, `hook_gate_signup`), the `access` Edge Function
     (request, a confirmation page, the decision), `core/access.ts`, the
     `/request-access` page and the refused-sign-in routing are all on
-    `feat/access-gate` and proved against a local stack. **What remains is
-    deployment and the dashboard**, which no MCP can reach: apply the
-    migration, set the function secrets, register the hook, merge, and flip
-    "Allow new users to sign up" **on last**. Order is in
-    [`docs/ACCESS-PLAN.md`](./docs/ACCESS-PLAN.md) §2 and it matters — out of
-    order there is a window with signup open and no gate. See §9 and §12.
+    `master` and deployed. The migration is applied, the function is at v4
+    with its four secrets, the hook is registered and ENABLED, and the owner's
+    address is seeded `approved`. **The one thing left is the "Allow new users
+    to sign up" toggle**, which goes ON last — until then the gate refuses
+    approved users too. See §9 and §12.
 
 ### 5.1 Signature interactions
 
@@ -2855,6 +2862,13 @@ Not core. Revisit once the main app is solid.
   have an account. Removing someone is a dashboard delete. Real revocation
   means enforcing approval inside RLS, which is the after-auth design §9
   rejected.
+
+- **`0007` does not grant `supabase_auth_admin` usage on `public`, 19 Sep.**
+  The Auth dashboard ran `grant usage on schema public to supabase_auth_admin`
+  itself when the hook was registered, so the live project is correct. But a
+  project rebuilt from `supabase/migrations/` alone would get a
+  `hook_gate_signup` that GoTrue cannot reach. Add it to a `0008` alongside
+  the revoke below, rather than editing an applied migration.
 
 - **The access gate's table is protected by RLS alone on production,
   19 Sep.** Locally the table has no `anon` / `authenticated` grants *and*

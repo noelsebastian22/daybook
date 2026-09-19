@@ -96,8 +96,18 @@ where request notifications go — and `APP_ORIGIN`
 (`https://daybook.noel-sebastian.com`).
 
 **The hook must be registered in the dashboard.** Authentication → Hooks →
-Before User Created → `pg-functions://postgres/public/hook_gate_signup`.
-A migration creating the function does not make it run.
+Before User Created. A migration creating the function does not make it run.
+
+**Choose Hook type "Postgres", not "HTTPS".** Under Postgres there is no URL
+field at all — schema and function are dropdowns, and
+`pg-functions://postgres/public/hook_gate_signup` is never typed anywhere;
+that string is what the API stores, not what the form accepts. Pasting it
+under HTTPS gives "The URL must start with https://", which reads like the
+URI is wrong when the hook type is. A fresh dialog defaults to Postgres, but
+the choice is sticky across attempts.
+
+Registering it also runs `grant usage on schema public to
+supabase_auth_admin`, which `0007` does not — see BUILD-PLAN §12.
 
 **Seed the owner's own address as approved**, so deleting and recreating the
 account cannot lock anyone out of the app. This is a manual one-row insert,

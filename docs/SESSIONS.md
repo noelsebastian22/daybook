@@ -11,6 +11,85 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-19 · claude-code · the access gate, deployed
+
+Second entry today. The one below it covers building tasks 1–9; this covers
+deploying them. Task 10 is now done bar its last step.
+
+**Did**
+- **Applied `0007` to production.** Live is on **nine** migration rows, newest
+  `20260919065535 daybook_access_gate`.
+- **Deployed the `access` function — now v4**, `verify_jwt` false. Smoke-tested
+  live: bad email 400, unknown route 404, stale token page, and the full
+  request path (`created` → repeat `pending`) with the row normalized, note
+  stored, token hashed and IP recorded.
+- **Set three secrets** via CLI: `ACCESS_FROM=access@send.noel-sebastian.com`,
+  `ACCESS_TO=noel@noel-sebastian.com`, `APP_ORIGIN`. `RESEND_API_KEY` already
+  existed.
+- **Registered the hook in the dashboard** — Postgres type, `public`,
+  `hook_gate_signup`, ENABLED. Verified in SQL afterwards:
+  `supabase_auth_admin` has execute **and** schema usage; `anon` and
+  `authenticated` have neither.
+- **Seeded `noelsimc69@gmail.com` as `approved`** — the only row in
+  `auth.users`, so it is the address a delete-and-recreate would lock out.
+- Live hook verdicts confirmed: owner `{}`, owner mixed-case `{}`, stranger
+  `daybook_not_approved`.
+- One commit, `9756719`: `sendMail` now logs the Resend id on success and
+  `handleRequest` logs when `ACCESS_TO` is unset.
+- 760 tests / 41 files, initial bundle **437.76 kB**, styles hash
+  `4D6DVPF3` unchanged. Probe rows deleted; `access_requests` holds one row.
+
+**Decided**
+- **`grant usage on schema public to supabase_auth_admin` belongs in a
+  migration and is not there.** The dashboard ran it when the hook was
+  registered, so live is correct — but a project rebuilt from
+  `supabase/migrations/` alone would get a hook that cannot be called. §12.
+
+**Didn't work**
+- **Zoho's search API returns false negatives, and it cost an hour.**
+  `entire:Daybook` and `subject:"asked for access"` both returned empty while
+  the two notification emails sat in the Inbox the whole time. Diagnosed a
+  delivery failure that did not exist, instrumented the function to chase it,
+  and only found them by listing the folder directly
+  (`ZohoMail_listEmails` with `folderId`). **Trust a folder listing over
+  search.** The instrumentation was kept — the blind spot it closed was real,
+  it just was not the cause.
+- **The hook form's `pg-functions://…` URI is Postgres-type only.** Noel hit
+  "The URL must start with https://" because Hook type was on **HTTPS**, which
+  wants a real endpoint. Under **Postgres** there is no URL field at all —
+  schema and function are dropdowns and the URI is never typed. A fresh dialog
+  defaults to Postgres, so the HTTPS selection was sticky from an earlier
+  attempt. **The URI in `OPERATIONS.md` is what the API stores, not what the
+  form takes.**
+- **`git checkout <file>` again** — noted in the entry below, repeated here
+  because it is the same trap: it reverts to the index, not to a backup.
+
+**Open**
+- **"Allow new users to sign up" is still OFF, and it is the last step.**
+  Everything it guards is now in place. With it off, approved users are
+  refused too, so the gate is not actually working yet. Noel's to flip:
+  Authentication → Sign In / Providers.
+- **`ACCESS-PLAN.md` §11 items 1 and 2 unresolved.** Whether the hook fires on
+  the Google OAuth callback, and whether the client receives `error_code` or
+  only `error_description`. Both answer themselves on the first real rejected
+  Google sign-in. `isNotApprovedError` keeps both branches until then; Task 10
+  Step 7 deletes the dead one.
+- **`access_requests` is protected by RLS alone on production** — the grants
+  are wide because the project still auto-exposes. Probed and holds. A `0008`
+  revoking `anon` and `authenticated` would restore the pair.
+- Phase 7 Gate 1 still unrun. Approving one person closes it.
+- Unchanged: phone pass, AGPL §13 link, offline queue.
+
+**Next**
+- Flip "Allow new users to sign up" ON, then attempt a Google sign-in from an
+  **unapproved** address and record what comes back in the URL fragment —
+  `error_code` or only `error_description`. That one observation closes §11
+  item 2 and decides which branch of `isNotApprovedError` is deleted.
+
+**Touched** — `supabase/functions/access/index.ts`, `BUILD-PLAN.md`,
+`docs/OPERATIONS.md`, `docs/SESSIONS.md`
+
+
 ## 2026-09-19 · claude-code · the access gate, built
 
 **Did**
