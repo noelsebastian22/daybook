@@ -11,6 +11,95 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-19 · claude-code · the access gate, built
+
+**Did**
+- Tasks 1–9 of `docs/plans/2026-09-19-access-gate.md`, inline. Nine commits,
+  fast-forwarded to `master` and **pushed** — `0007_access_gate.sql`,
+  `supabase/functions/access/{core.ts,core.test.mjs,index.ts}`,
+  `core/access.{ts,helpers.ts}`, `core/auth-error.ts`,
+  `features/request-access/`, the welcome and login links, and the
+  session-store routing.
+- **Applied `0007` to production** (`zzacswfongmzpnhcjiqp`) — live is now on
+  nine migration rows. `hook_gate_signup` has
+  `supabase_auth_admin=X/postgres` and no anon/authenticated/public execute.
+- Proved locally before any of it: the hook against the seven crafted
+  payloads, the check constraint, RLS, the four request outcomes over HTTP,
+  GET-does-not-decide, the POST replay, both encodings, and
+  request→approve→hook-returns-`{}` end to end.
+- 760 tests across 41 files (was 697/38). Initial bundle **437.76 kB** (was
+  436.55). `contrast-check.mjs` green. `/request-access` looked at in both
+  themes on a real window; normalization confirmed in-browser.
+
+**Decided**
+- **Task 10 was split.** Noel took "migration only" on deploy but "merge to
+  master now" on the branch, so the client is live ahead of the Edge
+  Function. Stated at the time: `/request-access` currently posts to a
+  function that does not exist and answers "Could not send that request."
+- **`0007` was edited after being committed, deliberately.** The
+  never-edit-an-applied-migration rule protects migrations applied somewhere
+  shared; this one was local-only at the time and production had not seen it.
+  A broken `0007` plus a `0008` fixing it would have read worse.
+
+**Didn't work**
+- **The migration as the plan wrote it did not work at all.** No grants.
+  `service_role` bypasses RLS but **not table privileges**, and
+  `auto_expose_new_tables` is unset locally, so every Edge Function call
+  failed `42501` — *including the reads*, which made an already-approved
+  address look brand new and then failed the insert behind it. Fixed with
+  `grant select, insert, update on public.access_requests to service_role`.
+- **Production does not behave like local here, and it matters.** Applying
+  `0007` live granted `anon` and `authenticated` the full set — select,
+  insert, update, delete, truncate — that the local stack withheld; the
+  project predates the always-revoked default. Probed rather than assumed:
+  **RLS holds** (`anon` sees zero rows, `authenticated` cannot insert itself
+  an `approved` row), but on production the table's safety rests on RLS
+  alone. §12 carries it as a gap.
+- **CORS allowed only `content-type`** while the client sends `apikey`. Every
+  local curl passed; the browser preflight would have failed in production.
+- **`supabase functions serve <name>` is gone** in CLI 2.113 — it serves all
+  functions and rejects the positional argument. The plan's command fails.
+- **There is no local `psql`.** Every `psql` line in the plan needs
+  `docker exec -i supabase_db_daybook psql -U postgres -d postgres` instead.
+- **Task 4's token capture is impossible as written** — the function never
+  logs the token and Resend is unconfigured locally, so `sendMail` bails and
+  it is lost. Worked around by writing a known token's sha256 into
+  `decision_token_hash` directly.
+- **`render()`'s `providers` is typed `Provider[]`** and will not take
+  `provideRouter`'s `EnvironmentProviders`. The plan's spec does not compile;
+  it goes through `TestBed.configureTestingModule`, as `login.spec.ts` does.
+- **`git checkout <file>` to undo a can-it-fail probe reverted uncommitted
+  work.** Lost the Task 8 session-store edits and had to re-apply them. Use a
+  copy, not the index, when the file is not yet committed.
+
+**Open**
+- **Task 10 steps 2–8 are unrun and are Noel's**: set `ACCESS_FROM`,
+  `ACCESS_TO`, `APP_ORIGIN`; deploy the `access` function; register the hook
+  at Authentication → Hooks → Before User Created →
+  `pg-functions://postgres/public/hook_gate_signup`; seed Noel's own address
+  as `approved`; prove both halves; and **flip "Allow new users to sign up"
+  ON last**. Order is `ACCESS-PLAN.md` §2. Full checklist in
+  `docs/OPERATIONS.md`.
+- **The client is live without its backend.** Until the function is deployed,
+  the form fails. This is the known consequence of the split above.
+- `ACCESS-PLAN.md` §11 items 1 and 2 are still unverified — that the hook
+  fires on the Google callback, and whether `error_code` reaches the client.
+  `isNotApprovedError` keeps both branches until then.
+- Phase 7 Gate 1 still unrun. Approving one person closes it.
+- Unchanged from before: phone pass, AGPL §13 link, offline queue.
+
+**Next**
+- Deploy the `access` Edge Function and set its four secrets, so
+  `/request-access` stops failing. Everything else in Task 10 can follow at
+  leisure; this one is live and broken until it is done.
+
+**Touched** — `supabase/migrations/0007_access_gate.sql`,
+`supabase/functions/access/*`, `supabase/config.toml`,
+`src/app/core/{access.ts,access.helpers.ts,auth-error.ts,session.store.ts,models.ts}`,
+`src/app/features/request-access/*`, `src/main.ts`, `AGENTS.md`,
+`BUILD-PLAN.md`, `docs/OPERATIONS.md`
+
+
 ## 2026-09-19 · claude-code · an access gate, specced
 
 **Did**
