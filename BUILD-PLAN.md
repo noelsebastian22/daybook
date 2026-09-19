@@ -109,8 +109,7 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live is now on seven migrations** and `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
-
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, is **not** among them, being built on `feat/access-gate` and not yet applied. `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
 | 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 
@@ -384,7 +383,8 @@ multi-tenancy.
   "55 tests across 4 files" and said flatly that `session.store.spec.ts`,
   `task.store.spec.ts`, `settings.store.spec.ts` and `auth.guard.spec.ts` did
   not exist and that every client-side tenant-isolation guarantee "rests on
-  nothing". **All four exist and the suite is 697 tests across 38 files.** The
+  nothing". **All four exist and the suite was 697 tests across 38 files** when that
+  correction was written; it is **760 across 41** as of 19 Sep. The
   four isolation files carry 112 of them — `task.store` 61, `session.store` 23,
   `settings.store` 22, `auth.guard` 6 — and `loadedFor` is asserted in both
   stores, including a flip to a second user id at `task.store.spec.ts:187`.
@@ -435,7 +435,7 @@ ships, the outcome is summarised in §9 and the plan file is frozen.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
-### The access gate — specced and planned 19 Sep, not built
+### The access gate — built 19 Sep, **not yet deployed**
 
 Signup becomes per-person: a stranger asks at `/request-access`, Noel approves
 from an email, and a Supabase **`Before User Created` auth hook** checks an
@@ -443,21 +443,28 @@ allowlist on every signup attempt. Spec:
 [`docs/ACCESS-PLAN.md`](./docs/ACCESS-PLAN.md). Ten-task plan:
 [`docs/plans/2026-09-19-access-gate.md`](./plans/2026-09-19-access-gate.md).
 
-**Nothing is built.** Branch `feat/access-gate` holds the two documents and no
-code. Next action is Task 1, the migration.
+**Tasks 1–9 of the plan are done on `feat/access-gate`**: migration `0007`,
+the `access` Edge Function whole, the client service, the `/request-access`
+page, the two links, and the refused-sign-in routing. 760 tests, initial
+bundle 437.76 kB. Every layer was proved against a local stack — the hook
+against seven crafted payloads, the four request outcomes and both decide
+routes over HTTP, and the approve path end to end from request to the hook
+returning `{}`.
 
-Three things recorded here so they are not lost between sessions:
+**What is left is Task 10, and it is all deployment.** None of it is
+reachable from the Supabase MCP, so it is Noel's to do. The order matters and
+is in `docs/ACCESS-PLAN.md` §2 — out of order there is a window with signup
+open and no gate.
 
 - **This reverses the mechanism decided 3 Sep** (§9). The Auth dashboard's
   "Allow new users to sign up" toggle **stays on**, because turning it off
   blocks approved users too — the hook is the gate. The diagnosis that chose
   the toggle over `shouldCreateUser: false` still stands; only the instrument
-  changed. Full reasoning goes into §9 as Task 9 of the plan.
-- **C5 below is wrong.** It says signup is open and that C1, C2 and blockers
-  1–3 are therefore live bugs. The toggle is **off**, confirmed by screenshot
-  on 19 Sep, so none of them are. Task 9 rewrites it.
+  changed. Full reasoning is in §9, "The access gate".
 - **The toggle flips on last**, after the hook is deployed and proven, so there
   is never a window with signup open and no gate.
+- **C5 is corrected**, 19 Sep. It claimed signup was open and that C1, C2 and
+  blockers 1–3 were therefore live bugs. The toggle was off; they were not.
 
 ### Phase 7, multi-tenancy — audited 3 Sep, Gate 0 applied 11 Sep
 
@@ -711,12 +718,16 @@ a handful of emails an hour and is explicitly not for production. Custom SMTP
 is needed, through the same Resend account and sending domain that blocker 2
 needs — one prerequisite, two blockers.
 
-**C5. Signup is already open.** `signInWithMagicLink` calls `signInWithOtp`
-with no `shouldCreateUser: false`, Google OAuth is live, and the Vercel URL is
-public. Strangers can create accounts today, which means C1, C2 and blockers
-1–3 are **live bugs, not hypotheticals**. Closing it is the Auth dashboard's
-"Allow new users to sign up" toggle, not client code: the client flag would
-only cover the magic-link path and would leave Google wide open.
+**C5. Signup is gated per person, 19 Sep.** This item used to read "Signup is
+already open… which means C1, C2 and blockers 1–3 are live bugs, not
+hypotheticals." **That was wrong by the time anyone read it.** The Auth
+dashboard's "Allow new users to sign up" was off — confirmed by screenshot on
+19 Sep — so no stranger could create an account and none of those were live.
+Nobody recorded the switch being flipped.
+
+The switch has now been replaced by the access gate: an allowlist table and a
+`Before User Created` auth hook, so the switch itself stays **on** while the
+hook decides case by case. See [`docs/ACCESS-PLAN.md`](./docs/ACCESS-PLAN.md).
 
 **C6. The stores have no tests.** Covered in §4 under Test coverage. It is
 listed here too because it is what let C1 ship unnoticed.
@@ -934,6 +945,20 @@ tracked.
     marks a row that carries one. Plain text, never parsed, excluded from the
     digest. It is **not** a comment thread — see §9 and
     [`docs/NOTES-PLAN.md`](./docs/NOTES-PLAN.md).
+
+19. **An access gate in front of signup.** A stranger asks at
+    `/request-access`, Noel approves or denies from an email, and a
+    `Before User Created` auth hook checks the allowlist on **every**
+    provider. State: **built 19 Sep, not yet deployed.** Migration `0007`
+    (`access_requests`, `hook_gate_signup`), the `access` Edge Function
+    (request, a confirmation page, the decision), `core/access.ts`, the
+    `/request-access` page and the refused-sign-in routing are all on
+    `feat/access-gate` and proved against a local stack. **What remains is
+    deployment and the dashboard**, which no MCP can reach: apply the
+    migration, set the function secrets, register the hook, merge, and flip
+    "Allow new users to sign up" **on last**. Order is in
+    [`docs/ACCESS-PLAN.md`](./docs/ACCESS-PLAN.md) §2 and it matters — out of
+    order there is a window with signup open and no gate. See §9 and §12.
 
 ### 5.1 Signature interactions
 
@@ -2753,6 +2778,49 @@ a sharper reason than convention: the transition pseudo-elements render in the
 document's top layer, so the hero section's overflow cannot clip the rotating
 card. A CSS transform on the card itself would be sliced by its own ancestors.
 
+### The access gate, 19 Sep
+
+**The invite-only mechanism decided on 3 Sep is reversed, and the diagnosis
+that chose it is not.** That entry said the mechanism must be the Auth
+dashboard's "Allow new users to sign up" toggle rather than
+`shouldCreateUser: false`, because the client flag covers the magic-link path
+and leaves Google OAuth open. That reasoning still holds exactly. What
+changed is that a better instrument exists: a **`Before User Created` auth
+hook**, on the free tier, implemented as a Postgres function, which runs
+inside GoTrue before the `auth.users` insert **on every provider**. It meets
+the same requirement the toggle was chosen for, and unlike the toggle it can
+say yes to one person and no to another.
+
+So the toggle goes **on** and stays on. Turning it off would block approved
+users too; the hook is the gate.
+
+**A gate after authentication was considered and rejected.** Letting anyone
+sign in and holding them in a `/pending` room is better UX — one Google click,
+no email round trip — but a pending user holds a valid JWT with the
+`authenticated` role, and every RLS policy here reads `auth.uid() = user_id`,
+which such a user *passes*. Approval would have to be enforced in all four
+policies, both user-facing RPCs, `push_subscriptions` and `due_digests()`, and
+one miss is a hole that looks closed. That is the failure this section already
+records once: the worst findings of the multi-tenancy audit were all in code
+running outside RLS. It would also have landed on top of a Gate 1 two-account
+pass that has never been run.
+
+**The approval link in the email opens a page; it does not approve on load.**
+A bare `GET` that grants access is one email-security scanner away from
+approving people unattended.
+
+**`service_role` does not bypass table privileges, only RLS.** Found while
+building, not while designing. `0007` was written with RLS enabled, no
+policies, and no grants — on the reasoning that the Edge Function uses the
+service role and the service role bypasses RLS. It does. It does not bypass
+`GRANT`, and `auto_expose_new_tables` is unset in `config.toml`, which is the
+current cloud default. Every call from the function failed `42501 permission
+denied`, **including the reads** — so a request for an already-approved
+address came back looking brand new and the insert behind it failed too. The
+migration now grants `select, insert, update` to `service_role` and nothing
+to `anon` or `authenticated`, which keeps the double lock intact. Recorded in
+AGENTS.md as a rule, because the next table with no `user_id` will hit it.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2764,6 +2832,26 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **Request and approval emails share Resend's 100/day with the digest,
+  19 Sep.** The digest is one per user per day, so at roughly 90 users the
+  digest alone approaches the cap and access emails start competing for what
+  is left. Noise at beta volumes. The fix is a paid plan, not a code change,
+  and it is already §4 item 6.
+
+- **No eviction, 19 Sep.** `hook_gate_signup` runs only at account creation,
+  so setting an existing user's row to `denied` does nothing — they already
+  have an account. Removing someone is a dashboard delete. Real revocation
+  means enforcing approval inside RLS, which is the after-auth design §9
+  rejected.
+
+- **The access gate is untested against a real provider, 19 Sep.** Everything
+  below the dashboard is proved on a local stack, but three things can only be
+  confirmed in production and are listed in `docs/ACCESS-PLAN.md` §11: that
+  the hook fires on the Google OAuth callback, whether `error_code` survives
+  to the client or only `error_description` does, and what the rejection
+  fragment actually contains. `isNotApprovedError` carries a branch for each
+  until then; Task 10 Step 7 deletes the dead one.
 
 - **No "Source" link in the app, 19 Sep.** AGPL §13 expects a network service to
   offer its source to its users, and §8 put the repo under AGPL-3.0-only. The

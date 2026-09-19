@@ -84,6 +84,46 @@ The digest and the push reminders are both sent by the `notify` Edge Function in
 **An Edge Function change is its own deploy.** It does not ride along with a
 push to `master`.
 
+## The access gate
+
+Signup is per-person: the Auth dashboard's "Allow new users to sign up" stays
+**on**, and `hook_gate_signup` decides each attempt against the
+`access_requests` allowlist. See [`ACCESS-PLAN.md`](./ACCESS-PLAN.md).
+
+**Secrets** on the `access` Edge Function: `RESEND_API_KEY` (shared with
+`notify`), `ACCESS_FROM` on the verified sending subdomain, `ACCESS_TO` —
+where request notifications go — and `APP_ORIGIN`
+(`https://daybook.noel-sebastian.com`).
+
+**The hook must be registered in the dashboard.** Authentication → Hooks →
+Before User Created → `pg-functions://postgres/public/hook_gate_signup`.
+A migration creating the function does not make it run.
+
+**Seed the owner's own address as approved**, so deleting and recreating the
+account cannot lock anyone out of the app. This is a manual one-row insert,
+not a migration — **the repo is public and no real address belongs in it**:
+
+    insert into public.access_requests (email, status, decided_at)
+    values (lower('<your address>'), 'approved', now());
+
+**"Allow new users to sign up" must be ON.** The hook is the gate. With the
+toggle off, approved users are refused too.
+
+**Deploy in this order**, from `ACCESS-PLAN.md` §2. Out of order there is a
+window in which signup is open and the hook is not yet deciding:
+
+1. Apply migration `0007`.
+2. Set the secrets, deploy the `access` function.
+3. Register the hook.
+4. Merge and deploy the client.
+5. Approve a real address and confirm both emails.
+6. **Only now** turn the signup toggle on.
+
+**Deciding a request by hand.** If the emailed link has expired, set the row
+directly — `update public.access_requests set status = 'approved',
+decided_at = now(), decision_token_hash = null where email = '…';`. The hook
+reads `status` and nothing else.
+
 ## Theming
 
 `src/styles.css` defines a palette (`ink-*`, `brand-*`, `done-*`…) that is the

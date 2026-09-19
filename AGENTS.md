@@ -109,6 +109,19 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 - Migrations live in `supabase/migrations/`, numbered, never edited once
   applied. Add a new file instead.
 - **RLS on every table, always.** Owner-only via `auth.uid() = user_id`.
+- **`access_requests` has RLS enabled and no policies, deliberately.** It has
+  no `user_id` — it exists before accounts do — so there is nothing to own.
+  Enabled-with-no-policies denies `anon` and `authenticated` everything, which
+  is the intent: only the `access` Edge Function (service role) and
+  `hook_gate_signup` (security definer) touch it. **Adding a policy here opens
+  it.**
+- **RLS is not the only lock, and `service_role` only bypasses that one.**
+  `auto_expose_new_tables` is unset in `config.toml` — the current cloud
+  default — so a new table is unreachable by `anon`, `authenticated` *and*
+  `service_role` until an explicit `grant`. A migration that creates a table
+  the Edge Functions write to must grant it, or every call fails `42501`,
+  **reads included**. `0007` is the worked example: `grant select, insert,
+  update ... to service_role` and nothing to the other two.
 - `SECURITY DEFINER` functions called by a signed-in user must
   `raise exception` on a null `auth.uid()` and be revoked from `anon` and
   `public`.
@@ -117,6 +130,14 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
   they revoke execute from `anon`, `authenticated` **and** `public`, and grant
   it to `service_role` only. See `0003_digest_and_reminders.sql`. Do not add
   an `auth.uid()` guard to one of these — it would only break it.
+- **Auth hook functions are a third category**, locked down a third way.
+  `hook_gate_signup` is called by GoTrue before a user row is inserted, so it
+  grants execute to **`supabase_auth_admin`** and revokes it from `anon`,
+  `authenticated` and `public`. Like the cron functions, **do not add an
+  `auth.uid()` guard** — there is no session at the moment it runs, and one
+  would only break it. It is registered in the Auth dashboard as
+  `pg-functions://postgres/public/hook_gate_signup`; the function existing in
+  a migration is not enough to make it run.
 - **There is no `status` column and there will not be one.** See
   `BUILD-PLAN.md`.
 
