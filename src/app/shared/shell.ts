@@ -6,6 +6,7 @@ import { SessionStore } from '../core/session.store';
 import { OfflineQueue } from '../core/offline-queue';
 import { Nav } from '../core/nav';
 import { InstallHint } from './install-hint';
+import { Logo } from './brand/logo';
 import { ThemeToggle } from './theme-toggle';
 import { NAV_ITEMS } from './shell.data';
 
@@ -23,7 +24,7 @@ import { NAV_ITEMS } from './shell.data';
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, InstallHint, ThemeToggle],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, InstallHint, Logo, ThemeToggle],
   host: {
     '(document:keydown.escape)': 'menuOpen.set(false)',
   },

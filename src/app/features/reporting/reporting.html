@@ -39,34 +39,145 @@
   <section class="mt-4 rounded-panel bg-surface-raised p-4 shadow-sm ring-1 ring-border">
     <h2 class="text-body font-semibold tracking-tight">Tasks completed per day</h2>
 
-    <div class="mt-4 flex h-32 items-end gap-[2px]">
-      @for (bar of bars(); track bar.date) {
-        <div
-          class="group relative flex h-full flex-1 items-end"
-          (mouseenter)="hovered.set(bar)"
-          (mouseleave)="hovered.set(null)"
-        >
-          @if (bar.unrecorded) {
-            <!-- a hairline, so "not opened" cannot be misread as a zero -->
-            <div class="h-px w-full rounded-full bg-border-strong" aria-hidden="true"></div>
-          } @else {
+    <!--
+      A narrow gutter carries the scale, and the plot sits beside it. Every
+      row below repeats the gutter as an empty spacer of the same width so the
+      day labels stay under the bars they name.
+
+      The bars were previously suspended in nothing — no baseline, no
+      gridlines, no tick values — so the only way to read any number off this
+      chart was to hover a bar, and a phone has no hover. The `<details>` table
+      underneath was doing all the work.
+    -->
+    <div class="mt-4 flex gap-2">
+      <!--
+        Three ticks: the ceiling, its midpoint and zero, each centred on the
+        rule it labels. `tabular-nums` is right here and only here on this page
+        — these are stacked figures that have to line up, and unlike the
+        headline numbers they are set in the system stack rather than Fraunces,
+        which ships no `tnum` at all (AGENTS.md).
+      -->
+      <div
+        class="relative h-32 w-6 shrink-0 text-right text-caption tabular-nums text-text-subtle"
+        aria-hidden="true"
+      >
+        <span data-mark="tick" class="absolute right-0 top-0 -translate-y-1/2">{{
+          ceiling()
+        }}</span>
+        <span data-mark="tick" class="absolute right-0 top-1/2 -translate-y-1/2">
+          {{ ceiling() / 2 }}
+        </span>
+        <span data-mark="tick" class="absolute bottom-0 right-0 translate-y-1/2">0</span>
+      </div>
+
+      <div class="relative flex-1">
+        <!--
+          Solid hairlines, one shade off the surface. Not dashed: a dashed rule
+          reads as a threshold or a projection, and these are neither.
+
+          `border-border`, not `border-border-soft`. Soft is #efe7d6 on white
+          and reads correctly in the light theme, but in the dark one it is
+          #2c2820 against a #27231c surface — five values apart per channel,
+          which is invisible. The scale would have existed in one theme only.
+
+          The divider lands on `left-1/2` and that is exact rather than
+          approximate — seven columns and six and a half gaps either side of it
+          come to precisely half the row's width, so it falls in the gap rather
+          than under a bar. It carries on past the baseline because stopping at
+          it made the rule read as the edge of whatever column it happened to
+          sit beside, rather than as an annotation on the axis.
+        -->
+        <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div class="absolute inset-x-0 top-0 border-t border-border"></div>
+          <div class="absolute inset-x-0 top-1/2 border-t border-border"></div>
+          <div
+            data-mark="week-divider"
+            class="absolute -bottom-2 left-1/2 top-0 border-l border-border-strong"
+          ></div>
+        </div>
+
+        <div class="relative flex h-32 items-end gap-[2px] border-b border-border-strong">
+          @for (bar of bars(); track bar.date) {
+            <!--
+              `pointerenter` rather than `mouseenter`, plus a click, so the
+              readout is reachable by touch. The bars stay out of the tab order:
+              fourteen tab stops to read a fortnight would be worse than the
+              table below, which is the keyboard and screen-reader path and
+              carries every one of these numbers.
+            -->
             <div
-              class="w-full rounded-t bg-done-500 transition-opacity"
-              [class.opacity-100]="hovered() === bar || hovered() === null"
-              [class.opacity-40]="hovered() !== null && hovered() !== bar"
-              [style.height.%]="bar.height"
-              [style.min-height.px]="bar.count > 0 ? minBarPx : 0"
-            ></div>
+              class="group relative flex h-full flex-1 items-end"
+              (pointerenter)="hovered.set(bar)"
+              (pointerleave)="hovered.set(null)"
+              (click)="hovered.set(bar)"
+            >
+              @if (bar.unrecorded) {
+                <!--
+                  A short square stub, so "not opened" cannot be misread as a
+                  zero — a recorded zero draws nothing at all, and the whole
+                  chart turns on those two not looking alike.
+
+                  This was a 1px hairline, which worked until the baseline
+                  arrived directly underneath it and the two merged into one
+                  rule. A full-height wash was the next try and is wrong for a
+                  different reason: a new account has no snapshots at all, so
+                  its first look at this page would be thirteen full-height
+                  blocks — a wall, for a state that means "nothing has happened
+                  yet". Eight pixels reads as a thickened axis en masse and as a
+                  distinct mark beside real bars.
+
+                  Square, not `rounded-t`: the rounded cap is what says "bar",
+                  and this is deliberately not one.
+                -->
+                <div
+                  data-mark="unrecorded"
+                  class="h-2 w-full bg-fill-strong"
+                  aria-hidden="true"
+                ></div>
+              } @else {
+                <div
+                  data-mark="bar"
+                  class="w-full rounded-t bg-done-500 transition-opacity"
+                  [class.opacity-100]="hovered() === bar || hovered() === null"
+                  [class.opacity-40]="hovered() !== null && hovered() !== bar"
+                  [style.height.%]="bar.height"
+                  [style.min-height.px]="bar.count > 0 ? minBarPx : 0"
+                ></div>
+              }
+            </div>
           }
         </div>
-      }
+      </div>
     </div>
 
-    <div class="mt-1.5 flex gap-[2px] text-center text-caption text-text-subtle">
-      @for (bar of bars(); track bar.date) {
-        <!-- every other label, so a fortnight of them does not collide -->
-        <span class="flex-1">{{ $even ? bar.weekday : '' }}</span>
-      }
+    <div class="mt-2 flex gap-2 text-center text-caption">
+      <div class="w-6 shrink-0" aria-hidden="true"></div>
+      <div class="flex flex-1 gap-[2px]">
+        @for (bar of bars(); track bar.date) {
+          <!--
+            Every other label, so a fortnight of them does not collide — and
+            today as well, which is column 13 of 0..13 and therefore the one
+            column the every-other rule always skipped. It is also the column a
+            reader looks for first, so it carries the weight.
+          -->
+          <span
+            data-mark="day-label"
+            class="flex-1"
+            [class]="$last ? 'font-semibold text-text' : 'text-text-subtle'"
+          >
+            {{ $even || $last ? bar.weekday : '' }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Which half is which. The headline card above compares across this line. -->
+    <div class="mt-1 flex gap-2 text-caption text-text-subtle">
+      <div class="w-6 shrink-0" aria-hidden="true"></div>
+      <div class="flex flex-1">
+        <span class="flex-1">Last week</span>
+        <span class="flex-1 text-right">This week</span>
+      </div>
     </div>
 
     <p class="mt-3 h-4 text-caption text-text-subtle" aria-live="polite">
