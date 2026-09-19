@@ -166,6 +166,135 @@ async function handleRequest(req: Request): Promise<Response> {
   return json({ outcome: 'created' });
 }
 
+/**
+ * The confirmation page. **This route mutates nothing, and that is the whole
+ * reason it exists.** A bare GET link that grants access is one email-security
+ * scanner or link-prefetcher away from approving people unattended, so the
+ * link in the email is safe to fetch and the buttons below do the work.
+ */
+function decisionPage(token: string, email: string, note: string | null): Response {
+  const safeToken = escapeHtml(token);
+  return new Response(
+    `<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daybook access request</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; background: #f7f5f0; color: #1f1b16;
+         display: grid; place-items: center; min-height: 100dvh; margin: 0; padding: 24px; }
+  main { background: #fffdf7; padding: 32px; border-radius: 16px; max-width: 32rem;
+         box-shadow: 0 10px 30px rgb(0 0 0 / .08); }
+  button { font: inherit; padding: 12px 24px; border-radius: 12px; border: 0;
+           cursor: pointer; margin-right: 12px; }
+  .approve { background: #1f1b16; color: #fffdf7; }
+  .deny { background: transparent; color: #6b6353; border: 1px solid #d6cfc2; }
+  .note { color: #6b6353; }
+</style>
+<main>
+  <h1>Access request</h1>
+  <p><strong>${escapeHtml(email)}</strong> asked for access to Daybook.</p>
+  ${note ? `<p class="note">They said: ${escapeHtml(note)}</p>` : ''}
+  <form method="POST">
+    <input type="hidden" name="token" value="${safeToken}">
+    <button class="approve" name="decision" value="approve" type="submit">Approve</button>
+    <button class="deny" name="decision" value="deny" type="submit">Deny</button>
+  </form>
+</main>`,
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+  );
+}
+
+const plainPage = (message: string) =>
+  new Response(
+    `<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daybook</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;background:#f7f5f0;color:#1f1b16;
+display:grid;place-items:center;min-height:100dvh;margin:0;padding:24px}</style>
+<main><p>${escapeHtml(message)}</p></main>`,
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+  );
+
+/** Looks a token up by its hash. Never compares the token itself. */
+async function rowForToken(token: string) {
+  const { data } = await supabase
+    .from('access_requests')
+    .select('id, email, note, status, token_expires_at')
+    .eq('decision_token_hash', await hashToken(token))
+    .maybeSingle();
+  return data;
+}
+
+async function handleDecideGet(req: Request): Promise<Response> {
+  const token = new URL(req.url).searchParams.get('token') ?? '';
+  const row = await rowForToken(token);
+
+  if (!row) return plainPage('That link is no longer valid. It may already have been used.');
+  if (row.token_expires_at && new Date(row.token_expires_at) < new Date()) {
+    return plainPage('That link has expired. Decide this one in the Supabase dashboard.');
+  }
+  return decisionPage(token, row.email as string, (row.note as string | null) ?? null);
+}
+
+async function handleDecidePost(req: Request): Promise<Response> {
+  // The confirmation page posts a form, so both encodings are accepted.
+  const type = req.headers.get('content-type') ?? '';
+  let token = '';
+  let decision = '';
+
+  if (type.includes('application/json')) {
+    const body = (await req.json().catch(() => null)) as
+      | { token?: unknown; decision?: unknown }
+      | null;
+    token = typeof body?.token === 'string' ? body.token : '';
+    decision = typeof body?.decision === 'string' ? body.decision : '';
+  } else {
+    const form = await req.formData();
+    token = String(form.get('token') ?? '');
+    decision = String(form.get('decision') ?? '');
+  }
+
+  if (decision !== 'approve' && decision !== 'deny') return plainPage('Unknown decision.');
+
+  const row = await rowForToken(token);
+  if (!row) return plainPage('That link is no longer valid. It may already have been used.');
+  if (row.token_expires_at && new Date(row.token_expires_at) < new Date()) {
+    return plainPage('That link has expired. Decide this one in the Supabase dashboard.');
+  }
+
+  const status = decision === 'approve' ? 'approved' : 'denied';
+
+  // Clearing the hash is what makes the token single-use. The `is not null`
+  // guard makes a double submission — two clicks, a retry — land on zero rows
+  // rather than deciding twice.
+  const { data: updated } = await supabase
+    .from('access_requests')
+    .update({ status, decided_at: new Date().toISOString(), decision_token_hash: null })
+    .eq('id', row.id)
+    .not('decision_token_hash', 'is', null)
+    .select('email')
+    .maybeSingle();
+
+  if (!updated) return plainPage('That request has already been decided.');
+
+  if (status === 'approved') {
+    const appOrigin = Deno.env.get('APP_ORIGIN') ?? '';
+    await sendMail(
+      updated.email as string,
+      "You're in — Daybook",
+      `<p>You've been approved for Daybook.</p>` +
+        `<p><a href="${appOrigin}/login">Sign in</a> with Google or an email link — ` +
+        `either works, and the account is created the first time you do.</p>`,
+    );
+  }
+
+  // Nothing is sent on a denial. They find out if and when they ask again.
+  return plainPage(
+    status === 'approved'
+      ? `Approved. ${updated.email} has been emailed.`
+      : `Denied. Nothing was sent to them.`,
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
@@ -173,6 +302,11 @@ Deno.serve(async (req) => {
 
   if (req.method === 'POST' && pathname.endsWith('/request')) {
     return await handleRequest(req);
+  }
+
+  if (pathname.endsWith('/decide')) {
+    if (req.method === 'GET') return await handleDecideGet(req);
+    if (req.method === 'POST') return await handleDecidePost(req);
   }
 
   return json({ error: 'Not found' }, 404);
