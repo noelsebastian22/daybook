@@ -50,6 +50,19 @@ create index access_requests_requested_at_idx on public.access_requests (request
 -- hook below (security definer). Do not add a policy here.
 alter table public.access_requests enable row level security;
 
+-- RLS is not the only lock, and service_role only bypasses the first one.
+-- `auto_expose_new_tables` is unset in config.toml, which is the current
+-- cloud default: a table created here is reachable by anon, authenticated
+-- and service_role only through an explicit grant. Without this line every
+-- call from the Edge Function fails `42501 permission denied`, including the
+-- reads — so a request for an already-approved address looks brand new and
+-- the insert behind it fails too.
+--
+-- service_role and nothing else. anon and authenticated stay ungranted *and*
+-- unpolicied, which is the double lock described above; granting either one
+-- here would open the table no matter what the policies say.
+grant select, insert, update on public.access_requests to service_role;
+
 -- The hook. Returns '{}' to allow the signup, or an error object to refuse it.
 --
 -- A third category of function for this project, and its grants are the

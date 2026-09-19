@@ -412,3 +412,10 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# The /decide routes are clicked from an email client and carry no
+# Authorization header. /request is a public form; the anon key would be no
+# gate on it anyway, being shipped in the browser bundle. See
+# docs/ACCESS-PLAN.md §7.
+[functions.access]
+verify_jwt = false
