@@ -61,10 +61,22 @@
             >
               See how it works
             </a>
+            <!--
+              Sign in stays the primary action and this sits beside it. An
+              approved visitor is indistinguishable from a stranger until they
+              try, so hiding sign-in behind "Request access" would penalise
+              exactly the people who already have access. Do not invert them.
+            -->
+            <a
+              routerLink="/request-access"
+              class="rounded-card px-3 py-2 font-medium text-pen-text underline-offset-4 transition hover:underline"
+            >
+              Request access
+            </a>
           </div>
 
           <p class="mt-4 text-body text-text-subtle">
-            Free. Sign in with Google or an email link. No password to forget.
+            Invite-only for now. Already approved? Sign in with Google or an email link.
           </p>
         </div>
 
@@ -223,6 +235,16 @@
       >
         Start today's page
       </a>
+
+      <p class="mt-4 text-body text-text-subtle">
+        Don't have an account yet?
+        <a
+          routerLink="/request-access"
+          class="text-pen-text underline-offset-4 transition hover:underline"
+        >
+          Request access
+        </a>
+      </p>
     </section>
   </main>
 

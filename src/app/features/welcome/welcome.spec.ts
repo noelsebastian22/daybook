@@ -75,17 +75,22 @@ describe('Welcome', () => {
     }
   });
 
-  it('sends every route out of the page to the same door', async () => {
+  it('sends every route out of the page to one of the two doors', async () => {
     const page = await renderWelcome();
     const routed = page
       .queryAll('a')
       .map((a) => a.getAttribute('href'))
       .filter((href) => !href?.startsWith('#'));
 
-    expect(routed.every((href) => href === '/login')).toBe(true);
-    // One in the header for someone who already has an account, one in the
-    // hero and one at the close for someone who does not.
-    expect(routed).toHaveLength(3);
+    // This used to assert a single door. The access gate added the second:
+    // /login for someone who already has an account, /request-access for
+    // someone who does not. Sign in stays primary in both places — an
+    // approved visitor looks exactly like a stranger until they try.
+    expect(routed.every((href) => href === '/login' || href === '/request-access')).toBe(true);
+    // Three to sign in: the header, the hero and the close. Two to ask:
+    // beside the hero action, and under the closing one.
+    expect(routed.filter((href) => href === '/login')).toHaveLength(3);
+    expect(routed.filter((href) => href === '/request-access')).toHaveLength(2);
   });
 
   it('points its one in-page link at a section that exists', async () => {
