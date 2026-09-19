@@ -88,3 +88,10 @@ export interface TaskDraft {
   category_id: string | null;
   reminder_at: string | null;
 }
+
+/**
+ * What the access Edge Function says about an address it was given.
+ * `created` means a row was just written; the rest are the status of a row
+ * that already existed.
+ */
+export type AccessOutcome = 'created' | 'pending' | 'approved' | 'denied';
