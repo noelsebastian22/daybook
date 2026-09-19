@@ -2821,6 +2821,17 @@ migration now grants `select, insert, update` to `service_role` and nothing
 to `anon` or `authenticated`, which keeps the double lock intact. Recorded in
 AGENTS.md as a rule, because the next table with no `user_id` will hit it.
 
+**And the live project does not behave like the local one.** Applying `0007`
+to production on 19 Sep granted `anon` and `authenticated` the full set —
+select, insert, update, delete, truncate — that the local stack withheld.
+The project predates the always-revoked default and still auto-exposes. This
+was checked rather than assumed, because it is exactly the silent-open shape
+this feature exists to prevent: **RLS holds**. Enabled-with-no-policies
+denies any role without `BYPASSRLS` whatever its grants say, and a probe
+confirmed `anon` sees zero rows and `authenticated` cannot insert itself an
+`approved` row. The grant is still correct for local parity, but the table's
+safety rests on RLS, not on it.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2844,6 +2855,14 @@ Not core. Revisit once the main app is solid.
   have an account. Removing someone is a dashboard delete. Real revocation
   means enforcing approval inside RLS, which is the after-auth design §9
   rejected.
+
+- **The access gate's table is protected by RLS alone on production,
+  19 Sep.** Locally the table has no `anon` / `authenticated` grants *and*
+  RLS; on the live project the grants are wide because it still auto-exposes
+  new tables, so only RLS separates a signed-in user from the allowlist. It
+  does hold — probed on 19 Sep, see §9 — but the belt is there and the braces
+  are not. Revoking the Data API roles on `access_requests` in a later
+  migration would restore the pair.
 
 - **The access gate is untested against a real provider, 19 Sep.** Everything
   below the dashboard is proved on a local stack, but three things can only be

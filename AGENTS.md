@@ -117,11 +117,21 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
   it.**
 - **RLS is not the only lock, and `service_role` only bypasses that one.**
   `auto_expose_new_tables` is unset in `config.toml` — the current cloud
-  default — so a new table is unreachable by `anon`, `authenticated` *and*
-  `service_role` until an explicit `grant`. A migration that creates a table
-  the Edge Functions write to must grant it, or every call fails `42501`,
-  **reads included**. `0007` is the worked example: `grant select, insert,
-  update ... to service_role` and nothing to the other two.
+  default — so on a **local** stack a new table is unreachable by `anon`,
+  `authenticated` *and* `service_role` until an explicit `grant`. A migration
+  that creates a table the Edge Functions write to must grant it, or every
+  call fails `42501`, **reads included**. `0007` is the worked example:
+  `grant select, insert, update ... to service_role` and nothing to the
+  other two.
+
+  **The live project still auto-exposes, and the two disagree.** Applying
+  `0007` there gave `anon` and `authenticated` the full set — select, insert,
+  update, delete, truncate — that the local stack withheld. Verified 19 Sep:
+  RLS still holds, because enabled-with-no-policies denies a role that lacks
+  `BYPASSRLS` regardless of its grants. `anon` saw zero rows and
+  `authenticated` could not insert itself an `approved` row. **So write the
+  grant for local, and never let a table's safety rest on the grant alone —
+  on production it may not be there.** RLS is the lock that actually holds.
 - `SECURITY DEFINER` functions called by a signed-in user must
   `raise exception` on a null `auth.uid()` and be revoked from `anon` and
   `public`.
