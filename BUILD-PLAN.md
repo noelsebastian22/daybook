@@ -435,6 +435,30 @@ ships, the outcome is summarised in §9 and the plan file is frozen.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
+### The access gate — specced and planned 19 Sep, not built
+
+Signup becomes per-person: a stranger asks at `/request-access`, Noel approves
+from an email, and a Supabase **`Before User Created` auth hook** checks an
+allowlist on every signup attempt. Spec:
+[`docs/ACCESS-PLAN.md`](./docs/ACCESS-PLAN.md). Ten-task plan:
+[`docs/plans/2026-09-19-access-gate.md`](./plans/2026-09-19-access-gate.md).
+
+**Nothing is built.** Branch `feat/access-gate` holds the two documents and no
+code. Next action is Task 1, the migration.
+
+Three things recorded here so they are not lost between sessions:
+
+- **This reverses the mechanism decided 3 Sep** (§9). The Auth dashboard's
+  "Allow new users to sign up" toggle **stays on**, because turning it off
+  blocks approved users too — the hook is the gate. The diagnosis that chose
+  the toggle over `shouldCreateUser: false` still stands; only the instrument
+  changed. Full reasoning goes into §9 as Task 9 of the plan.
+- **C5 below is wrong.** It says signup is open and that C1, C2 and blockers
+  1–3 are therefore live bugs. The toggle is **off**, confirmed by screenshot
+  on 19 Sep, so none of them are. Task 9 rewrites it.
+- **The toggle flips on last**, after the hook is deployed and proven, so there
+  is never a window with signup open and no gate.
+
 ### Phase 7, multi-tenancy — audited 3 Sep, Gate 0 applied 11 Sep
 
 The live project was audited end to end on 3 Sep, read-only, against

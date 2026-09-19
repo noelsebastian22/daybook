@@ -11,6 +11,69 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-19 · claude-code · an access gate, specced
+
+**Did**
+- Branched `feat/access-gate`. Two commits, **docs only — no code, no schema.**
+  `docs/ACCESS-PLAN.md` (spec) and `docs/plans/2026-09-19-access-gate.md`
+  (ten tasks). BUILD-PLAN §4 gained a pointer to both.
+- Checked live rather than read from docs: `auth.users` holds **one** row; the
+  8 live migrations match the 6 files (`0002` landed as three); **"Allow new
+  users to sign up" is OFF**, by screenshot.
+- No build, no test run. Nothing under `src/` or `supabase/` changed, so the
+  18 Sep numbers still stand.
+
+**Decided**
+- **The gate is a Supabase `Before User Created` auth hook** — free tier, a
+  Postgres function reading an `access_requests` allowlist. Chosen because it
+  is provider-agnostic: it runs on Google OAuth, which is the hole
+  `shouldCreateUser: false` leaves open.
+- **This reverses the 3 Sep mechanism.** The signup toggle **stays ON** (off
+  blocks approved users too) and **flips on last**, after the hook is live and
+  proven, so there is never a window with signup open and no gate.
+- **Gate before authentication, not after.** A `/pending` waiting room is
+  better UX, but a pending user holds an `authenticated` JWT that every
+  `auth.uid() = user_id` policy passes — approval would need enforcing in four
+  policies, two RPCs, `push_subscriptions` and `due_digests()`, and one miss is
+  a hole that looks closed.
+- **Deny exists and is honest**, worded as capacity rather than judgement.
+- **The client uses plain `fetch` from a `core/access.ts` service.**
+  `@supabase/functions-js` is not installed and must not be — Phase 8 dropped
+  it deliberately at 2.85 kB.
+- Execution is **inline in-session**, not subagent-driven: `AGENTS.md` is too
+  much non-obvious context for a cold agent per task.
+
+**Didn't work**
+- **The first design was `auth.admin.inviteUserByEmail()` with signup globally
+  off.** Abandoned before any code: it carries two unverified unknowns (does
+  the admin API bypass `disable_signup`; can an invited email-identity user
+  then link Google) and forces approved users down the email path. The hook
+  makes both questions disappear.
+- **A toggle on the login page — the original request — cannot work.** Google
+  OAuth never consults the Angular app, so the door would look shut while open.
+  This is the same failure the 3 Sep note already warned about.
+
+**Open**
+- **BUILD-PLAN §4's C5 is wrong and not yet rewritten.** It claims signup is
+  open and that C1, C2 and blockers 1–3 are "live bugs, not hypotheticals".
+  The toggle is off; they are not. Task 9 fixes it — §4 carries a warning until
+  then.
+- Three unknowns, all in `ACCESS-PLAN.md` §11: that the hook fires on the
+  Google OAuth callback; whether `error_code` reaches the client or only
+  `error_description`; whether local `supabase start` runs auth hooks.
+- Everything open from the README entry below is unchanged — phone pass, AGPL
+  §13 link, offline queue.
+
+**Next**
+- Task 1 of `docs/plans/2026-09-19-access-gate.md`, inline: write
+  `supabase/migrations/0007_access_gate.sql`, `supabase start`, then prove
+  `hook_gate_signup` against the seven crafted payloads. **The mixed-case and
+  whitespace cases are the point** — they are the silent-open failure the
+  check constraint exists to prevent.
+
+**Touched** — `docs/ACCESS-PLAN.md`, `docs/plans/2026-09-19-access-gate.md`,
+`BUILD-PLAN.md`
+
 ## 2026-09-19 · claude-code · a README and a licence
 
 **Did**
