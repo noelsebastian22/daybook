@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Access } from '../../core/access';
 import { normalizeEmail } from '../../core/access.helpers';
 import type { AccessOutcome } from '../../core/models';
@@ -24,6 +24,15 @@ export class RequestAccess {
   protected readonly note = signal('');
   protected readonly busy = signal(false);
   protected readonly view = signal<View>('form');
+
+  constructor() {
+    // Set by session.store when a magic-link signup is refused: it has the
+    // address because they typed it into /login, so the form opens with it
+    // already in place. The OAuth bounce carries no address and lands here
+    // empty.
+    const prefill = inject(ActivatedRoute).snapshot.queryParamMap.get('email');
+    if (prefill) this.email.set(prefill);
+  }
 
   protected async submit(): Promise<void> {
     const email = normalizeEmail(this.email());

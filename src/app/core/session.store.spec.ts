@@ -9,6 +9,7 @@ import { Push } from './push';
 import { SessionStore } from './session.store';
 import { Supabase } from './supabase';
 import { ToastStore } from './toast.store';
+import { signupRejection } from './auth-error';
 
 /**
  * Stands in for the real `Push`, which injects `SwPush` and so cannot be
@@ -53,6 +54,8 @@ describe('SessionStore', () => {
   let toast: InstanceType<typeof ToastStore>;
   /** Stubbed for every test: a real navigation has no routes to match here. */
   let navigate: MockInstance;
+  /** The array form, which the access gate uses to carry a query param. */
+  let navigateByArray: MockInstance;
 
   const rpcCalls = (fn: string): RecordedCall[] =>
     db.calls.filter((c) => c.kind === 'rpc' && c.name === fn);
@@ -66,10 +69,15 @@ describe('SessionStore', () => {
     push = TestBed.inject(Push) as unknown as FakePush;
     toast = TestBed.inject(ToastStore);
     navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    navigateByArray = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // Module-level signal: without this it leaks into the next spec.
+    signupRejection.set(false);
+  });
 
   describe('hydrating', () => {
     it('has not decided yet when it is first injected', () => {
@@ -348,6 +356,61 @@ describe('SessionStore', () => {
         'Google sign-in is not configured yet. Use the email link below.',
       );
       expect(store.busy()).toBe(false);
+    });
+
+    it('sends a refused address to the request form, carrying it', async () => {
+      const store = TestBed.inject(SessionStore);
+      await settle();
+      overrides().signInWithOtp = async () => ({
+        data: null,
+        error: { message: 'This email has not been approved for Daybook yet.' },
+      });
+
+      await store.signInWithMagicLink('someone@example.com');
+
+      expect(navigateByArray).toHaveBeenCalledWith(['/request-access'], {
+        queryParams: { email: 'someone@example.com' },
+      });
+      // The gate is not an error to report — they are being sent somewhere
+      // that explains it.
+      expect(toast.toasts()).toHaveLength(0);
+      expect(store.magicLinkSentTo()).toBeNull();
+    });
+
+    it('still toasts an unrelated failure and does not navigate', async () => {
+      const store = TestBed.inject(SessionStore);
+      await settle();
+      overrides().signInWithOtp = async () => ({
+        data: null,
+        error: { message: 'Email rate limit exceeded' },
+      });
+
+      await store.signInWithMagicLink('someone@example.com');
+
+      expect(navigateByArray).not.toHaveBeenCalled();
+      expect(toast.toasts().map((t) => t.message)).toContain('Email rate limit exceeded');
+    });
+
+    it('sends a refused Google return to the request form, with no address', async () => {
+      // main.ts sets this from location.hash before bootstrap, because
+      // auth-js clears the fragment during its own initialize(). onInit
+      // reads it, so it has to be set before the store is injected.
+      signupRejection.set(true);
+
+      TestBed.inject(SessionStore);
+      await settle();
+
+      // No query param: the OAuth fragment carries an error, not an address.
+      expect(navigateByArray).toHaveBeenCalledWith(['/request-access']);
+      // Cleared, so a later navigation back to /login does not bounce again.
+      expect(signupRejection()).toBe(false);
+    });
+
+    it('leaves an ordinary page load alone', async () => {
+      TestBed.inject(SessionStore);
+      await settle();
+
+      expect(navigateByArray).not.toHaveBeenCalled();
     });
 
     it('asks Google for a redirect back to today', async () => {
