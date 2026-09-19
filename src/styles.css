@@ -11,6 +11,7 @@
   resurrect a class the code has retired.
 */
 @source not "../**/*.md";
+@source not "../LICENSE";
 
 /*
   Dark mode is a class on <html>, not a media query.

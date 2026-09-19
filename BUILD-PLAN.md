@@ -3326,7 +3326,7 @@ Not core. Revisit once the main app is solid.
 
 ## 13. Platform constraints and gotchas
 
-### Tailwind scans Markdown, including this file
+### Tailwind scans Markdown, including this file — and `LICENSE`
 
 Tailwind v4 scans the whole project for class names, and that includes
 `AGENTS.md` and `BUILD-PLAN.md`. Both name utility classes in prose in order to
@@ -3338,6 +3338,22 @@ purely by documentation, resurrecting classes the code had just retired.
 `src/styles.css` carries `@source not "../**/*.md";` to stop it. If a class
 that no longer exists anywhere in `src/app` turns up in the built CSS, check
 whether a Markdown file mentions it before hunting through components.
+
+**The `.md` glob was not enough, and `LICENSE` proved it on 19 Sep.** Adding the
+AGPL text at the repo root emitted `.contents{display:contents}` into the
+stylesheet, because the licence says "the contents of its user interface" and
+`LICENSE` has no extension for the glob to catch. 27 bytes, 45.68 kB → 45.71 kB,
+and a changed `styles-*` hash on a commit that touched nothing under `src/`.
+`@source not "../LICENSE";` now sits beside the `.md` rule.
+
+The general lesson is that **the exclusion is a denylist, so every new prose
+file at the root is a new hole.** A `CONTRIBUTING`, a `CHANGELOG`, a `NOTICE` or
+a `CODE_OF_CONDUCT` would each need their own line. If a third one ever turns
+up, invert it: scan `./src` explicitly with `@source` rather than excluding the
+world one file at a time.
+
+It is also the cheapest possible canary. A `styles-*` hash that moves on a
+docs-only commit means prose leaked into the scan, and the diff is one class.
 
 
 ### Unlayered CSS beats every Tailwind utility

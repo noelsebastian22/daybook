@@ -30,6 +30,8 @@ it turned out wrong, say so in a new one.
   `main-SLSQE6OY.js` still matches production.
 - §12: two gaps closed. The composer aura and the dark-mode completion chart
   have both now been seen in the *running* app.
+- **Caught and fixed a CSS regression that `LICENSE` itself caused** — see
+  Didn't work. `@source not "../LICENSE";` added; §13 rewritten.
 
 **Decided**
 - **The licence is AGPL-3.0-only.** The repo stays readable, but §1 keeps the
@@ -45,6 +47,17 @@ it turned out wrong, say so in a new one.
   `docs/OPERATIONS.md` carries that note.
 
 **Didn't work**
+- **Adding `LICENSE` changed the stylesheet, and the claim that it could not was
+  wrong.** PR #4 was described, in the body and to Noel, as byte-identical
+  because nothing under `src/` changed. The JS was; the **CSS was not**.
+  Production went `styles-VLV6XEMS.css` → `styles-BLGLAQT5.css`, 45.68 → 45.71
+  kB. Cause is the §13 gotcha the repo already documents: Tailwind scans the
+  project for class names, the AGPL text says "the contents of its user
+  interface", and **`LICENSE` has no extension**, so `@source not "../**/*.md"`
+  never applied to it. Tailwind emitted `.contents{display:contents}`, 27 bytes.
+  Fixed with `@source not "../LICENSE";`; the hash is back to `VLV6XEMS` and
+  byte-identical to the build that was already live. **A `styles-*` hash moving
+  on a docs-only commit is the canary — check prose before components.**
 - **Three background `ng serve` runs "failed" with exit 127 and it was not the
   toolchain.** Port 4200 was already held by a dev server that was already
   running; the Angular CLI exits 127 for that. Two of those attempts were spent
