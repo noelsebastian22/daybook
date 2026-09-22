@@ -27,6 +27,21 @@ class PopoverHost {
   closed = 0;
 }
 
+/** Buttons above the field, the way the filter lens lays its panel out. */
+@Component({
+  selector: 'app-searchable-popover-host',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [Popover],
+  template: `
+    <app-popover label="Filter tasks">
+      <button type="button">Quick</button>
+      <input type="text" aria-label="Find a category" />
+      <button type="button">Health</button>
+    </app-popover>
+  `,
+})
+class SearchablePopoverHost {}
+
 async function renderPopover(inputs: Record<string, unknown> = {}): Promise<Rendered<PopoverHost>> {
   return render(PopoverHost, { inputs });
 }
@@ -79,5 +94,19 @@ describe('Popover', () => {
   it('takes focus on open, like any other dialog', async () => {
     const host = await renderPopover();
     expect(document.activeElement).toBe(host.byText('button', 'Health'));
+  });
+
+  /**
+   * A panel that can be typed into is a search, and a search that lands on
+   * the first button instead of the field is one the keyboard cannot use
+   * without a detour. The field wins even when buttons come before it in the
+   * DOM, which is why this cannot be a `querySelector('input, button')` — that
+   * returns whichever comes first in document order, and the filter lens puts
+   * its energies above its search box.
+   */
+  it('prefers a field it can be typed into, wherever that field sits', async () => {
+    const host = await render(SearchablePopoverHost);
+
+    expect(document.activeElement).toBe(host.query('input'));
   });
 });

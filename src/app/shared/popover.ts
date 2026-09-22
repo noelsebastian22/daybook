@@ -38,6 +38,17 @@ export class Popover {
 
   constructor() {
     // Opened by a deliberate click, so it takes focus like any other dialog.
-    afterNextRender(() => this.panel().nativeElement.querySelector('button')?.focus());
+    //
+    // A field beats a button wherever it sits, because a panel with a field
+    // in it is a search and landing anywhere else makes the keyboard take a
+    // detour. Two queries rather than `querySelector('input, button')`: that
+    // form returns whichever comes first in document order, and the filter
+    // lens lists its energies above its search box.
+    afterNextRender(() => {
+      const panel = this.panel().nativeElement;
+      const first =
+        panel.querySelector<HTMLElement>('input') ?? panel.querySelector<HTMLElement>('button');
+      first?.focus();
+    });
   }
 }
