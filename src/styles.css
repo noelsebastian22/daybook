@@ -875,6 +875,67 @@ body {
   animation: tick-in 200ms cubic-bezier(0.2, 0, 0, 1) 40ms both;
 }
 
+/* The filter lens grows out of its own trigger rather than appearing beside
+   it, which is the whole of the "one control opened" reading. The origin is
+   the top-right corner because the trigger sits at the end of the count line
+   and the panel is anchored `right-0` under it — growing from any other
+   corner would slide it sideways out of the button that spawned it.
+
+   Short and slight: 140ms and a 4% scale. The panel covers the list it is
+   filtering, so anything longer is time spent looking at a page you asked to
+   change. Reduced motion is handled by the global clamp at the end of this
+   file. */
+@keyframes lens-open {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* The animation is on the panel, never on the `app-popover` host. The host
+   also contains the dismiss backdrop, which is `position: fixed` — and a
+   transformed ancestor becomes the containing block for a fixed descendant,
+   which would shrink that backdrop from the viewport to the width of the
+   panel and quietly kill click-outside-to-close. `both` keeps a transform on
+   the element after the animation ends, so this is not a transient hazard. */
+.lens-open [role='dialog'] {
+  transform-origin: top right;
+  animation: lens-open 140ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Adding or removing a filter is the same kind of event as completing a
+   task — rows appear and disappear — so it runs through the same View
+   Transition (`Today.setEnergy` and friends). The rows are free; they
+   already carry a name. The trigger pill is not, and without a name of
+   its own it rides the root cross-fade and its width snaps between
+   "Filter" and "Deep · Work ×".
+
+   The `object-fit` pair is the part that is easy to leave out. By
+   default the browser stretches the old and new snapshots to fill the
+   group box as it animates between the two widths, which visibly
+   distorts the text inside a pill that nearly doubles in length.
+   `none` pins each snapshot at its own size instead, anchored right
+   because the pill sits at the end of the count line and grows
+   leftward.
+
+   Timing is deliberately not set here. `::view-transition-group(*)`
+   above is 240ms for the whole app, and the pill, the rows and the page
+   chrome should move on one beat rather than three. */
+.filter-lens-pill {
+  view-transition-name: filter-lens;
+}
+
+::view-transition-old(filter-lens),
+::view-transition-new(filter-lens) {
+  height: 100%;
+  object-fit: none;
+  object-position: right center;
+}
+
 /* ------------------------------------------------------------------
    The try page's card turn.
 

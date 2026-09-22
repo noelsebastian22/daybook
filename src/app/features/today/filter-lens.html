@@ -1,0 +1,147 @@
+<!--
+  The trigger is one pill holding one or two buttons, the same construction
+  the capture chips use: nesting a clear button inside the opening button
+  would be invalid HTML, so the pill is a `span` and the two controls sit
+  side by side inside it.
+-->
+<div class="relative">
+  <span
+    class="inline-flex items-center gap-1 rounded-full text-body font-medium transition"
+    [class]="
+      filtering()
+        ? 'bg-inverse text-on-inverse'
+        : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong'
+    "
+  >
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-full px-3 py-2 transition"
+      [class]="filtering() ? 'hover:bg-inverse-hover' : 'hover:bg-hover-strong'"
+      [attr.aria-expanded]="open()"
+      [attr.aria-label]="triggerLabel()"
+      aria-haspopup="dialog"
+      (click)="toggle()"
+    >
+      @if (filtering()) {
+        @if (energyLabel()) {
+          <span>{{ energyLabel() }}</span>
+        }
+        @if (energyLabel() && activeCategory()) {
+          <span aria-hidden="true">&middot;</span>
+        }
+        @if (activeCategory(); as active) {
+          <span
+            class="h-1.5 w-1.5 shrink-0 rounded-full"
+            [style.background]="active.colour"
+            aria-hidden="true"
+          ></span>
+          <span>{{ active.name }}</span>
+        }
+      } @else {
+        <!-- A lens, not a funnel: the page is being looked at, not drained. -->
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="h-4 w-4 shrink-0"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="6.5" />
+          <path stroke-linecap="round" d="m15.8 15.8 3.2 3.2" />
+        </svg>
+        Filter
+      }
+    </button>
+
+    @if (filtering()) {
+      <button
+        type="button"
+        class="mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-full transition hover:bg-inverse-hover"
+        aria-label="Clear filters"
+        (click)="clear()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          class="h-3 w-3"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    }
+  </span>
+
+  <!--
+    `right-0` rather than `left-0`: the lens sits at the end of the count
+    line, so a panel anchored left would hang off the page on a phone.
+    `lens-open` in styles.css grows it from that corner.
+  -->
+  @if (open()) {
+    <app-popover
+      class="lens-open absolute right-0 top-full z-50 mt-2 w-72"
+      label="Filter tasks"
+      dismissLabel="Close the filters"
+      (closed)="open.set(false)"
+    >
+      <div class="flex gap-1">
+        @for (f of energies; track f.value) {
+          <button
+            type="button"
+            class="flex-1 rounded-control px-3 py-2 text-body font-medium transition"
+            [class]="
+              energy() === f.value ? 'bg-inverse text-on-inverse' : 'text-text-muted hover:bg-hover'
+            "
+            [attr.aria-pressed]="energy() === f.value"
+            (click)="chooseEnergy(f.value)"
+          >
+            {{ f.label }}
+          </button>
+        }
+      </div>
+
+      @if (categories().length > 0) {
+        <div class="mt-1 border-t border-border pt-1">
+          @if (searchable()) {
+            <input
+              type="text"
+              class="mb-1 w-full rounded-control bg-surface-sunken px-3 py-2 text-body outline-none focus:ring-2 focus:ring-focus"
+              placeholder="Find a category"
+              aria-label="Find a category"
+              [value]="query()"
+              (input)="search($event)"
+            />
+          }
+
+          <div class="flex flex-wrap gap-2 p-1">
+            @for (c of shown(); track c.id) {
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-body font-medium transition"
+                [class]="
+                  categoryId() === c.id
+                    ? 'bg-inverse text-on-inverse'
+                    : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong hover:bg-hover-strong'
+                "
+                [attr.aria-pressed]="categoryId() === c.id"
+                (click)="chooseCategory(c.id)"
+              >
+                <span
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  [style.background]="c.colour"
+                  aria-hidden="true"
+                ></span>
+                {{ c.name }}
+              </button>
+            } @empty {
+              <p class="px-2 py-1 text-body text-text-subtle">No categories match that.</p>
+            }
+          </div>
+        </div>
+      }
+    </app-popover>
+  }
+</div>
