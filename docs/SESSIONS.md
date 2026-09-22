@@ -11,6 +11,77 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-09-23 · claude-code · the filter lens
+
+**Did**
+- Replaced Today's two chip rows with `features/today/filter-lens.ts` — a pill on
+  the count line that opens an `app-popover` holding the energies as a segmented
+  row and the categories as wrapping chips.
+- Search field appears past `CATEGORY_SEARCH_THRESHOLD` (6) in
+  `today.constants.ts`; the constant carries the chip-width arithmetic that
+  produced it.
+- `today.html`: both chip blocks deleted, lens onto the count row, `· N shown`
+  added to the count line while `filtered()`.
+- `popover.ts`: focuses the first `input` before the first `button`.
+- `styles.css`: `lens-open` keyframe, targeting `.lens-open [role='dialog']`.
+- Chip assertions moved from `today.spec.ts` to `filter-lens.spec.ts`; Today
+  keeps only the wiring tests.
+- `BUILD-PLAN.md` §4 (Phase 4 category-filter bullet), §5 (feature 9, pages
+  table), §9 (new entry), §11 (backlog) updated in the same commit.
+- Three commits on **`feat/filter-lens`** — not merged, not pushed. 790 tests
+  across 42 files. Build clean, initial total **438.20 kB** / 109.17 kB
+  transfer; `today` chunk 15.32 kB.
+
+**Decided**
+- **Single-select stays and `TaskStore` is untouched.** Noel picked "looks only"
+  over multi-select categories, so `filter`, `categoryFilter`, `filtered()` and
+  `clearFilters()` are unchanged and the lens holds no filter state.
+- **The panel wraps; it does not scroll.** Horizontal scroll hides options with
+  no sign they exist and is unpleasant with a mouse.
+- **The trigger says "Filter" in words, not an icon alone** — the resting state
+  is what a first-time eye lands on.
+- **Choosing does not close the panel.** Energy and category AND together, so
+  closing on the first pick makes combining them a two-visit job.
+- **Filtering by tapping a badge on a task row was considered and deferred** to
+  §11: undiscoverable alone, and it needs an answer for badge-tap vs row-tap.
+
+**Didn't work**
+- **The open animation on the `app-popover` host silently breaks dismissal.**
+  The host also holds the `position: fixed` backdrop, and a transformed
+  ancestor becomes the containing block for a fixed descendant — the backdrop
+  shrinks from the viewport to the panel's width and click-outside stops
+  working. `animation: ... both` keeps the transform after it finishes, so it is
+  not transient. Caught before it shipped; the keyframe targets the inner panel.
+- **`querySelector('input, button')` is the wrong fix for popover focus.** It
+  returns whichever comes first in document order, and the lens lists its
+  energies above its field. Two separate queries instead.
+- **Chased a dark-mode bug that did not exist.** A screenshot showed the
+  trigger's summary text invisible on the cream pill; ~20 minutes of computed
+  style probing before a zoom of the settled state proved it was a frame caught
+  mid-`transition` right after the theme flip. When probing colour through the
+  browser after a theme change, settle first.
+- **`prettier --write BUILD-PLAN.md` rewrapped 251 lines of unrelated prose.**
+  All 8 markdown files in the repo are "unformatted" by Prettier's standards —
+  that is a convention, not an oversight. Do not run Prettier on markdown here.
+- **`resize_window` fought the browser's page zoom** — `innerWidth` stayed 1502
+  while `outerWidth` became 871. The narrow-layout check was done instead by
+  injecting `app-today > div { max-width: 390px }` and measuring.
+
+**Open**
+- `feat/filter-lens` is not merged into `master` and not pushed.
+- **The lens has not been seen on a real phone or in the installed PWA.** Only a
+  simulated 390px column in a desktop browser: count line does not wrap, the
+  288px panel sits inside the column, no horizontal scroll.
+- **The search field has never been seen with real data.** Noel's account has
+  one category today, so >6 categories was only ever a fixture.
+
+**Next**
+- Fast-forward `feat/filter-lens` into `master` and push, then open the
+  installed iPhone PWA and check the panel at 375px — specifically whether
+  `right-0` keeps the 288px panel inside the safe area.
+
+**Touched** — `src/app/features/today/filter-lens.ts`, `filter-lens.html`, `filter-lens.spec.ts`, `today.html`, `today.ts`, `today.spec.ts`, `today.constants.ts`, `src/app/shared/popover.ts`, `popover.spec.ts`, `src/styles.css`, `BUILD-PLAN.md`
+
 ## 2026-09-19 · claude-code · the access gate, deployed
 
 Second entry today. The one below it covers building tasks 1–9; this covers
