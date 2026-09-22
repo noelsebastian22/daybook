@@ -19,73 +19,54 @@
     The count line is one flex row rather than one run of text: the separator
     then comes from `gap`, so no interpolation has to end in a space that
     Angular's whitespace collapsing might take away.
+
+    The filter lens rides this line rather than sitting above the list, which
+    is what makes it free: the row already exists, and at rest the lens is one
+    small pill on the end of it. The two chip rows it replaced cost up to
+    three rows of their own on a day with a handful of categories.
   -->
   <header class="safe-py-6">
     <h1 class="flex flex-wrap items-baseline gap-2">
       <span class="font-display text-display font-semibold">{{ weekday }}</span>
       <span class="text-subtitle text-text-subtle">{{ dayAndMonth }}</span>
     </h1>
-    <p class="mt-1 flex flex-wrap items-baseline gap-2 text-body text-text-muted">
-      <span>
-        @if (tasks.openCount() === 0 && tasks.completedCount() > 0) {
-          All clear
-        } @else if (tasks.openCount() === 0) {
-          Nothing yet
-        } @else {
-          {{ tasks.openCount() }} to go
+    <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
+      <p class="flex flex-wrap items-baseline gap-2 text-body text-text-muted">
+        <span>
+          @if (tasks.openCount() === 0 && tasks.completedCount() > 0) {
+            All clear
+          } @else if (tasks.openCount() === 0) {
+            Nothing yet
+          } @else {
+            {{ tasks.openCount() }} to go
+          }
+        </span>
+        <!--
+          The counts are the whole day's, not the visible list's, so while a
+          filter is on they describe work that is not on screen. Naming how
+          many are shown is what stops "5 to go" above a single row reading as
+          a bug.
+        -->
+        @if (tasks.filtered()) {
+          <span aria-hidden="true">&middot;</span>
+          <span>{{ tasks.openTasks().length }} shown</span>
         }
-      </span>
-      @if (tasks.completedCount() > 0) {
-        <span aria-hidden="true">&middot;</span>
-        <span class="text-done-text">{{ tasks.completedCount() }} done today</span>
-      }
-    </p>
-  </header>
+        @if (tasks.completedCount() > 0) {
+          <span aria-hidden="true">&middot;</span>
+          <span class="text-done-text">{{ tasks.completedCount() }} done today</span>
+        }
+      </p>
 
-  <!-- energy -->
-  <div class="flex flex-wrap gap-2">
-    @for (f of filters; track f.value) {
-      <button
-        type="button"
-        class="rounded-full px-3 py-2 text-body font-medium transition"
-        [class]="
-          tasks.filter() === f.value
-            ? 'bg-inverse text-on-inverse'
-            : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong hover:bg-hover-strong'
-        "
-        [attr.aria-pressed]="tasks.filter() === f.value"
-        (click)="tasks.setFilter(f.value)"
-      >
-        {{ f.label }}
-      </button>
-    }
-  </div>
-
-  <!--
-    Category chips are a second row, not more pills in the first. They
-    answer a different question from energy and the two combine, so
-    sitting them side by side would imply picking one.
-  -->
-  @if (tasks.todaysCategories().length > 0) {
-    <div class="mt-2 flex flex-wrap gap-2">
-      @for (c of tasks.todaysCategories(); track c.id) {
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-body font-medium transition"
-          [class]="
-            tasks.categoryFilter() === c.id
-              ? 'bg-inverse text-on-inverse'
-              : 'bg-surface-sunken text-text-muted ring-1 ring-border-strong hover:bg-hover-strong'
-          "
-          [attr.aria-pressed]="tasks.categoryFilter() === c.id"
-          (click)="toggleCategory(c.id)"
-        >
-          <span class="h-1.5 w-1.5 rounded-full" [style.background]="c.colour"></span>
-          {{ c.name }}
-        </button>
-      }
+      <app-filter-lens
+        [energy]="tasks.filter()"
+        [categoryId]="tasks.categoryFilter()"
+        [categories]="tasks.todaysCategories()"
+        (energyChange)="tasks.setFilter($event)"
+        (categoryChange)="tasks.setCategoryFilter($event)"
+        (cleared)="tasks.clearFilters()"
+      />
     </div>
-  }
+  </header>
 
   <!-- what is left -->
   <div class="mt-4">

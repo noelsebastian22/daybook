@@ -7,8 +7,8 @@ import {
   OnInit,
 } from '@angular/core';
 import { TaskStore } from '../../core/task.store';
-import { ENERGY_FILTERS } from './today.data';
 import { Composer } from './composer';
+import { FilterLens } from './filter-lens';
 import { type CaptureSubmit } from './capture';
 import { TaskRow } from './task-row';
 import { EmptyState } from '../../shared/empty-state';
@@ -20,7 +20,7 @@ import type { Task } from '../../core/models';
 @Component({
   selector: 'app-today',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Composer, TaskRow, EmptyState],
+  imports: [Composer, FilterLens, TaskRow, EmptyState],
   templateUrl: './today.html',
 })
 export class Today implements OnInit {
@@ -55,8 +55,6 @@ export class Today implements OnInit {
     month: 'long',
   });
 
-  protected readonly filters = ENERGY_FILTERS;
-
   ngOnInit(): void {
     // Rollover runs here, on app open, using the client's local date.
     void this.tasks.ensureLoaded();
@@ -71,11 +69,6 @@ export class Today implements OnInit {
   protected add(submit: CaptureSubmit): void {
     this.close();
     void this.tasks.addFromCapture(submit.text, submit.scheduling, submit.notes);
-  }
-
-  /** Pressing an active chip clears it, so the filter needs no separate "All". */
-  protected toggleCategory(id: string): void {
-    this.tasks.setCategoryFilter(this.tasks.categoryFilter() === id ? null : id);
   }
 
   /**

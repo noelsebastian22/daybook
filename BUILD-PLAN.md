@@ -264,8 +264,9 @@ reference. `docs/reference/todoist/NOTES.md`.
   lists from two sources: what was finished (tasks still dated that day, since
   completing pins `scheduled_date`) and what was carried off (resolved from
   `day_snapshots.carried_task_ids`, each naming the day it landed on).
-- **Filter Today by category.** Chips on a second row under the energy filter,
-  ANDed with it, listing only categories present today.
+- **Filter Today by category.** ANDed with the energy filter, listing only
+  categories present today. **The two chip rows this describes are gone as of
+  23 Sep** — both axes now live in the filter lens. See §9, "The filter lens".
 - **Offline write queue.** `core/offline-queue.ts`, persisted to
   `localStorage`. A dropped connection is told apart from a server rejection by
   `isOffline()` — the first queues and keeps the optimistic state, the second
@@ -895,7 +896,7 @@ tracked.
    much focus is available. State: done, including the filter.
 9. **Category tag** (Freelance, Work, Family, Health, or anything typed as a
    `#tag`) for filtering. State: **done.** Tagging, auto-creation, display, the
-   Today filter chips, and rename/recolour/delete in Settings. Deleting a
+   filter lens on Today, and rename/recolour/delete in Settings. Deleting a
    category leaves its tasks untagged, never deleted.
 10. **Carried-over count**, incremented automatically on rollover, and a
     separate **reschedule count** for manual pushes. Together they answer "what
@@ -1010,7 +1011,7 @@ Treated as core, not polish.
 | Page | Purpose | State |
 |---|---|---|
 | **Login** | Google OAuth, magic-link fallback | done |
-| **Dashboard / Today** | Add and complete tasks, filter Quick/Deep, collapsed Upcoming strip | done |
+| **Dashboard / Today** | Add and complete tasks, filter by energy and category through the lens on the count line, collapsed Upcoming strip | done |
 | **Upcoming** | The next 7 days as a list grouped by day header, with a per-day `+ Add task` row that schedules by position, and a week strip that pages forward. Not the calendar — that is a grid, and it is the row below | done, `/upcoming`, paging capped at 3 weeks |
 | **Calendar** | Bidirectional. Past cells show completion density as a heat map, future cells show a count of scheduled tasks, today is the boundary. Tap a cell for that day's list | done, `/calendar` |
 | **Day detail** | One day drilled into from a calendar cell: what was finished, and what was carried off it | done, `/calendar/:date` |
@@ -2839,6 +2840,113 @@ confirmed `anon` sees zero rows and `authenticated` cannot insert itself an
 `approved` row. The grant is still correct for local parity, but the table's
 safety rests on RLS, not on it.
 
+### The filter lens, 23 Sep
+
+Today's filters were two rows of chips above the list: three energies, then
+one chip per category present today. The complaint was that they looked
+amateur — a pile of buttons sitting on top of the work — and the diagnosis
+underneath it was worse. **The filter is an occasional tool paying permanent
+rent.** A typical day has a handful of tasks and two or three categories; the
+bar earns its keep on a heavy day and costs two rows on every other one.
+
+It also scaled the wrong way. The chip was `px-3` at `text-body` with a 6px
+dot, so a short name like "Work" is about 71px plus its gap: **four fit across
+a 368px phone and about seven across the desktop column.** Past that the row
+wrapped and grew downward — so the bar was tallest on exactly the days the
+list was already long.
+
+**The lens replaces both rows with one control that rides the count line.**
+At rest it is a pill reading `Filter` at the end of a row that already
+existed, so the resting cost is zero rows. Opening it grows a panel from its
+own top-right corner holding the energies as a segmented row and the
+categories as wrapping chips. While something is filtering, the trigger
+becomes the summary — `Deep · Work ×` — and the count line gains `· N shown`,
+because the counts describe the whole day and a filter otherwise leaves
+"5 to go" above a single row with no stated cause.
+
+Four decisions inside it are deliberate:
+
+- **The panel wraps; it does not scroll.** Horizontal scroll hides options
+  with no indication they exist, and on desktop with a mouse it is unpleasant.
+- **Past six categories it grows a search field** (`CATEGORY_SEARCH_THRESHOLD`
+  in `today.constants.ts`, which carries the arithmetic). Six is two tidy rows
+  in a `w-72` panel; seven starts a third. That is the point where a list
+  stops being the right control and a field starts being one — and a panel you
+  can type into reads as current, where a panel you can only click reads as a
+  2014 select.
+- **The trigger says "Filter" in words, not an icon alone.** The resting state
+  is what a first-time eye lands on, and an unlabelled glyph would have traded
+  clunkiness for a guessing game.
+- **Choosing does not close the panel.** Energy and category are independent
+  axes that AND together, so closing on the first pick would make combining
+  them a two-visit job. The list stays visible under the panel, so a pick is
+  seen landing.
+
+**No store change.** `filter`, `categoryFilter`, `filtered()` and
+`clearFilters()` are untouched; the lens holds no filter state, takes the
+current ones as inputs and reports choices upward, which is why
+`filter-lens.spec.ts` needs no fake store.
+
+Three things the build turned up:
+
+- **A `transform` on the popover host would have killed click-outside.** The
+  open animation was first written on `app-popover` itself, which also
+  contains the `position: fixed` dismiss backdrop. A transformed ancestor
+  becomes the containing block for a fixed descendant, so the backdrop would
+  have shrunk from the viewport to the width of the panel. `animation: ... both`
+  leaves the transform in place after it finishes, so this would not have been
+  a transient hazard. The keyframe targets `.lens-open [role='dialog']`.
+- **`Popover` now focuses a field ahead of a button.** It focused
+  `querySelector('button')`, which in a panel with a search box is a detour.
+  It is two queries rather than `querySelector('input, button')`, because that
+  form returns whichever comes first in document order and the lens lists its
+  energies above its field.
+- **The trigger needed a name as well as a state.** While filtering, its
+  visible text is `Deep · Work`, which read out alone is a button whose purpose
+  has to be guessed. It carries `aria-label="Filtering by Deep, Work"`, which
+  keeps the visible words inside the accessible name (WCAG 2.5.3). At rest
+  there is no label, because the visible word already is one.
+
+Verified on screen in both themes, and at a 390px column: the count line does
+not wrap, the panel sits inside the column, and the page does not scroll
+sideways.
+
+**Filtering became choreography rather than a swap, same day.** Changing a
+filter adds and removes rows, which is the same kind of event as completing a
+task, so it now runs through `withViewTransition` like `complete()` and
+`pushOneDay()` — `Today.setEnergy`, `setCategory` and `clearFilters`, which is
+also why the lens reports choices upward instead of calling the store: all
+three routes, the empty state's way out included, can then be wrapped in one
+place. The rows are free, because they already carry a name. The beat is the
+app's existing 240ms; no second timing constant was introduced.
+
+The trigger pill needed a name of its own (`.filter-lens-pill`) or it rides
+the root cross-fade and its width snaps between "Filter" and a two-part
+summary. **The `object-fit` pair beside it is the part that is easy to omit:**
+by default the browser stretches each snapshot to fill the group box as it
+animates between the two widths, which distorts the text inside a pill that
+nearly doubles in length. `none`, anchored `right center`, pins them.
+
+**Two things about verifying this, both worth knowing next time.**
+
+`today.spec.ts`'s existing "sets the filter through the store" tests cannot
+catch a missing wrap. `withViewTransition` falls back to calling the mutation
+directly when the API is absent, which it always is in jsdom, so they pass
+either way. The four new tests install a fake `document.startViewTransition`
+— the technique `view-transition.spec.ts` already uses — and watch for it.
+
+**A view transition is skipped outright on a hidden document**, and a browser
+tab driven by automation reports `visibilityState: 'hidden'` even while it is
+being screenshotted. The transition's `ready` promise rejects with
+`InvalidStateError - Document hidden`, the mutation still applies, and the
+page looks correct in every screenshot — so the motion appears to work and is
+in fact never running. What was verified instead: the API is called once per
+filter change, the pill computes `view-transition-name: filter-lens`, `root`
+and `filter-lens` are the only live names with no duplicates (a duplicate name
+kills a transition silently — the same trap `task-detail.ts` documents), and
+both rules survive the build. **The motion itself has not been watched on a
+screen.**
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2846,6 +2954,13 @@ Not core. Revisit once the main app is solid.
 - **Receipt / attachment upload per task**, e.g. a receipt photo on an
   expense-related task. Uses Supabase file storage.
 - **Native app wrap.**
+- **Filter by tapping a badge on a task row, 23 Sep.** A row already shows
+  `Work`, `deep` and `carried ×N`; tapping one would filter the day to it and
+  land in the same active state the lens produces. Considered and deliberately
+  deferred when the lens was designed: on its own it is undiscoverable, and it
+  needs an answer for badge-tap against row-tap, which opens the task. It is
+  the shortcut to the lens's deliberate path, not a replacement for it, so it
+  is worth building only after the lens has been lived with.
 
 ---
 

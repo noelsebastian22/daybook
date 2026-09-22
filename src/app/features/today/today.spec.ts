@@ -41,9 +41,28 @@ async function renderToday(): Promise<Rendered<Today>> {
   return render(Today);
 }
 
-function chip(page: Rendered<Today>, label: string): HTMLElement {
-  const found = page.queryAll('button').find((b) => (b.textContent ?? '').trim() === label);
-  if (!found) throw new Error(`no chip named ${label}`);
+/**
+ * The filter lens's trigger. Found by `aria-haspopup` rather than by
+ * `aria-expanded`, which the Done today and Next 7 days sections also carry.
+ */
+function lens(page: Rendered<Today>): HTMLElement {
+  const found = page.query('[aria-haspopup="dialog"]');
+  if (!found) throw new Error('the page has no filter lens');
+  return found;
+}
+
+async function openLens(page: Rendered<Today>): Promise<HTMLElement> {
+  await page.click(lens(page));
+  const panel = page.query('[role="dialog"]');
+  if (!panel) throw new Error('the lens did not open');
+  return panel;
+}
+
+function option(panel: HTMLElement, label: string): HTMLElement {
+  const found = Array.from(panel.querySelectorAll('button')).find(
+    (b) => (b.textContent ?? '').trim() === label,
+  );
+  if (!found) throw new Error(`no option named ${label}`);
   return found;
 }
 
@@ -193,80 +212,115 @@ describe('Today', () => {
       const page = await renderToday();
       expect(page.el.textContent).not.toContain('done today');
     });
-  });
 
-  describe('the energy filter', () => {
-    it('offers all three chips with the resting state first', async () => {
+    /**
+     * The counts come from the whole day, not the visible list, so a filter
+     * can leave "5 to go" above a list showing one row. The lens makes the
+     * cause visible; this makes the arithmetic visible with it.
+     */
+    it('says how many the filter is showing, so a short list has a stated cause', async () => {
+      openCount.set(5);
+      openTasks.set([makeTask()]);
+      filtered.set(true);
       const page = await renderToday();
-      expect(chip(page, 'All')).toBeDefined();
-      expect(chip(page, 'Quick')).toBeDefined();
-      expect(chip(page, 'Deep')).toBeDefined();
+
+      expect(summary(page)).toContain('5 to go');
+      expect(summary(page)).toContain('1 shown');
     });
 
-    it('reports which chip is the current filter', async () => {
+    it('says nothing about what is shown while nothing is filtering', async () => {
+      openCount.set(5);
+      openTasks.set([makeTask()]);
       const page = await renderToday();
-      expect(chip(page, 'All').getAttribute('aria-pressed')).toBe('true');
-      expect(chip(page, 'Quick').getAttribute('aria-pressed')).toBe('false');
 
-      filter.set('quick');
-      await page.settle();
-
-      expect(chip(page, 'Quick').getAttribute('aria-pressed')).toBe('true');
-      expect(chip(page, 'All').getAttribute('aria-pressed')).toBe('false');
-    });
-
-    it('sets the filter through the store', async () => {
-      const page = await renderToday();
-      await page.click(chip(page, 'Deep'));
-
-      expect(setFilter).toHaveBeenCalledWith('deep');
+      expect(summary(page)).not.toContain('shown');
     });
   });
 
-  describe('the category filter', () => {
-    it('stays hidden while nothing today carries a category', async () => {
+  /**
+   * The control itself is `filter-lens.spec.ts`. What belongs here is only
+   * the wiring: that the page hands the lens the current filters and the
+   * categories present today, and routes every choice back to the store.
+   */
+  describe('the filter lens', () => {
+    it('replaces the chip rows with one closed control', async () => {
+      todaysCategories.set([makeCategory({ name: 'Health' })]);
       const page = await renderToday();
+
       expect(page.el.textContent).not.toContain('Health');
+      expect(lens(page).getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('offers the energies it was given', async () => {
+      const page = await renderToday();
+
+      const panel = await openLens(page);
+
+      expect(option(panel, 'Quick')).toBeDefined();
+      expect(option(panel, 'Deep')).toBeDefined();
     });
 
     it('offers only the categories with something on today', async () => {
       todaysCategories.set([makeCategory({ name: 'Health' })]);
       const page = await renderToday();
 
-      expect(chip(page, 'Health')).toBeDefined();
+      const panel = await openLens(page);
+
+      expect(option(panel, 'Health')).toBeDefined();
     });
 
-    it('reports which category is filtering', async () => {
-      const health = makeCategory({ name: 'Health' });
-      todaysCategories.set([health]);
-      categoryFilter.set(health.id);
+    it('sets the energy filter through the store', async () => {
       const page = await renderToday();
+      const panel = await openLens(page);
 
-      expect(chip(page, 'Health').getAttribute('aria-pressed')).toBe('true');
+      await page.click(option(panel, 'Deep'));
+
+      expect(setFilter).toHaveBeenCalledWith('deep');
     });
 
-    it('applies a category that is not already filtering', async () => {
+    it('sets the category filter through the store', async () => {
       const health = makeCategory({ name: 'Health' });
       todaysCategories.set([health]);
       const page = await renderToday();
+      const panel = await openLens(page);
 
-      await page.click(chip(page, 'Health'));
+      await page.click(option(panel, 'Health'));
 
       expect(setCategoryFilter).toHaveBeenCalledWith(health.id);
     });
 
-    it('clears the one already filtering, so no separate "All" is needed', async () => {
+    it('summarises what is filtering without being opened', async () => {
       const health = makeCategory({ name: 'Health' });
       todaysCategories.set([health]);
+      filter.set('quick');
       categoryFilter.set(health.id);
       const page = await renderToday();
 
-      await page.click(chip(page, 'Health'));
+      expect(lens(page).textContent).toContain('Quick');
+      expect(lens(page).textContent).toContain('Health');
+    });
 
-      expect(setCategoryFilter).toHaveBeenCalledWith(null);
+    it('clears both filters at once through the store', async () => {
+      filter.set('quick');
+      const page = await renderToday();
+
+      await page.click(page.query('[aria-label="Clear filters"]') as HTMLElement);
+
+      expect(clearFilters).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * The energy axis works on a day with no categories at all, so the lens
+     * is not conditional the way the old category row was.
+     */
+    it('stays available on a day with no categories', async () => {
+      const page = await renderToday();
+
+      const panel = await openLens(page);
+
+      expect(option(panel, 'All')).toBeDefined();
     });
   });
-
   describe('the empty list', () => {
     it('invites a first task on a day nothing has happened on', async () => {
       const page = await renderToday();
