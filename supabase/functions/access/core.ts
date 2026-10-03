@@ -54,3 +54,31 @@ export async function hashToken(token: string): Promise<string> {
 export function outcomeForStatus(status: AccessStatus | null): AccessOutcome {
   return status ?? 'created';
 }
+
+/**
+ * The address in the email Noel gets: a page in the app, not this function.
+ *
+ * Supabase rewrites `text/html` from a function on `*.supabase.co` to
+ * `text/plain` and sandboxes it, so a confirmation page served from here
+ * arrives as source code and its form cannot submit. Found 3 Oct.
+ *
+ * The token rides in the fragment. A browser never sends that part to a
+ * server, so it stays out of every request log on both sides.
+ */
+export function decisionLink(appOrigin: string, token: string): string {
+  return `${appOrigin.replace(/\/$/, '')}/access/decide#token=${encodeURIComponent(token)}`;
+}
+
+/** `pending` means the token can still decide. */
+export type TokenState = 'pending' | 'expired' | 'invalid';
+
+/**
+ * What a token is worth now. A missing row covers both "never issued" and
+ * "already used", since deciding clears the hash; telling them apart would
+ * only help someone probing.
+ */
+export function tokenState(row: { token_expires_at: string | null } | null, now: Date): TokenState {
+  if (!row) return 'invalid';
+  if (row.token_expires_at && new Date(row.token_expires_at) < now) return 'expired';
+  return 'pending';
+}

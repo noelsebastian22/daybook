@@ -7,15 +7,22 @@
  * own cold start.
  *
  *   POST /request        a stranger asks
- *   GET  /decide?token=  the confirmation page Noel's email links to
+ *   POST /lookup         the app's /access/decide page asks what a token is for
  *   POST /decide         the decision itself
+ *   GET  /decide?token=  links mailed before 3 Oct; redirects to the app page
  *
- * `verify_jwt` is false for this function. The /decide routes are clicked
- * from an email client and carry no Authorization header, and leaving it on
- * for /request would gate it behind the anon key — which notify/auth.ts
- * already documents as "a token shipped in the public browser bundle", so no
- * gate at all. What actually protects these routes is the token for /decide
- * and the per-IP throttle for /request.
+ * **No route here returns HTML, and none can.** Supabase rewrites `text/html`
+ * from a function on `*.supabase.co` to `text/plain` behind
+ * `content-security-policy: default-src 'none'; sandbox`, so the confirmation
+ * page this function used to serve arrived as source code with a form that
+ * could not submit. The page lives in the app now and talks JSON to this.
+ *
+ * `verify_jwt` is false for this function. Noel decides signed out — the
+ * address the email goes to is not a Daybook account — and leaving it on for
+ * /request would gate it behind the anon key, which notify/auth.ts already
+ * documents as "a token shipped in the public browser bundle", so no gate at
+ * all. What actually protects these routes is the token for /lookup and
+ * /decide, and the per-IP throttle for /request.
  *
  * Secrets: RESEND_API_KEY, ACCESS_FROM, ACCESS_TO, APP_ORIGIN.
  */
@@ -26,6 +33,8 @@ import {
   newDecisionToken,
   hashToken,
   outcomeForStatus,
+  decisionLink,
+  tokenState,
   type AccessStatus,
 } from './core.ts';
 
@@ -97,9 +106,7 @@ const escapeHtml = (s: string) =>
   );
 
 async function handleRequest(req: Request): Promise<Response> {
-  const body = (await req.json().catch(() => null)) as
-    | { email?: unknown; note?: unknown }
-    | null;
+  const body = (await req.json().catch(() => null)) as { email?: unknown; note?: unknown } | null;
 
   const email = normalizeEmail(typeof body?.email === 'string' ? body.email : '');
   const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 500) : '';
@@ -155,8 +162,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return json({ error: 'Could not record that request.' }, 500);
   }
 
-  const origin = Deno.env.get('SUPABASE_URL') ?? '';
-  const link = `${origin}/functions/v1/access/decide?token=${encodeURIComponent(token)}`;
+  const link = decisionLink(Deno.env.get('APP_ORIGIN') ?? '', token);
   const to = Deno.env.get('ACCESS_TO');
 
   if (!to) {
@@ -173,6 +179,7 @@ async function handleRequest(req: Request): Promise<Response> {
         (note ? `<p>They said: ${escapeHtml(note)}</p>` : '') +
         `<p><a href="${link}">Review this request</a></p>` +
         `<p style="color:#6b6353">The link opens a page with Approve and Deny. ` +
+        `No sign-in needed — the link itself is the permission, and it works once. ` +
         `It expires in ${TOKEN_TTL_DAYS} days.</p>`,
     );
   }
@@ -180,100 +187,51 @@ async function handleRequest(req: Request): Promise<Response> {
   return json({ outcome: 'created' });
 }
 
-/**
- * The confirmation page. **This route mutates nothing, and that is the whole
- * reason it exists.** A bare GET link that grants access is one email-security
- * scanner or link-prefetcher away from approving people unattended, so the
- * link in the email is safe to fetch and the buttons below do the work.
- */
-function decisionPage(token: string, email: string, note: string | null): Response {
-  const safeToken = escapeHtml(token);
-  return new Response(
-    `<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Daybook access request</title>
-<style>
-  body { font: 16px/1.5 system-ui, sans-serif; background: #f7f5f0; color: #1f1b16;
-         display: grid; place-items: center; min-height: 100dvh; margin: 0; padding: 24px; }
-  main { background: #fffdf7; padding: 32px; border-radius: 16px; max-width: 32rem;
-         box-shadow: 0 10px 30px rgb(0 0 0 / .08); }
-  button { font: inherit; padding: 12px 24px; border-radius: 12px; border: 0;
-           cursor: pointer; margin-right: 12px; }
-  .approve { background: #1f1b16; color: #fffdf7; }
-  .deny { background: transparent; color: #6b6353; border: 1px solid #d6cfc2; }
-  .note { color: #6b6353; }
-</style>
-<main>
-  <h1>Access request</h1>
-  <p><strong>${escapeHtml(email)}</strong> asked for access to Daybook.</p>
-  ${note ? `<p class="note">They said: ${escapeHtml(note)}</p>` : ''}
-  <form method="POST">
-    <input type="hidden" name="token" value="${safeToken}">
-    <button class="approve" name="decision" value="approve" type="submit">Approve</button>
-    <button class="deny" name="decision" value="deny" type="submit">Deny</button>
-  </form>
-</main>`,
-    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-  );
-}
-
-const plainPage = (message: string) =>
-  new Response(
-    `<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Daybook</title>
-<style>body{font:16px/1.5 system-ui,sans-serif;background:#f7f5f0;color:#1f1b16;
-display:grid;place-items:center;min-height:100dvh;margin:0;padding:24px}</style>
-<main><p>${escapeHtml(message)}</p></main>`,
-    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-  );
-
 /** Looks a token up by its hash. Never compares the token itself. */
 async function rowForToken(token: string) {
+  if (!token) return null;
   const { data } = await supabase
     .from('access_requests')
-    .select('id, email, note, status, token_expires_at')
+    .select('id, email, note, token_expires_at')
     .eq('decision_token_hash', await hashToken(token))
     .maybeSingle();
   return data;
 }
 
-async function handleDecideGet(req: Request): Promise<Response> {
-  const token = new URL(req.url).searchParams.get('token') ?? '';
-  const row = await rowForToken(token);
-
-  if (!row) return plainPage('That link is no longer valid. It may already have been used.');
-  if (row.token_expires_at && new Date(row.token_expires_at) < new Date()) {
-    return plainPage('That link has expired. Decide this one in the Supabase dashboard.');
-  }
-  return decisionPage(token, row.email as string, (row.note as string | null) ?? null);
+/** Both POST routes take a JSON body; anything else reads as empty. */
+async function readBody(req: Request): Promise<{ token: string; decision: string }> {
+  const body = (await req.json().catch(() => null)) as {
+    token?: unknown;
+    decision?: unknown;
+  } | null;
+  return {
+    token: typeof body?.token === 'string' ? body.token : '',
+    decision: typeof body?.decision === 'string' ? body.decision : '',
+  };
 }
 
-async function handleDecidePost(req: Request): Promise<Response> {
-  // The confirmation page posts a form, so both encodings are accepted.
-  const type = req.headers.get('content-type') ?? '';
-  let token = '';
-  let decision = '';
+/**
+ * What the app's page shows before anyone presses anything. **Mutates
+ * nothing**, for the reason the page exists at all: a link that decides on
+ * open is one email-security scanner away from approving people unattended.
+ */
+async function handleLookup(req: Request): Promise<Response> {
+  const { token } = await readBody(req);
+  const row = await rowForToken(token);
+  const state = tokenState(row, new Date());
+  if (state !== 'pending' || !row) return json({ state });
+  return json({ state, email: row.email, note: row.note ?? null });
+}
 
-  if (type.includes('application/json')) {
-    const body = (await req.json().catch(() => null)) as
-      | { token?: unknown; decision?: unknown }
-      | null;
-    token = typeof body?.token === 'string' ? body.token : '';
-    decision = typeof body?.decision === 'string' ? body.decision : '';
-  } else {
-    const form = await req.formData();
-    token = String(form.get('token') ?? '');
-    decision = String(form.get('decision') ?? '');
+async function handleDecide(req: Request): Promise<Response> {
+  const { token, decision } = await readBody(req);
+  if (decision !== 'approve' && decision !== 'deny') {
+    return json({ error: 'Unknown decision.' }, 400);
   }
-
-  if (decision !== 'approve' && decision !== 'deny') return plainPage('Unknown decision.');
 
   const row = await rowForToken(token);
-  if (!row) return plainPage('That link is no longer valid. It may already have been used.');
-  if (row.token_expires_at && new Date(row.token_expires_at) < new Date()) {
-    return plainPage('That link has expired. Decide this one in the Supabase dashboard.');
-  }
+  const state = tokenState(row, new Date());
+  if (state !== 'pending' || !row) return json({ state });
 
   const status = decision === 'approve' ? 'approved' : 'denied';
 
@@ -288,7 +246,7 @@ async function handleDecidePost(req: Request): Promise<Response> {
     .select('email')
     .maybeSingle();
 
-  if (!updated) return plainPage('That request has already been decided.');
+  if (!updated) return json({ state: 'invalid' });
 
   if (status === 'approved') {
     const appOrigin = Deno.env.get('APP_ORIGIN') ?? '';
@@ -302,11 +260,22 @@ async function handleDecidePost(req: Request): Promise<Response> {
   }
 
   // Nothing is sent on a denial. They find out if and when they ask again.
-  return plainPage(
-    status === 'approved'
-      ? `Approved. ${updated.email} has been emailed.`
-      : `Denied. Nothing was sent to them.`,
-  );
+  return json({ state: status, email: updated.email });
+}
+
+/**
+ * Links mailed before 3 Oct point here with the token in the query string.
+ * A redirect is the one thing this domain can still do for them: it carries
+ * no HTML, so Supabase leaves it alone.
+ */
+function handleLegacyDecide(req: Request): Response {
+  const token = new URL(req.url).searchParams.get('token') ?? '';
+  const appOrigin = Deno.env.get('APP_ORIGIN');
+  if (!appOrigin) return json({ error: 'APP_ORIGIN is not set.' }, 500);
+  return new Response(null, {
+    status: 302,
+    headers: { Location: decisionLink(appOrigin, token), ...cors },
+  });
 }
 
 Deno.serve(async (req) => {
@@ -318,9 +287,13 @@ Deno.serve(async (req) => {
     return await handleRequest(req);
   }
 
+  if (req.method === 'POST' && pathname.endsWith('/lookup')) {
+    return await handleLookup(req);
+  }
+
   if (pathname.endsWith('/decide')) {
-    if (req.method === 'GET') return await handleDecideGet(req);
-    if (req.method === 'POST') return await handleDecidePost(req);
+    if (req.method === 'GET') return handleLegacyDecide(req);
+    if (req.method === 'POST') return await handleDecide(req);
   }
 
   return json({ error: 'Not found' }, 404);

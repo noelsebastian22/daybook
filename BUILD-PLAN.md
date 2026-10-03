@@ -960,7 +960,7 @@ tracked.
     `Before User Created` auth hook checks the allowlist on **every**
     provider. State: **deployed 19 Sep; one toggle from live.** Migration `0007`
     (`access_requests`, `hook_gate_signup`), the `access` Edge Function
-    (request, a confirmation page, the decision), `core/access.ts`, the
+    (request, lookup, the decision), `core/access.ts`, the
     `/request-access` page and the refused-sign-in routing are all on
     `master` and deployed. The migration is applied, the function is at v4
     with its four secrets, the hook is registered and ENABLED, and the owner's
@@ -2981,6 +2981,30 @@ hour is.
   through `due_reminders`' grace window. It is not retried and does not need
   to be.
 
+### The approval page moves into the app, 3 Oct
+
+**Noel decides access requests at `/access/decide#token=…` in the app, not
+on a page the `access` function serves.** Noel's report: opening the link in
+the email "just opened an XML file". `curl` showed why — Supabase rewrites
+`text/html` from a function on `*.supabase.co` to `text/plain`, with
+`content-security-policy: default-src 'none'; sandbox` and `nosniff`. The
+browser got source code, and the sandbox would have blocked the form anyway.
+It was never tested from a real inbox; every 19 Sep check was `curl`.
+
+- **No sign-in, and no guard on the route.** The inbox the email goes to is
+  not a Daybook account. The token is the permission: 32 CSPRNG bytes, stored
+  as a SHA-256 hash, single-use, 30 days.
+- **The token travels in the fragment, then a POST body.** Never in a request
+  URL, so neither Vercel's nor Supabase's logs hold it. The old link had it
+  in the query string, and the edge logs record full URLs.
+- **The function is JSON only:** `POST /lookup` reads, `POST /decide` spends
+  the token, and `GET /decide` 302s pre-3-Oct links to the app page. A
+  redirect is not HTML, so Supabase leaves it alone.
+- **Rejected: a Supabase custom domain.** A paid add-on to serve one page.
+- **Deploy order matters.** The app page must be live before the function,
+  or the new links and the redirect land on a route that does not exist and
+  fall through to `/today`.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2999,17 +3023,6 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
-
-- **The approval link in the access email does not work, found 3 Oct.**
-  Supabase rewrites any `text/html` response from a function on
-  `*.supabase.co` to `text/plain`, and adds `content-security-policy:
-  default-src 'none'; sandbox` and `nosniff`. Verified with `curl` against
-  `/functions/v1/access/decide`. The browser shows or downloads the page's
-  source, and the sandbox would block the Approve/Deny form even if it
-  rendered. Not deferred by choice — it was never tested from a real inbox.
-  Planned fix: the confirmation page moves into the app at
-  `/access/decide?token=`, posts JSON to the function (which already accepts
-  it), and the email links there. Until then decide in the database.
 
 - **Request and approval emails share Resend's 100/day with the digest,
   19 Sep.** The digest is one per user per day, so at roughly 90 users the

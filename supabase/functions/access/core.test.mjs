@@ -11,6 +11,8 @@ import {
   newDecisionToken,
   hashToken,
   outcomeForStatus,
+  decisionLink,
+  tokenState,
 } from './core.ts';
 
 let failed = 0;
@@ -53,6 +55,37 @@ const hashed = await hashToken('a-known-token');
 check('hash is sha256 hex', /^[0-9a-f]{64}$/.test(hashed), true);
 check('hash is stable', await hashToken('a-known-token'), hashed);
 check('hash differs per input', (await hashToken('other')) === hashed, false);
+
+// The link in Noel's email. The token rides in the fragment, which a browser
+// never sends to any server — so it reaches neither Vercel's nor Supabase's
+// request logs, and is not in the Referer of anything the page loads.
+check(
+  'link puts the token in the fragment',
+  decisionLink('https://daybook.example.com', 'abc_-123'),
+  'https://daybook.example.com/access/decide#token=abc_-123',
+);
+check(
+  'link tolerates a trailing slash',
+  decisionLink('https://daybook.example.com/', 'abc'),
+  'https://daybook.example.com/access/decide#token=abc',
+);
+
+// What a token is worth right now. No row means never issued or already
+// spent — deciding clears the hash, so the two cannot be told apart, and
+// saying which would only help someone probing.
+const now = new Date('2026-10-03T00:00:00Z');
+check('no row is invalid', tokenState(null, now), 'invalid');
+check(
+  'future expiry is pending',
+  tokenState({ token_expires_at: '2026-10-04T00:00:00Z' }, now),
+  'pending',
+);
+check(
+  'past expiry is expired',
+  tokenState({ token_expires_at: '2026-10-02T23:59:59Z' }, now),
+  'expired',
+);
+check('no expiry is pending', tokenState({ token_expires_at: null }, now), 'pending');
 
 console.log(failed === 0 ? `\nall passed` : `\n${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -40,6 +40,16 @@ export const routes: Routes = [
       import('./features/request-access/request-access').then((m) => m.RequestAccess),
   },
   {
+    // Where Noel decides a request, from the link in the email. **No guard
+    // at all**, unlike its siblings: the token in the link is the
+    // permission, and the inbox it goes to is not a Daybook account. It must
+    // behave the same signed in, signed out, or on a fresh device.
+    path: 'access/decide',
+    title: 'Access request',
+    loadComponent: () =>
+      import('./features/access-decide/access-decide').then((m) => m.AccessDecide),
+  },
+  {
     // Everything signed-in hangs off one shell route, so the drawer mounts
     // once and only the outlet swaps. Login sits outside it deliberately —
     // there is nothing to navigate to until there is a session.

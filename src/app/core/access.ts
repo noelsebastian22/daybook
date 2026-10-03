@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-import type { AccessOutcome } from './models';
+import type { AccessDecision, AccessLookup, AccessOutcome } from './models';
 import { normalizeEmail } from './access.helpers';
 
 /**
- * The one outward call the signed-out request form makes.
+ * The outward calls the two signed-out access pages make: the request form,
+ * and the page Noel decides on.
  *
  * A plain `fetch` rather than `functions.invoke`, because there is no
  * `functions.invoke` in this app and there must not be one: `core/supabase.ts`
@@ -23,7 +24,7 @@ import { normalizeEmail } from './access.helpers';
  */
 @Injectable({ providedIn: 'root' })
 export class Access {
-  private readonly endpoint = `${environment.supabaseUrl.replace(/\/$/, '')}/functions/v1/access/request`;
+  private readonly base = `${environment.supabaseUrl.replace(/\/$/, '')}/functions/v1/access`;
 
   /**
    * Throws on a network or server failure, so the caller can toast and leave
@@ -31,7 +32,7 @@ export class Access {
    * accounted for.
    */
   async request(email: string, note: string): Promise<AccessOutcome> {
-    const response = await fetch(this.endpoint, {
+    const response = await fetch(`${this.base}/request`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,14 +44,43 @@ export class Access {
       body: JSON.stringify({ email: normalizeEmail(email), note }),
     });
 
-    const body = (await response.json().catch(() => null)) as
-      | { outcome?: AccessOutcome; error?: string }
-      | null;
+    const body = (await response.json().catch(() => null)) as {
+      outcome?: AccessOutcome;
+      error?: string;
+    } | null;
 
     if (!response.ok || !body?.outcome) {
       throw new Error(body?.error ?? 'Could not send that request.');
     }
 
     return body.outcome;
+  }
+
+  /** What a decision link is for. Reads only; opening the page decides nothing. */
+  lookup(token: string): Promise<AccessLookup> {
+    return this.post<AccessLookup>('lookup', { token });
+  }
+
+  /** Spends the token. Throws on a network failure, which leaves it unspent. */
+  decide(token: string, decision: 'approve' | 'deny'): Promise<AccessDecision> {
+    return this.post<AccessDecision>('decide', { token, decision });
+  }
+
+  /**
+   * The token goes in the body, never the URL, for the same reason the email
+   * puts it in the fragment: request logs record URLs, not bodies.
+   */
+  private async post<T extends { state: string }>(route: string, payload: object): Promise<T> {
+    const response = await fetch(`${this.base}/${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: environment.supabaseKey },
+      body: JSON.stringify(payload),
+    });
+
+    const body = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+    if (!response.ok || !body?.state) {
+      throw new Error(body?.error ?? 'Could not reach the server.');
+    }
+    return body;
   }
 }

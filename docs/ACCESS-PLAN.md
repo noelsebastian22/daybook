@@ -176,6 +176,11 @@ from this form, and do not need to be — both are told to go and sign in.
    `GET` that grants access is one email-security scanner away from approving
    people unattended. The link is safe to fetch; the buttons on the page do the
    work via `POST`.
+   **The page is in the app, at `/access/decide#token=…`, since 3 Oct.** It was
+   first served by the function itself, and Supabase rewrites `text/html` from
+   `*.supabase.co` to `text/plain` inside a sandbox CSP — it arrived as source
+   code. The token rides in the fragment so no server logs it, the page needs
+   no sign-in, and links mailed before the move redirect there.
 3. That page offers **Approve** and **Deny**. Either writes the decision and
    burns the token.
 4. On approval the requester is emailed: "You're in — sign in at …". On denial
@@ -295,8 +300,11 @@ and none does enough work to deserve its own cold start.
 | Route | Purpose |
 |---|---|
 | `POST /request` | Normalize, dedupe, throttle, insert, email Noel. Returns the state enum. |
-| `GET /decide?token=…` | Returns a small HTML confirmation page. **Mutates nothing.** |
-| `POST /decide` | Applies the decision, burns the token, emails the requester on approval. |
+| `POST /lookup` | JSON body `{ token }`. Returns `pending` with the email and note, or `expired` / `invalid`. **Mutates nothing.** Called by the app's `/access/decide`. |
+| `POST /decide` | JSON body `{ token, decision }`. Applies the decision, burns the token, emails the requester on approval. |
+| `GET /decide?token=…` | Links mailed before 3 Oct. `302` to the app page with the token moved into the fragment. |
+
+**No route returns HTML** — see §4.2 for why it cannot.
 
 `verify_jwt = false` for this function in `supabase/config.toml`. The `/decide`
 routes are clicked from an email client and carry no `Authorization` header.

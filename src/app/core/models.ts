@@ -95,3 +95,15 @@ export interface TaskDraft {
  * that already existed.
  */
 export type AccessOutcome = 'created' | 'pending' | 'approved' | 'denied';
+
+/**
+ * A decision link that cannot decide: `expired` past its 30 days, `invalid`
+ * for never issued or already used — the function will not say which.
+ */
+export type DeadToken = { state: 'expired' | 'invalid' };
+
+/** What `/access/decide` shows before anything is pressed. */
+export type AccessLookup = { state: 'pending'; email: string; note: string | null } | DeadToken;
+
+/** What pressing Approve or Deny did. */
+export type AccessDecision = { state: 'approved' | 'denied'; email: string } | DeadToken;

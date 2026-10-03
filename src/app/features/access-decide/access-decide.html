@@ -1,0 +1,87 @@
+<!--
+  Deciding an access request. Signed out by design, so it wears the same
+  paper as /login and /request-access: sunken desk, raised sheet, the lockup
+  on top. Noel reaches it from an email, and it should look like Daybook
+  rather than a bare admin form.
+
+  The two buttons are the confirmation. There is no "are you sure" after
+  them — pressing one is already the second step after opening the link.
+-->
+<div class="grid min-h-dvh place-items-center bg-surface-sunken p-6">
+  <main class="w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <h1 class="mb-4 flex justify-center font-display">
+        <app-logo variant="lockup" tone="primary" [size]="56" />
+      </h1>
+      <p class="text-body text-text-muted">Access request</p>
+    </div>
+
+    <div class="rounded-panel bg-surface-raised p-6 shadow-xl" aria-live="polite">
+      @switch (view().state) {
+        @case ('loading') {
+          <p class="text-body text-text-muted" role="status">Loading the request...</p>
+        }
+
+        @case ('pending') {
+          @if (request(); as r) {
+            <p class="text-body">
+              <strong class="break-all font-medium">{{ r.email }}</strong> asked for access.
+            </p>
+            @if (r.note) {
+              <p class="mt-3 text-body text-text-muted">They said: {{ r.note }}</p>
+            }
+          }
+
+          <div class="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              class="w-full rounded-card bg-inverse px-4 py-3 font-medium text-on-inverse transition hover:bg-inverse-hover disabled:bg-fill-strong disabled:text-text-subtle disabled:hover:bg-fill-strong"
+              [disabled]="busy()"
+              (click)="decide('approve')"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              class="w-full rounded-card border border-border-strong px-4 py-3 font-medium transition hover:bg-hover disabled:border-border disabled:text-text-subtle disabled:hover:bg-transparent"
+              [disabled]="busy()"
+              (click)="decide('deny')"
+            >
+              Deny
+            </button>
+          </div>
+        }
+
+        @case ('approved') {
+          <div class="rounded-card bg-done-tint p-4 text-body text-on-done-tint">
+            Approved. <span class="break-all">{{ decidedEmail() }}</span> has been emailed.
+          </div>
+        }
+
+        @case ('denied') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            Denied. Nothing was sent to them.
+          </div>
+        }
+
+        @case ('expired') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            This link has expired. Decide this one in the Supabase dashboard.
+          </div>
+        }
+
+        @case ('invalid') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            This link is no longer valid. It may already have been used.
+          </div>
+        }
+
+        @case ('failed') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            Could not load this request. Check the connection and reload the page.
+          </div>
+        }
+      }
+    </div>
+  </main>
+</div>
