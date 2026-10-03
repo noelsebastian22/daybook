@@ -221,6 +221,12 @@ Rules that come from real failures here:
   and dark mode rewrote most of them. Assert on text, ARIA, state and calls.
 - `src/testing/**` is excluded from `tsconfig.app.json`. It was briefly being
   compiled into the production bundle.
+- **`core/supabase.spec.ts` is the one spec on the real `Supabase` class.** It
+  constructs it with `new` and stubs global `fetch`, so it still cannot reach
+  the network. Use it for anything in `fetchWithAuth`.
+- **A PostgREST query builder sends nothing until it is awaited.** Holding
+  one in a variable while stepping fake timers steps a clock nobody is
+  waiting on, and the spec times out. Start it with `.then((r) => r)` first.
 
 ## Colour
 

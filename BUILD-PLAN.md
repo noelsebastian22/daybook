@@ -2947,6 +2947,40 @@ kills a transition silently — the same trap `task-detail.ts` documents), and
 both rules survive the build. **The motion itself has not been watched on a
 screen.**
 
+### A token from the future is resent once, 3 Oct
+
+**Every REST request that PostgREST refuses with `401 JWT issued at future`
+is sent once more, two seconds later.** `retryIssuedInFuture` in
+`core/supabase.helpers.ts`, wired into `fetchWithAuth`; the delay is
+`ISSUED_AT_FUTURE_RETRY_MS` in `core/supabase.constants.ts`.
+
+Found from Noel's report that opening the app after a few days away showed
+"Could not carry unfinished tasks over" and left an open task on its old
+date. The edge logs had it: 28 Sep 21:23:12Z, `rollover_and_snapshot` got
+`401` with `proxy_status: PostgREST; error=PGRST303`, and the 79-byte body
+matches `JWT issued at future` and no other PGRST303 message. The token was
+seconds old and valid — `ensure_user_setup` 13 ms earlier and `tasks` 0.5 s
+later succeeded with the same signature. One PostgREST node's clock lagged
+the issuer's.
+
+**Why it tracks time away.** Any open more than an hour after the last makes
+`getSession()` mint a fresh token, and rollover is the first request to carry
+it, within a second. An open inside the hour reuses an older token whose
+`iat` is safely in the past. Two or three days is not the threshold; one
+hour is.
+
+- **One retry, only for that exact message.** Every other 401 — an expired
+  token above all — gets the same answer however often it is sent.
+- **In the fetch wrapper, not in `rollover()`.** `loadTasks`,
+  `loadCategories` and `ensure_user_setup` carry the same fresh token, and
+  any of them can land on the lagging node.
+- **Rollover itself was never wrong.** The live function moves open tasks to
+  the opening day, not the day after, and adds the full gap to
+  `carried_over_count`. Noel asked; that is the behaviour wanted.
+- The cron path met the same skew on 21 and 22 Aug (§12, §13) and self-heals
+  through `due_reminders`' grace window. It is not retried and does not need
+  to be.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -2965,6 +2999,17 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **The approval link in the access email does not work, found 3 Oct.**
+  Supabase rewrites any `text/html` response from a function on
+  `*.supabase.co` to `text/plain`, and adds `content-security-policy:
+  default-src 'none'; sandbox` and `nosniff`. Verified with `curl` against
+  `/functions/v1/access/decide`. The browser shows or downloads the page's
+  source, and the sandbox would block the Approve/Deny form even if it
+  rendered. Not deferred by choice — it was never tested from a real inbox.
+  Planned fix: the confirmation page moves into the app at
+  `/access/decide?token=`, posts JSON to the function (which already accepts
+  it), and the email links there. Until then decide in the database.
 
 - **Request and approval emails share Resend's 100/day with the digest,
   19 Sep.** The digest is one per user per day, so at roughly 90 users the
@@ -3687,6 +3732,10 @@ above the whole system, which is why the three that remain (`.skip-link`,
   on 21 Aug: at the same millisecond, `due_digests` got a 401 and
   `due_reminders` a 200, on one client with one token. It cleared on the next
   tick with no intervention. Do not debug a fresh key for a couple of minutes.
+- **A freshly minted user token can be refused the same way**, seen 28 Sep on
+  rollover. The browser client now resends once (§9, 3 Oct). The tell is
+  `proxy_status: PostgREST; error=PGRST303` with a 79-byte body; the body
+  itself is not in the edge logs.
 
 ### iOS PWA
 

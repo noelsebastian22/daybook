@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { AuthClient } from '@supabase/auth-js';
 import { PostgrestClient } from '@supabase/postgrest-js';
 import { environment } from '../../environments/environment';
+import { retryIssuedInFuture } from './supabase.helpers';
 
 /**
  * Composes the two Supabase packages this app actually uses instead of calling
@@ -118,6 +119,11 @@ export class Supabase {
         `Bearer ${data.session?.access_token ?? environment.supabaseKey}`,
       );
     }
-    return fetch(input, { ...init, headers });
+    // Not upstream behaviour. A token minted a moment ago can be refused by a
+    // PostgREST node whose clock lags — see `retryIssuedInFuture`.
+    return retryIssuedInFuture(
+      () => fetch(input, { ...init, headers }),
+      (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    );
   }
 }
