@@ -11,6 +11,81 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-03 · claude-code · carry-over, approval page, stale build
+
+**Did**
+- **Rollover error after time away, root-caused from the edge logs.** 28 Sep
+  21:23:12Z, `rpc/rollover_and_snapshot` → `401`, `proxy_status: PostgREST;
+  error=PGRST303`, 79-byte body = `JWT issued at future`. Same token accepted
+  13 ms before and 0.5 s after. `fetchWithAuth` now resends once after 2 s for
+  that exact message: `retryIssuedInFuture` in `core/supabase.helpers.ts`,
+  delay in `supabase.constants.ts`. `core/supabase.spec.ts` replays it against
+  the real class with `fetch` stubbed.
+- **Approval link fixed.** Supabase rewrites `text/html` from `*.supabase.co`
+  to `text/plain` + `CSP: default-src 'none'; sandbox`, so the decide page
+  arrived as source. New unguarded app page `features/access-decide/`, token
+  in `#fragment`; `access` is JSON only (`POST /lookup`, `POST /decide`,
+  `GET /decide` → 302 for old links). `decisionLink` / `tokenState` in
+  `core.ts`. **`access` deployed as v5.**
+- **Unknown URLs ask for a newer build first.** `**` now runs
+  `core/unknown-route.guard.ts`: `checkForUpdate` + `activateUpdate`, and if
+  the tab moved, `HARD_LOAD` (`replaceState` + `reload`) at the same URL.
+- Merged `feat/filter-lens`, `fix/jwt-issued-at-future`,
+  `feat/access-decide-page` into `master` (rebased, linear) and pushed; Vercel
+  served `main-CXJMBEJO.js` ~30 s later. The guard commit `7bca603` is on
+  `master` and pushed with this entry.
+- **Verified in production:** the 29 Sep request for
+  `noel.sebastian@winning.com.au` approved through the page at 03:20Z, Resend
+  `ok`, and the account signed in with Google — own settings row, four starter
+  categories, zero tasks.
+- 811 tests / 46 files; `core.test.mjs` 26 pass. Initial **438.92 kB** /
+  109.43 kB transfer. No schema change.
+
+**Decided**
+- **Rollover's "carry to today" was already right** — tasks move to the
+  opening day and `carried_over_count` grows by the full gap. Noel asked; no
+  change.
+- **Retry only `JWT issued at future`, once, in the fetch wrapper** — not in
+  `rollover()`, since every first request after a refresh carries the fresh
+  token. The trigger is >1 h away, not "two or three days".
+- **The approver never signs in.** The token is the permission; the inbox
+  (`ACCESS_TO`, Zoho) is not a Daybook account.
+- **No reload-on-`VERSION_READY`.** It would reload under someone typing;
+  only unknown URLs pay for the update check.
+
+**Didn't work**
+- **`supabase.spec.ts` hung until the builder was started.** A PostgREST
+  builder sends nothing until awaited; stepping fake timers while it sat in a
+  variable stepped a clock nobody waited on. Logged in `AGENTS.md`.
+- **The first production click on the approval link went to `/today`.** The
+  service worker ran the pre-deploy build. That is what the guard fixes — for
+  the *next* new route, not retroactively.
+- **No DB evidence of Noel's stuck task.** Completing pins `scheduled_date`
+  to today (`task.store.ts:592`), which erased it. Only the edge log proves it.
+- `query_logs` caps the window at 24 h — walk back a day at a time.
+
+**Open**
+- **The guard's reload has never run against a real service worker.** Proven
+  only when a later deploy adds a route.
+- **The retry has not been seen firing in production.** Skew is per-node and
+  intermittent.
+- **Gate 1:** second account exists; the switch between the two accounts on
+  one device has not been done.
+- `feat/filter-lens` is merged, still unseen on a real phone or in the
+  installed PWA (carried from 23 Sep).
+- Merged branches still exist locally; not deleted.
+- The `notify` cron path has the same skew and is not retried — it
+  self-heals through the grace window (§12).
+
+**Next**
+- Do the Gate 1 swap on the iPhone PWA: sign out of the gmail account, in as
+  winning.com.au, add a task, swap back, and check each Today shows only its
+  own rows and the offline queue and push did not cross over. Check the
+  filter lens at 375 px on the same pass.
+
+**Touched** — `src/app/core/supabase.ts`, `supabase.helpers.ts`, `supabase.helpers.spec.ts`, `supabase.constants.ts`, `supabase.spec.ts`, `unknown-route.guard.ts`, `unknown-route.guard.spec.ts`, `access.ts`, `models.ts`, `src/app/app.routes.ts`, `src/app/features/access-decide/*`, `supabase/functions/access/{index.ts,core.ts,core.test.mjs}`, `BUILD-PLAN.md`, `docs/ACCESS-PLAN.md`, `AGENTS.md`
+
+
 ## 2026-09-23 · claude-code · the filter lens
 
 **Did**

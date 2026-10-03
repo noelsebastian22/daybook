@@ -962,15 +962,15 @@ tracked.
 19. **An access gate in front of signup.** A stranger asks at
     `/request-access`, Noel approves or denies from an email, and a
     `Before User Created` auth hook checks the allowlist on **every**
-    provider. State: **deployed 19 Sep; one toggle from live.** Migration `0007`
+    provider. State: **live, verified end to end 3 Oct.** Migration `0007`
     (`access_requests`, `hook_gate_signup`), the `access` Edge Function
     (request, lookup, the decision), `core/access.ts`, the
-    `/request-access` page and the refused-sign-in routing are all on
-    `master` and deployed. The migration is applied, the function is at v4
-    with its four secrets, the hook is registered and ENABLED, and the owner's
-    address is seeded `approved`. **The one thing left is the "Allow new users
-    to sign up" toggle**, which goes ON last — until then the gate refuses
-    approved users too. See §9 and §12.
+    `/request-access` and `/access/decide` pages and the refused-sign-in
+    routing are all on `master` and deployed. The function is at **v5**. On
+    3 Oct a real request was approved from the emailed link and the approved
+    address signed up with Google, so the sign-up toggle is on and the hook
+    admits approved addresses. This line read "one toggle from live" until
+    then. See §9 and §12.
 
 ### 5.1 Signature interactions
 
