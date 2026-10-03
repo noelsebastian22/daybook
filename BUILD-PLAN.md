@@ -397,6 +397,10 @@ multi-tenancy.
   prove the browser hands the same push endpoint to two accounts, which is how
   C1 happened. The remaining work is a human on one device with two accounts,
   plus seeing push deliver off `push_subscriptions`.
+  **The second account exists since 3 Oct:** `noel.sebastian@winning.com.au`,
+  approved through `/access/decide` and signed in with Google — created
+  03:21Z, its own `user_settings` row, the four starter categories, no tasks.
+  The switch back and forth on one device has not been done yet.
 
 ### Phase 9, the paper retheme: in progress, 17 Sep
 
@@ -3004,6 +3008,37 @@ It was never tested from a real inbox; every 19 Sep check was `curl`.
 - **Deploy order matters.** The app page must be live before the function,
   or the new links and the redirect land on a route that does not exist and
   fall through to `/today`.
+- **Verified in production 3 Oct:** the 29 Sep email's old-format link
+  redirected, the page looked the request up, Approve recorded it, Resend
+  accepted the "You're in" mail, and the approved address signed in.
+
+### An unknown URL asks for a newer build before giving up, 3 Oct
+
+**The `**` route runs `unknownRouteGuard` instead of redirecting straight to
+`/today`.** If the service worker can move the tab onto a newer version, the
+guard reloads the same URL on it, fragment included; otherwise `/today` as
+before.
+
+Found the same day the approval page shipped. Noel's first click on the
+access link landed on `/today#token=…`: the service worker served the build
+it already held, which predated `/access/decide`, and fetches the new one in
+the background. The second click worked. **Any link to a route added in a
+deploy breaks this way once per device**, and email links are where it
+shows.
+
+- **Rejected: reload whenever a new version is ready.** It fixes the same
+  case and more, but it can reload under someone mid-sentence in the
+  composer. Only unknown URLs pay here, and they were going to be redirected
+  away anyway.
+- **It cannot loop.** After the reload the newest version is current,
+  `activateUpdate()` reports nothing newer, and the guard falls through.
+- **`HARD_LOAD` is `replaceState` + `reload()`**, not `location.assign()`:
+  on first load the target differs from the current URL by nothing at all,
+  and an assign that differs only by fragment is a hash change, not a load.
+- **Only half-proven.** Specs cover the four branches and the route config
+  boots, but the reload has never run against a real service worker — dev
+  mode has none. It is proven by the next deploy that adds a route, and only
+  for devices that already hold the build carrying this guard.
 
 ## 11. Backlog
 

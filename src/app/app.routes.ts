@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth.guard';
+import { unknownRouteGuard } from './core/unknown-route.guard';
 
 /**
  * `data: { preload: true }` opts a route into `WarmDrawerDestinations`
@@ -105,5 +106,14 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'today' },
+  {
+    // Unknown URLs still end at /today, but via a guard that first checks
+    // whether this tab is an old build that predates the route — see
+    // `core/unknown-route.guard.ts`. A route with a guard cannot also carry
+    // `redirectTo`, so the guard returns the /today tree itself, and the
+    // empty `children` is only there to make the route valid.
+    path: '**',
+    canActivate: [unknownRouteGuard],
+    children: [],
+  },
 ];
