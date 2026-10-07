@@ -147,19 +147,24 @@ Edge Function, signed in through Supabase Auth's OAuth 2.1 server. See
 1. Project Settings → JWT Keys: the signing key must be **asymmetric** (ES256
    or RS256). `@supabase/server` rejects HS256 user tokens, so with a legacy
    key every MCP call is a 401. Rotating keeps old tokens valid until expiry.
+   Live is ES256 current, Legacy HS256 previous (checked 8 Oct). **Never revoke
+   the legacy key**: `notify` and `access` still use the legacy service_role
+   JWT it signs.
 2. Authentication → OAuth Server: **enable**, **Allow Dynamic Client
    Registration** on, Authorization Path **`/oauth/consent`**.
 3. Authentication → URL Configuration: Site URL is
    `https://daybook.noel-sebastian.com`, which the Authorization Path is
    appended to.
-4. While there: leaked-password protection on (Gate 0 blocker 5).
+4. ~~Leaked-password protection~~: **skip.** Pro-plan only and Daybook has no
+   passwords; BUILD-PLAN §14. This step was wrong until 8 Oct.
 
 **Deploy** from a committed tree, with the CLI — not the MCP tool:
 
-    supabase functions deploy mcp
+    supabase functions deploy mcp --use-api
 
 `verify_jwt = false` comes from `config.toml`; the function does its own
-verification. Then the client, which carries `/oauth/consent`.
+verification. `--use-api` bundles on Supabase's side, so Docker need not be
+running; first deployed this way 8 Oct. Then the client, which carries `/oauth/consent`.
 
 **Check the handshake** before connecting anything:
 
@@ -172,7 +177,12 @@ and `authorization_servers` of `https://zzacswfongmzpnhcjiqp.supabase.co/auth/v1
 
 **Connect:**
 - claude.ai, desktop, phone: Settings → Connectors → Add custom connector →
-  the URL above. Sign in and Allow on the consent page.
+  the URL above. Sign in and Allow on the consent page. If Connect only spins,
+  the logs show discovery and `POST /oauth/clients/register` → 201 but no
+  `/oauth/authorize`: the client never opened its window. On 8 Oct no connector
+  in the desktop app could open one until a restart. Each try leaves an unused
+  client in `auth.oauth_clients` (no consent, no session) — clear them in
+  Authentication → OAuth Apps.
 - Claude Code: `claude mcp add --transport http daybook <connector URL>`, then
   `/mcp` to sign in.
 - Anything else: `npx -y @modelcontextprotocol/inspector`, Streamable HTTP.

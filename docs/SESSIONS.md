@@ -11,6 +11,36 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-08 · claude-code · the MCP server, live
+
+**Did**
+- Committed the MCP work as `b285334` (Noel's `welcome.*` edits left out, still uncommitted). Build 439.67 kB, 840 tests / 50 files, domain + core tests green; Deno tool tests not run (no `deno` on the Mac).
+- Dashboard with Noel: signing key already ES256 current / Legacy HS256 previous; OAuth server on, DCR on, path `/oauth/consent`.
+- `supabase functions deploy mcp --use-api`; both handshake checks pass. `0008` applied as `daybook_category_ownership` (live: ten rows), constraints read back. Client fast-forwarded to `master`, pushed by Noel, live in ~30 s.
+- Connected from claude.ai. `get_day` here logged under Noel's user id; a second account (`38aa5094…`) captured and read only its own two tasks.
+- BUILD-PLAN: Phase 10 live, §4 MCP done, §5 item 20, §9 "Deploying the MCP server, 8 Oct", three §12 gaps; fixed stale Phase 7 `0007` line, access-gate heading, §14 signup toggle (ON), §4 blocker 5. OPERATIONS runbook corrected.
+
+**Decided**
+- Leave the Legacy HS256 key as "previous", never revoke: `notify` / `access` use the legacy service_role JWT. Retiring it is Gate 0 blocker 4.
+- Google "continue to …supabase.co": brand verification is the recommended fix (needs a `/privacy` page). Not started.
+
+**Didn't work**
+- Leaked-password protection: chased again because §4 blocker 5 and OPERATIONS step 4 still said "turn it on", against §9/§14 (Pro-only, won't do, 5 Sep). Both now say skip.
+- `apply_migration` and `git push` to production were blocked by Claude Code's auto-mode classifier. Fixed with a `/permissions` allow rule for `apply_migration`; Noel ran the push with `!`.
+- Claude desktop Connect span forever: discovery + DCR 201 in the logs, no `/oauth/authorize`. No connector could open a window; a laptop restart fixed it. Not a Daybook bug.
+- `supabase db push` must not be used: live versions are timestamps, the folder is `0001…0008`, so it would re-apply everything.
+
+**Open**
+- Five unused "Claude" rows in `auth.oauth_clients` survived Noel's dashboard delete (only `e4374724…` and `fbe4dee1…` hold consents).
+- `get_day` date risk (§12): Claude could pass its own, a day behind Sydney. Unseen; a suspected case was a misread.
+- Gate 0 blocker 4 (rotate service_role, Vault) still open. Gate 1's one-device two-account pass in the app still not done.
+- `welcome.html` / `welcome.spec.ts` uncommitted, Noel's.
+
+**Next**
+- Harden `get_day`'s description ("leave `date` out for today") and log the requested date, then delete the five orphan clients. Or start the `/privacy` page for Google brand verification.
+
+**Touched** — `BUILD-PLAN.md`, `docs/OPERATIONS.md`, `docs/SESSIONS.md`; live: `mcp` function, migration `0008`, Auth OAuth server settings
+
 ## 2026-10-06 · cowork · the MCP server, built
 
 **Did**

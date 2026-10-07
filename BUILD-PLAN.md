@@ -109,10 +109,10 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, applied 19 Sep as a ninth row (corrected 7 Oct; this cell said it was not yet applied). `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, applied 19 Sep as a ninth row (corrected 7 Oct; this cell said it was not yet applied). `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault), dashboard work not reachable from the MCP surface. Blocker 5 (leaked-password protection) is closed as won't-do: Pro-plan only, see §9 (corrected 8 Oct). **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
 | 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
-| 10 | MCP server: use the app from Claude, as the user, under RLS | **built 6 Oct, not deployed.** Shared domain module, consent page, Connected apps, refresh on return, the `mcp` function with eleven tools. 840 app tests, 8 Deno tool tests, domain and core tests under three zones; initial bundle 439.67 kB. Waiting on the dashboard (OAuth server, asymmetric keys), the CLI deploy, migration `0008` and the two-account check. [`docs/MCP-PLAN.md`](./docs/MCP-PLAN.md), OPERATIONS.md "The MCP server" |
+| 10 | MCP server: use the app from Claude, as the user, under RLS | **live, verified 8 Oct.** Built 6 Oct, deployed 8 Oct: the `mcp` function, migration `0008` (live is on ten rows), the client with `/oauth/consent` on `daybook.noel-sebastian.com`. Connected from claude.ai; a second account through its own connector saw only its own tasks, and each account's calls logged under its own user id. 840 app tests, initial bundle 439.67 kB. [`docs/MCP-PLAN.md`](./docs/MCP-PLAN.md), OPERATIONS.md "The MCP server" |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -182,10 +182,11 @@ re-uses as its own isolation check. Pulls in three items from further down:
 §4 item 12 (composite category FK, as `0008`), and Gate 0 blockers 4 and 5,
 done in the same dashboard visit that turns on the OAuth server.
 
-**Built 6 Oct on `feat/mcp`, not deployed** (§3, Phase 10). What is left, in
-order, is in OPERATIONS.md "The MCP server": asymmetric signing keys, the
-OAuth server on, `supabase functions deploy mcp`, the client, apply `0008`,
-connect Claude, then two accounts through two connectors.
+**Done: live and verified 8 Oct** (§3, Phase 10). The signing key was
+already ES256, the OAuth server is on with DCR and `/oauth/consent`, `mcp` is
+deployed, `0008` is applied, the client is live, and two accounts through two
+connectors stayed isolated. Gate 0 blocker 4 was *not* done in that visit and
+is still open; blocker 5 is won't-do (§9). What the deploy left is in §12.
 
 ### 0. Verify the task loop by hand — **done, 21 Aug**
 
@@ -700,10 +701,9 @@ designed.** If the schema half cannot go first, the client half does not go.
    action and is not reachable from the MCP surface or the CLI — it needs Noel.
    Rotate first, then move the new key into Vault, then update the cron command
    in one go.
-5. **Turn on leaked-password protection.** Still open, 11 Sep — the security
-   advisor still flags it — and the other of the two things left in Gate 0.
-   One toggle in the Auth dashboard, irrelevant with one owner and not
-   irrelevant the moment strangers pick passwords.
+5. **~~Turn on leaked-password protection.~~ Won't do.** Pro-plan only, and
+   Daybook has no password sign-in for it to protect — §9, §14, decided 5 Sep.
+   This item still read "open" until 8 Oct, and was chased again because of it.
 
 #### Hard blockers — the client half
 
@@ -990,6 +990,14 @@ tracked.
     address signed up with Google, so the sign-up toggle is on and the hook
     admits approved addresses. This line read "one toggle from live" until
     then. See §9 and §12.
+
+20. **Use Daybook from Claude.** Claude (web, desktop, phone, Claude Code)
+    reads and changes the user's own tasks through a remote MCP server, as that
+    user, under RLS, with the app's own rules. State: **live, verified 8 Oct.**
+    `supabase/functions/mcp` (eleven tools, two prompts), the shared rules in
+    `supabase/functions/_shared/domain/`, Supabase's OAuth 2.1 server with
+    Daybook's own `/oauth/consent` page, and Settings → Connected apps to see
+    and revoke. Connector URL in OPERATIONS.md. See §9 and §12.
 
 ### 5.1 Signature interactions
 
@@ -3105,6 +3113,26 @@ and `authGuard`, because Google and the magic link both land on `/today`.
 Only a consent URL can be stored, and only for 15 minutes, so it cannot be an
 open redirect.
 
+### Deploying the MCP server, 8 Oct
+
+**The legacy HS256 key stays as "previous" and must not be revoked.** The
+project already signed with ES256, which `@supabase/server` needs. But
+`notify` and `access` read `SUPABASE_SERVICE_ROLE_KEY`, the legacy JWT signed
+with the HS256 secret; revoking it breaks the digest, reminders and access
+mail. Retiring it is Gate 0 blocker 4, not this.
+
+**The consent screen is Daybook's, by design.** Supabase's OAuth server has no
+UI: it hands a request id to the Authorization Path, and `/oauth/consent`
+reads it (`getAuthorizationDetails`) and decides it (`approve`/`denyAuthorization`).
+Only the client name, "Claude", comes from outside — from its own registration.
+
+**Google's chooser says "continue to zzacswfongmzpnhcjiqp.supabase.co".** It
+names the redirect host. Three ways out, none taken yet: Google brand
+verification (free; needs a `/privacy` page and Search Console ownership of
+`noel-sebastian.com`; **recommended**), a Supabase custom domain (Pro plus an
+add-on, already rejected in §9), or Google's own button with
+`signInWithIdToken` (free, but rewrites sign-in). §12.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -3123,6 +3151,22 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **Claude may pass its own date to `get_day`, 8 Oct.** The tool defaults to
+  the user's today when `date` is left out, but Claude carries a date of its
+  own, which is a day behind Sydney for most of the morning. If it fills
+  `date` in, the page it reads is yesterday's and looks empty. Not seen yet —
+  a suspected case on 8 Oct turned out to be a misread. The fix is a line in
+  the tool description ("leave `date` out for today") and the requested date
+  in the log line.
+
+- **Every Connect click registers a new OAuth client, 8 Oct.** DCR is open, so
+  a stalled or repeated connect leaves an unused "Claude" row in
+  `auth.oauth_clients` with no consent and no session. Harmless; clear them
+  now and then. Five from the first connect were still there at the end of 8 Oct.
+
+- **Google sign-in names the Supabase host, not Daybook, 8 Oct.** §9
+  "Deploying the MCP server".
 
 - **Counters are last-write-wins between the app and the MCP server, 6 Oct.**
   The app computes `reschedule_count + 1` from the row it holds. If Claude
@@ -4143,8 +4187,9 @@ unchanged. **Always read back the SHA256 and the updated timestamp.**
 
 ### Auth toggles
 
-- **"Allow new users to sign up" is OFF.** Single-user until Phase 7. Note this
-  blocks new Google sign-ups too, and `signInWithOtp` for any unknown address.
+- **"Allow new users to sign up" is ON, since the access gate went live 3 Oct.**
+  The `Before User Created` hook is the gate (§5 item 19). It read OFF here until
+  8 Oct. With the toggle off the hook never runs and approved users are refused.
 - **Leaked-password protection is OFF, deliberately and permanently. Do not
   spend time on this again.** It is a Pro-plan feature (HaveIBeenPwned lookups)
   and this project is on Free. The toggle is present in the Email provider panel
