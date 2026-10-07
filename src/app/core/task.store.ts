@@ -420,6 +420,10 @@ export const TaskStore = signalStore(
        */
       async function refresh(): Promise<void> {
         if (!store.loaded() || store.loading()) return;
+        // `loaded` outlives sign-out (it is reset by the next user's
+        // ensureLoaded), so on /welcome this ran rollover as anon and toasted.
+        const uid = session.userId();
+        if (!uid || uid !== store.loadedFor()) return;
         if (Date.now() - lastRefresh < REFRESH_MIN_GAP_MS) return;
         lastRefresh = Date.now();
 

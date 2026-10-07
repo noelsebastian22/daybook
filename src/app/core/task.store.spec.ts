@@ -314,6 +314,31 @@ describe('TaskStore', () => {
       await store.refresh();
       expect(db.calls).toHaveLength(before);
     });
+
+    // Sign-out leaves `loaded` true until the next user's ensureLoaded, so a
+    // flick back to the tab on /welcome ran rollover as anon, which the
+    // server refuses, and raised "Could not carry unfinished tasks over."
+    it('does nothing once signed out', async () => {
+      await loaded([]);
+      session.apply(null);
+      vi.setSystemTime(NOW.getTime() + 60_000);
+      db.onRpc('rollover_and_snapshot', fail('permission denied for function rollover_and_snapshot'));
+
+      await store.refresh();
+
+      expect(db.calls).toHaveLength(0);
+      expect(errorToasts()).toEqual([]);
+    });
+
+    it('does nothing for an account other than the one loaded', async () => {
+      await loaded([makeTask({ id: 'first-users', scheduled_date: TODAY })]);
+      session.apply(sessionFor(OTHER_USER_ID));
+      vi.setSystemTime(NOW.getTime() + 60_000);
+
+      await store.refresh();
+
+      expect(db.calls).toHaveLength(0);
+    });
   });
 
   describe('rollover', () => {
