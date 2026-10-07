@@ -11,6 +11,29 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-08 · claude-code · sign-out toast, welcome, branches
+
+**Did**
+- `TaskStore.refresh` returns unless the signed-in user is `loadedFor()`; two specs. Fixes "Could not carry unfinished tasks over." on a signed-out tab after a window switch.
+- Welcome: committed Noel's copy rewrite with the value-prop strip restored; hero drops the 11pm line, third prop says "carried over".
+- Deleted the five orphan `auth.oauth_clients` by SQL (no consent, session or authorization); two remain, both in use.
+- Pushed `master` at `1cb181b`; production serves `main-7ZAJ5DFR.js`, same as the local build. 842 tests / 50 files, initial 439.73 kB.
+- Branches pruned: only `master` locally and on GitHub. `fix/jwt-issued-at-future` was the pre-rebase copy of `eaf57d3` (code identical).
+
+**Decided**
+- Value props stay; their headings must differ from the mechanics' — BUILD-PLAN §9.
+
+**Didn't work**
+- Deleting remote branches from here was blocked by the auto-mode classifier as git-destructive; Noel ran the `git push --delete` and `git branch -d` with `!`.
+
+**Open**
+- `get_day` date hardening (§12). Gate 0 blocker 4. Gate 1 one-device two-account pass. Google brand verification needs a `/privacy` page.
+
+**Next**
+- Harden `get_day`'s description ("leave `date` out for today") and log the requested date; redeploy `mcp --use-api`.
+
+**Touched** — `src/app/core/task.store.ts`, `src/app/core/task.store.spec.ts`, `src/app/features/welcome/welcome.{html,spec.ts}`, `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
 ## 2026-10-08 · claude-code · the MCP server, live
 
 **Did**

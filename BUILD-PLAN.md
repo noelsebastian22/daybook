@@ -3133,6 +3133,24 @@ verification (free; needs a `/privacy` page and Search Console ownership of
 add-on, already rejected in §9), or Google's own button with
 `signInWithIdToken` (free, but rewrites sign-in). §12.
 
+**Refresh on return needs the user it loaded for, 8 Oct.** `loaded` outlives
+sign-out (only the next user's `ensureLoaded` resets it), so switching back to
+a signed-out tab ran rollover as anon and toasted "Could not carry unfinished
+tasks over." `refresh` now returns unless `session.userId()` is set and equals
+`loadedFor()`. Two specs in `task.store.spec.ts` hold it.
+
+### The welcome page keeps its value-prop strip, 8 Oct
+
+**The three value props stay**, as the ten-second version of the page for a
+visitor deciding whether to scroll. An uncommitted rewrite had cut them for
+repeating the mechanics' headings word for word; that rewrite also renamed
+those headings ("Day, time and tag in one line", "A daily email"), which
+removed the reason. Rule: **the strip's headings and the mechanics' headings
+stay different**, and a line lives in one of the hero, the strip or the
+mechanics, not two — the hero lost "No dragging things forward at 11pm" for
+that reason. "See how it works" stays gone: with `<base href="/">`, `#how`
+reloaded the page.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
