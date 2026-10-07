@@ -39,8 +39,8 @@
           </h1>
 
           <p class="mt-6 max-w-md text-pretty text-lg leading-relaxed text-text-muted">
-            Whatever you don't tick off turns up on tomorrow's page, with a count of how many times
-            it's tagged along. Call physio, carried &times;4. You'll get to it.
+            Whatever you don't tick off turns up on tomorrow's page by itself, with a count of how
+            many days it's been carried.
           </p>
 
           <div class="mt-8 flex flex-wrap items-center gap-4">
@@ -49,17 +49,6 @@
               class="rounded-card bg-brand-500 px-6 py-3 font-medium text-on-brand transition hover:bg-brand-600"
             >
               Start today's page
-            </a>
-            <!--
-              A plain fragment href, not a routerLink. RouterLink would push a
-              navigation for what is a jump down the same page; the browser
-              does this natively and correctly, including for a middle click.
-            -->
-            <a
-              href="#how"
-              class="rounded-card px-3 py-2 font-medium text-pen-text underline-offset-4 transition hover:underline"
-            >
-              See how it works
             </a>
             <!--
               Sign in stays the primary action and this sits beside it. An
@@ -89,7 +78,10 @@
       </div>
     </section>
 
-    <!-- value props ------------------------------------------------------ -->
+    <!-- value props ------------------------------------------------------
+      The ten-second version, for a visitor deciding whether to scroll. It was
+      cut once for repeating the mechanics' headings word for word; those were
+      renamed, so keep the two sets of headings different. -->
     <section class="mx-auto max-w-5xl px-4 pb-20">
       <div class="grid gap-8 sm:grid-cols-3">
         <div>
@@ -107,19 +99,19 @@
         <div>
           <h2 class="font-display text-header font-semibold">A note every morning.</h2>
           <p class="mt-2 text-body text-text-muted">
-            What you finished, what came with you, and what today holds. At the hour you pick.
+            What you finished, what was carried over, and what today holds. At the hour you pick.
           </p>
         </div>
       </div>
     </section>
 
     <!-- mechanics -------------------------------------------------------- -->
-    <section id="how" class="scroll-mt-8 border-y border-border bg-surface py-20">
+    <section class="border-y border-border bg-surface py-20">
       <div class="mx-auto max-w-5xl space-y-16 px-4">
         <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
           <div>
             <h2 class="text-balance font-display text-display font-semibold">
-              Type it the way you'd say it
+              Day, time and tag in one line
             </h2>
             <p class="mt-3 text-text-muted">
               One line sets the day, the time, the tag and how much focus it needs. The parts light
@@ -148,9 +140,9 @@
               What slipped, and what you moved
             </h2>
             <p class="mt-3 text-text-muted">
-              Daybook counts two things separately. Tasks it carried over because you didn't get to
-              them, and tasks you pushed to another day yourself. The first is drift. The second is
-              you deciding, four times, that today isn't the day.
+              Daybook keeps two counts. One for tasks it carried over because the day ended before
+              you got to them, and one for tasks you moved to another day yourself. Both are on the
+              Reporting page, so you can tell what keeps slipping from what you keep putting off.
             </p>
           </div>
           <div class="grid gap-3 self-center sm:grid-cols-2">
@@ -188,32 +180,38 @@
 
         <div class="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-16">
           <div>
-            <h2 class="text-balance font-display text-display font-semibold">
-              It writes to you first
-            </h2>
+            <h2 class="text-balance font-display text-display font-semibold">A daily email</h2>
             <p class="mt-3 text-text-muted">
-              A digest lands at the hour you pick, in your own timezone: what you finished
-              yesterday, what came with you, and what today already holds. Set a time on a task and
-              it will remind you too.
+              It arrives at the hour you pick, in your own timezone, with what you finished
+              yesterday, what was carried over and what's on today. Give a task a time and you can
+              get a notification for it as well.
             </p>
           </div>
           <div
             class="self-center overflow-hidden rounded-panel bg-surface-raised shadow-sm ring-1 ring-border"
           >
             <div class="border-b border-border-soft px-6 py-3">
-              <p class="text-body font-medium">Daybook: 3 on today</p>
+              <!-- The subject, section names and colours mirror renderDigest()
+                   in supabase/functions/notify/index.ts. Change them together. -->
+              <p class="text-body font-medium">Daybook: 3 on today, 1 done yesterday</p>
               <p class="text-caption text-text-subtle">to you &middot; 7:00 AM</p>
             </div>
             <div class="space-y-3 px-6 py-4 text-body">
               <div>
-                <p class="text-caption font-medium text-text-subtle">Yesterday you finished</p>
-                <p class="mt-1 text-done-text">pay rent &middot; 9:14 AM</p>
+                <p class="text-caption font-medium text-text-subtle">Yesterday you finished 1</p>
+                <p class="mt-1 text-done-text">pay rent</p>
               </div>
               <div>
-                <p class="text-caption font-medium text-text-subtle">Came with you</p>
-                <p class="mt-1">
-                  call physio <span class="text-text-subtle">&middot; carried &times;2</span>
+                <p class="text-caption font-medium text-text-subtle">Carried over</p>
+                <p class="mt-1 text-late-text">
+                  call physio <span class="text-text-subtle">&times;2</span>
                 </p>
+              </div>
+              <div>
+                <p class="text-caption font-medium text-text-subtle">On today</p>
+                <p class="mt-1">call physio</p>
+                <p>book flights</p>
+                <p>water the plants</p>
               </div>
             </div>
           </div>
@@ -227,7 +225,7 @@
         Start with one page.
       </h2>
       <p class="mx-auto mt-4 max-w-sm text-text-muted">
-        Tomorrow's writes itself out of whatever today still has on it.
+        Put today's tasks on it. Anything you don't finish will be on tomorrow's.
       </p>
       <a
         routerLink="/login"

@@ -77,10 +77,11 @@ describe('Welcome', () => {
 
   it('sends every route out of the page to one of the two doors', async () => {
     const page = await renderWelcome();
-    const routed = page
-      .queryAll('a')
-      .map((a) => a.getAttribute('href'))
-      .filter((href) => !href?.startsWith('#'));
+    // No fragment links, either. "See how it works" was `href="#how"`, and
+    // because the app sets `<base href="/">` the browser resolved it against
+    // the base, not the page — clicking it reloaded the welcome page instead
+    // of scrolling. It is gone; this keeps it from coming back.
+    const routed = page.queryAll('a').map((a) => a.getAttribute('href'));
 
     // This used to assert a single door. The access gate added the second:
     // /login for someone who already has an account, /request-access for
@@ -91,16 +92,6 @@ describe('Welcome', () => {
     // beside the hero action, and under the closing one.
     expect(routed.filter((href) => href === '/login')).toHaveLength(3);
     expect(routed.filter((href) => href === '/request-access')).toHaveLength(2);
-  });
-
-  it('points its one in-page link at a section that exists', async () => {
-    const page = await renderWelcome();
-    const jump = page.queryAll('a').find((a) => a.getAttribute('href')?.startsWith('#'));
-
-    // A "See how it works" link that scrolls nowhere is worse than no link.
-    const target = jump?.getAttribute('href')?.slice(1);
-    expect(target).toBeTruthy();
-    expect(page.query(`#${target}`)).not.toBeNull();
   });
 
   it('offers a way in before the page has been read, not only after it', async () => {
