@@ -3163,7 +3163,8 @@ Not core. Revisit once the main app is solid.
 - **Every Connect click registers a new OAuth client, 8 Oct.** DCR is open, so
   a stalled or repeated connect leaves an unused "Claude" row in
   `auth.oauth_clients` with no consent and no session. Harmless; clear them
-  now and then. Five from the first connect were still there at the end of 8 Oct.
+  now and then. Five from the first connect were deleted 8 Oct, by SQL — a
+  dashboard delete earlier that day had not removed them.
 
 - **Google sign-in names the Supabase host, not Daybook, 8 Oct.** §9
   "Deploying the MCP server".
