@@ -25,3 +25,10 @@ export const UPCOMING_DAYS = 7;
  */
 export const LOAD_WINDOW_BACK_DAYS = -14;
 export const LOAD_WINDOW_FORWARD_DAYS = 30;
+
+/**
+ * The least time between two refreshes on the tab coming back into view.
+ * Switching from Claude to Daybook and back a few times in a minute should
+ * not be a fetch each time; coming back after a real absence should be.
+ */
+export const REFRESH_MIN_GAP_MS = 15_000;

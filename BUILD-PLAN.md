@@ -109,9 +109,10 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, is **not** among them, being built on `feat/access-gate` and not yet applied. `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, applied 19 Sep as a ninth row (corrected 7 Oct; this cell said it was not yet applied). `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault) and blocker 5 (leaked-password protection) — both Supabase dashboard work, neither reachable from the MCP surface. **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What is left of Gate 1 is the two-account pass on one device, which no spec can stand in for. Gates 2–3 not started. §4 |
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
 | 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
+| 10 | MCP server: use the app from Claude, as the user, under RLS | **built 6 Oct, not deployed.** Shared domain module, consent page, Connected apps, refresh on return, the `mcp` function with eleven tools. 840 app tests, 8 Deno tool tests, domain and core tests under three zones; initial bundle 439.67 kB. Waiting on the dashboard (OAuth server, asymmetric keys), the CLI deploy, migration `0008` and the two-account check. [`docs/MCP-PLAN.md`](./docs/MCP-PLAN.md), OPERATIONS.md "The MCP server" |
 
 Phases are deliberately not time-based. Each one is picked up whenever there is
 a spare hour.
@@ -171,6 +172,20 @@ still unmeasured against a reference, but no longer an open question.
 ---
 
 ## 4. Remaining work, in the order it should be done
+
+### Next: the MCP server — planned 6 Oct
+
+Use the app from Claude (web, phone, Claude Code) with the app's own rules,
+as the signed-in user, under RLS. Spec: [`docs/MCP-PLAN.md`](./docs/MCP-PLAN.md).
+Prioritised ahead of everything below except the Gate 1 swap, which it
+re-uses as its own isolation check. Pulls in three items from further down:
+§4 item 12 (composite category FK, as `0008`), and Gate 0 blockers 4 and 5,
+done in the same dashboard visit that turns on the OAuth server.
+
+**Built 6 Oct on `feat/mcp`, not deployed** (§3, Phase 10). What is left, in
+order, is in OPERATIONS.md "The MCP server": asymmetric signing keys, the
+OAuth server on, `supabase functions deploy mcp`, the client, apply `0008`,
+connect Claude, then two accounts through two connectors.
 
 ### 0. Verify the task loop by hand — **done, 21 Aug**
 
@@ -440,7 +455,7 @@ ships, the outcome is summarised in §9 and the plan file is frozen.
   25 Aug** — the banner renders in a normal Safari tab, which is the only place
   it can, since it is gated on not already being standalone.
 
-### The access gate — deployed 19 Sep, **one step from live**
+### The access gate — **live, verified 3 Oct**
 
 Signup becomes per-person: a stranger asks at `/request-access`, Noel approves
 from an email, and a Supabase **`Before User Created` auth hook** checks an
@@ -468,6 +483,10 @@ owner out. The live hook was checked directly: owner `{}`, owner mixed-case
 It is deliberately last (`ACCESS-PLAN.md` §2) — out of order there is a window
 with signup open and no gate. Until it is flipped the gate is not actually
 working, because the toggle refuses approved users too.
+
+**Corrected 7 Oct: the toggle is on.** On 3 Oct an approved address signed up
+with Google and the hook admitted it (§5). This heading read "one step from
+live" until then.
 
 - **This reverses the mechanism decided 3 Sep** (§9). The Auth dashboard's
   "Allow new users to sign up" toggle **stays on**, because turning it off
@@ -3040,6 +3059,52 @@ shows.
   mode has none. It is proven by the next deploy that adds a route, and only
   for devices that already hold the build carrying this guard.
 
+### The MCP server, 6 Oct
+
+**Claude uses Daybook through a remote MCP server, not the Supabase
+connector.** The connector is the admin surface: it runs above RLS, needs a
+`user_id` typed by hand, and knows none of the rules that live in the client
+— that `reschedule_count` moves on a push, that completing pins the date to
+today, how a capture line parses. A raw `update` gets the two-counter split
+wrong silently, and that split is the product. Spec: `docs/MCP-PLAN.md`.
+
+**The rules moved to `supabase/functions/_shared/domain/`** so the app and the
+function apply the same ones. The store's behaviour is unchanged — the suite
+was the guard, 810 before, 840 after with the new specs. The patch functions
+return `Pick<Task, …>` naming exactly their columns, which lets the function's
+typed `Update` (no `carried_over_count` in it) refuse a patch that strays.
+
+**Capture is zoned.** `parseCapture(input, ref, timeZone?)`: with no zone it
+is byte-for-byte what it was; with one, dates are worked out on that zone's
+wall clock (`zone.ts`) and the reminder converted back to an instant. An Edge
+Function runs in UTC, so without this "tomorrow 9am" at 8am Sydney time would
+have landed on the wrong day and hour. Tested across the 4 Oct DST change.
+
+**Edits in the MCP take named fields, not a re-parsed line.** In the app the
+edit box is seeded with the tokens spelled back out, so an absent `#tag`
+means "remove it". A model sending a line would drop tags it did not repeat.
+`edit_task` changes only what it is given, `null` clears, and it never moves
+the day — moving is `reschedule`, which counts.
+
+**Rollover runs before every tool that touches tasks.** It only ever ran on
+an app open, so a Claude read before the first open of the day was a day
+stale. Idempotent and clamped server-side, so it is safe per call.
+
+**No service role, by construction.** `@supabase/server`'s `withSupabase({
+auth: 'user' })` verifies the JWT against the JWKS and hands over a client
+scoped to the user. It rejects HS256 tokens, which makes asymmetric signing
+keys a prerequisite rather than a recommendation.
+
+**The app refreshes on return** (`TaskStore.refresh`, on `visibilitychange`,
+at most every 15 s): flush, rollover, re-read the window and replace it,
+keeping calendar pages outside it. There is no realtime and still will not
+be; see §12 for what that leaves.
+
+**Signing in from the consent page comes back to it** through `return-to.ts`
+and `authGuard`, because Google and the magic link both land on `/today`.
+Only a consent URL can be stored, and only for 15 minutes, so it cannot be an
+open redirect.
+
 ## 11. Backlog
 
 Not core. Revisit once the main app is solid.
@@ -3058,6 +3123,17 @@ Not core. Revisit once the main app is solid.
 ---
 
 ## 12. Known gaps, deliberately deferred
+
+- **Counters are last-write-wins between the app and the MCP server, 6 Oct.**
+  The app computes `reschedule_count + 1` from the row it holds. If Claude
+  pushed the same task while the app sat open and unrefreshed, the app's push
+  overwrites Claude's count rather than adding to it. `refresh` on return
+  makes it rare. The fix is an increment in an RPC, which the offline queue
+  would then have to replay — not worth it until it bites.
+
+- **A magic link opened in another browser loses the consent return, 6 Oct.**
+  `return-to.ts` is per browser, so it lands on /today; starting again from
+  Claude is the recovery. Google sign-in is unaffected.
 
 - **Request and approval emails share Resend's 100/day with the digest,
   19 Sep.** The digest is one per user per day, so at roughly 90 users the

@@ -11,6 +11,40 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-06 · cowork · the MCP server, built
+
+**Did**
+- Spec `docs/MCP-PLAN.md`, plan `docs/plans/2026-10-06-mcp.md`; D1–D4 closed by Noel. Work is on `feat/mcp`, **uncommitted**.
+- Shared domain module `supabase/functions/_shared/domain/`: `models`, `dates`, `zone`, `parse-capture` (moved, now takes a `timeZone`), `task-rules`, `review`. App files re-export; `task.store.ts` and `reporting.ts` call it. `domain.test.mjs` passes under UTC, Sydney and LA.
+- `/oauth/consent` page (`features/oauth-consent/`), `core/oauth-consent.ts`, `core/return-to.ts` + `authGuard` hook, Settings → Connected apps (`settings/connected-apps.ts`).
+- `TaskStore.refresh` on `visibilitychange`, 15 s floor, `replaceWindow` in `task.helpers.ts`.
+- `supabase/functions/mcp/`: `index.ts`, `tools.ts` (11 tools, 2 prompts), `core.ts`, `deno.json`, `database.types.ts`, `core.test.mjs`, `tools.test.ts` (8, through the real handler on a fake db). `deno check` clean; local `deno run` gave the 401 + `WWW-Authenticate` and the metadata document.
+- Migration `0008_category_ownership.sql` written, **not applied**. Live check first: 0 cross-user category refs.
+- 840 tests / 50 files (en-AU locale, Sydney TZ); initial 439.67 kB. `config.toml`: `[functions.mcp] verify_jwt = false`, local OAuth server on.
+
+**Decided**
+- `edit_task` takes named fields, not a re-parsed line — see BUILD-PLAN §9 "The MCP server".
+- Patch functions return `Pick<Task, …>`, so the function's typed `Update` refuses a stray `carried_over_count`.
+
+**Didn't work**
+- The Mac's `node_modules` has darwin binaries; the Cowork VM is linux. Build and test from a mirror (`rsync` to `~/work/daybook`, `npm ci` there), edit in the repo.
+- `ng test` in the VM's default en-US locale fails three `try-page.spec.ts` tests on date wording. Run with `LANG=en_AU.UTF-8 TZ=Australia/Sydney`. Not a regression.
+- Deno 2 refuses packages under 24 h old: `@supabase/server@1.9.1` and `@modelcontextprotocol/server@2.3.1`. Pinned 1.9.0 / 2.3.0.
+- `git switch` left `.git/index.lock` because deletes were off in the folder; delete permission was granted for the session.
+- The rolled-back trial of `0008` on live and two WebFetches of the project's JWKS / OAuth metadata timed out waiting for approval. Signing-key type is still unknown.
+
+**Open**
+- Dashboard: asymmetric JWT keys (hard requirement), OAuth server + DCR + `/oauth/consent`, leaked-password protection.
+- Deploy `mcp` with the CLI; deploy the client; apply `0008`.
+- Connect Claude (web, phone, Claude Code); two-account isolation through two connectors.
+- BUILD-PLAN still says the signup toggle is "one step from live", but winning.com.au signed up 3 Oct — confirm and correct.
+- Noel's own uncommitted `welcome.html` / `welcome.spec.ts` edits are in the tree, untouched.
+
+**Next**
+- Noel: JWT Keys page in the dashboard — if the key is HS256, rotate to ES256 before anything else. Then follow OPERATIONS.md "The MCP server" top to bottom.
+
+**Touched** — `supabase/functions/_shared/domain/*`, `supabase/functions/mcp/*`, `supabase/migrations/0008_category_ownership.sql`, `supabase/config.toml`, `tsconfig.json`, `src/app/core/{models,dates,parse-capture,parse-capture.data,task.helpers,task.constants,task.store,task.store.spec,auth.guard,auth.guard.spec,return-to,return-to.spec,oauth-consent,oauth-consent.helpers,oauth-consent.helpers.spec}.ts`, `src/app/features/oauth-consent/*`, `src/app/features/settings/{settings.ts,settings.html,settings.spec.ts,connected-apps.*}`, `src/app/features/reporting/reporting.ts`, `src/app/app.routes.ts`, `BUILD-PLAN.md`, `AGENTS.md`, `docs/OPERATIONS.md`, `docs/MCP-PLAN.md`, `docs/plans/2026-10-06-mcp.md`
+
 ## 2026-10-03 · claude-code · carry-over, approval page, stale build
 
 **Did**

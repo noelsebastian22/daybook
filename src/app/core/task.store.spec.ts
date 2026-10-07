@@ -267,6 +267,55 @@ describe('TaskStore', () => {
     });
   });
 
+  describe('refresh on return', () => {
+    async function loaded(tasks: Task[]): Promise<void> {
+      db.onFrom('tasks', ok(tasks));
+      db.onFrom('categories', ok(makeDefaultCategories()));
+      db.onRpc('rollover_and_snapshot', ok([{ rolled_count: 0 }]));
+      await store.ensureLoaded();
+      db.calls.length = 0;
+    }
+
+    it('picks up a task added elsewhere and drops one deleted elsewhere', async () => {
+      await loaded([makeTask({ id: 'gone', scheduled_date: TODAY })]);
+      vi.setSystemTime(NOW.getTime() + 60_000);
+      db.onFrom('tasks', ok([makeTask({ id: 'from-claude', scheduled_date: TOMORROW })]));
+
+      await store.refresh();
+
+      expect(store.tasks().map((t) => t.id)).toEqual(['from-claude']);
+      expect(lastRpc('rollover_and_snapshot')).toEqual({ p_today: TODAY });
+    });
+
+    it('keeps calendar pages outside the window it re-read', async () => {
+      await loaded([]);
+      db.onFrom('tasks', ok([makeTask({ id: 'paged-in', scheduled_date: '2026-12-01' })]));
+      await store.loadRange('2026-12-01', '2026-12-31');
+      vi.setSystemTime(NOW.getTime() + 60_000);
+      db.onFrom('tasks', ok([]));
+
+      await store.refresh();
+
+      expect(store.tasks().map((t) => t.id)).toEqual(['paged-in']);
+    });
+
+    it('does not refetch on every flick back to the tab', async () => {
+      await loaded([]);
+      vi.setSystemTime(NOW.getTime() + 60_000);
+      db.onFrom('tasks', ok([]));
+      await store.refresh();
+      await store.refresh();
+
+      expect(callsTo('tasks')).toHaveLength(1);
+    });
+
+    it('does nothing before the first load', async () => {
+      const before = db.calls.length;
+      await store.refresh();
+      expect(db.calls).toHaveLength(before);
+    });
+  });
+
   describe('rollover', () => {
     it('sends the local calendar date, never the UTC one', () => {
       // AGENTS.md: toISOString() converts to UTC first, which east of

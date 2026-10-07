@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeSupabase } from '../../testing/fake-supabase';
 import { USER_ID } from '../../testing/fakes';
 import { authGuard, guestGuard } from './auth.guard';
+import { consentPath, rememberReturn } from './return-to';
 import { Push } from './push';
 import { SessionStore } from './session.store';
 import { Supabase } from './supabase';
@@ -90,6 +91,24 @@ describe('the route guards', () => {
       TestBed.tick();
 
       expect(decisions).toEqual([true]);
+    });
+
+    it('finishes a sign-in that started on the consent page there, once', async () => {
+      // Google and the magic link both come home to /today. The consent page
+      // parked its own URL first, so the way in goes back to it — and only
+      // the first time, or every later visit to /today would bounce.
+      rememberReturn(consentPath('auth-123'));
+      db.session = { user: { id: USER_ID, email: 'noel@example.test' } };
+      TestBed.inject(SessionStore);
+      await settle();
+
+      const first = decisionsOf(authGuard);
+      TestBed.tick();
+      expect(String(first[0])).toBe('/oauth/consent?authorization_id=auth-123');
+
+      const second = decisionsOf(authGuard);
+      TestBed.tick();
+      expect(second).toEqual([true]);
     });
 
     it('sends a stranger to welcome, not to the sign-in form', async () => {

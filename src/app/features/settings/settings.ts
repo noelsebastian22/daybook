@@ -6,6 +6,7 @@ import { Push, type PushBlocker } from '../../core/push';
 import { browserTimezone } from '../../core/dates';
 import type { Category } from '../../core/models';
 import { BLOCKER_TEXT, TIMEZONES } from './settings.data';
+import { ConnectedApps } from './connected-apps';
 
 /**
  * Settings: the digest, the timezone the server sends it in, categories, and
@@ -19,6 +20,7 @@ import { BLOCKER_TEXT, TIMEZONES } from './settings.data';
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ConnectedApps],
   templateUrl: './settings.html',
 })
 export class Settings {

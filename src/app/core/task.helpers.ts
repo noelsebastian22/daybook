@@ -11,7 +11,7 @@
  * bugs are exactly the kind that only show up on the wrong day.
  */
 
-import type { DaySnapshot, Energy, Scheduling, Task } from './models';
+import type { DaySnapshot, Energy, Task } from './models';
 
 /** The energy filter, plus the "no filter" case. Re-exported by `task.store.ts`. */
 export type EnergyFilter = 'all' | Energy;
@@ -102,27 +102,18 @@ export function mergeSnapshots(current: DaySnapshot[], incoming: DaySnapshot[]):
 }
 
 /**
- * Which day and reminder a capture lands on when the date picker was used as
- * well as the text.
- *
- * The picker wins, and it carries the reminder with it, so a picked day is
- * never paired with a time left behind on the day that was typed.
- *
- * The asymmetry is deliberate and is the whole reason this is one function
- * rather than two lines at each of its two call sites. The date falls back to
- * the parsed one with `??`; the reminder does not. A `scheduling` with a null
- * `reminder_at` means "no reminder", not "keep whatever the text said" — the
- * picker is the only control that can clear one.
- *
- * `ParsedCapture` is structurally a `Scheduling` plus extras, so a parse result
- * can be handed straight in.
+ * A fresh read of the load window laid over what is held: rows inside the
+ * window are replaced wholesale, so one deleted or moved elsewhere (by Claude,
+ * by another device) disappears here too; rows outside it — calendar pages
+ * read with `loadRange` — are kept, because this read says nothing about them.
  */
-export function resolveScheduling(parsed: Scheduling, scheduling: Scheduling | null): Scheduling {
-  return {
-    scheduled_date: scheduling?.scheduled_date ?? parsed.scheduled_date,
-    reminder_at: scheduling ? scheduling.reminder_at : parsed.reminder_at,
-  };
+export function replaceWindow(current: Task[], fresh: Task[], from: string, to: string): Task[] {
+  const outside = current.filter((t) => t.scheduled_date < from || t.scheduled_date > to);
+  const freshIds = new Set(fresh.map((t) => t.id));
+  return [...outside.filter((t) => !freshIds.has(t.id)), ...fresh];
 }
+
+export { resolveScheduling } from '../../../supabase/functions/_shared/domain/task-rules.ts';
 
 /**
  * The task's current values for exactly the fields `patch` is about to change

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TaskStore } from '../../core/task.store';
 import { addDays, friendlyDate, shortWeekday, today } from '../../core/dates';
 import type { Task } from '../../core/models';
+import { topBy, type CounterField } from '../../../../supabase/functions/_shared/domain/review.ts';
 import {
   CARRIED_ALARM_COUNT,
   LIST_SIZE,
@@ -120,11 +121,8 @@ export class Reporting {
   protected readonly mostCarried = computed(() => this.top('carried_over_count'));
   protected readonly mostPushed = computed(() => this.top('reschedule_count'));
 
-  private top(field: 'carried_over_count' | 'reschedule_count'): Task[] {
-    return this.openTasks()
-      .filter((t) => t[field] > 0)
-      .sort((a, b) => b[field] - a[field])
-      .slice(0, LIST_SIZE);
+  private top(field: CounterField): Task[] {
+    return topBy(this.openTasks(), field, LIST_SIZE);
   }
 
   protected label = friendlyDate;

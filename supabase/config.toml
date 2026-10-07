@@ -365,11 +365,11 @@ enabled = false
 # OAuth server configuration
 [auth.oauth_server]
 # Enable OAuth server functionality
-enabled = false
+enabled = true
 # Path for OAuth consent flow UI
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
-allow_dynamic_registration = false
+allow_dynamic_registration = true
 
 [edge_runtime]
 enabled = true
@@ -418,4 +418,10 @@ enabled = true
 # gate on it anyway, being shipped in the browser bundle. See
 # docs/ACCESS-PLAN.md §7.
 [functions.access]
+verify_jwt = false
+
+# The MCP server (docs/MCP-PLAN.md). The OAuth discovery request carries no
+# token, and `withSupabase({ auth: 'user' })` inside the function verifies the
+# caller's JWT against the project JWKS itself, so the gateway must not.
+[functions.mcp]
 verify_jwt = false

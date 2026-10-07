@@ -1,5 +1,12 @@
 import { computed, inject } from '@angular/core';
-import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
+import {
+  signalStore,
+  withState,
+  withComputed,
+  withMethods,
+  withHooks,
+  patchState,
+} from '@ngrx/signals';
 import { Supabase } from './supabase';
 import { SessionStore } from './session.store';
 import { ToastStore } from './toast.store';
@@ -7,7 +14,20 @@ import { isOffline, OfflineQueue } from './offline-queue';
 import { parseCapture } from './parse-capture';
 import { addDays, sentenceDate, today } from './dates';
 import type { Category, DaySnapshot, Scheduling, Task } from './models';
-import { LOAD_WINDOW_BACK_DAYS, LOAD_WINDOW_FORWARD_DAYS, UPCOMING_DAYS } from './task.constants';
+import {
+  categoryFromSlug,
+  completePatch,
+  editPatch,
+  newTask,
+  reopenPatch,
+  reschedulePatch,
+} from '../../../supabase/functions/_shared/domain/task-rules.ts';
+import {
+  LOAD_WINDOW_BACK_DAYS,
+  LOAD_WINDOW_FORWARD_DAYS,
+  REFRESH_MIN_GAP_MS,
+  UPCOMING_DAYS,
+} from './task.constants';
 import {
   countOpenBetween,
   countOpenByDate,
@@ -16,7 +36,7 @@ import {
   groupUpcoming,
   mergeSnapshots,
   mergeTasksById,
-  resolveScheduling,
+  replaceWindow,
   rolledCount,
   tasksForDay,
   type EnergyFilter,
@@ -378,18 +398,46 @@ export const TaskStore = signalStore(
 
         const { data, error } = await sb.client
           .from('categories')
-          .insert({
-            user_id: uid,
-            slug,
-            name: slug.charAt(0).toUpperCase() + slug.slice(1),
-            sort_order: store.categories().length,
-          })
+          .insert({ user_id: uid, ...categoryFromSlug(slug, store.categories().length) })
           .select()
           .single();
 
         if (error || !data) return null;
         patchState(store, { categories: [...store.categories(), data as Category] });
         return (data as Category).id;
+      }
+
+      let lastRefresh = 0;
+
+      /**
+       * Catches up with writes made somewhere else — Claude through the MCP
+       * server, the same account on another device — when the tab comes back
+       * into view. There is no realtime subscription (dropped for bundle size,
+       * `core/supabase.ts`), so this is the whole mechanism. Same order as
+       * `init`: queued writes first, then rollover (the tab may have been
+       * hidden across midnight), then the window. Quiet on failure: what is on
+       * screen is still the last good read, and the next return tries again.
+       */
+      async function refresh(): Promise<void> {
+        if (!store.loaded() || store.loading()) return;
+        if (Date.now() - lastRefresh < REFRESH_MIN_GAP_MS) return;
+        lastRefresh = Date.now();
+
+        await queue.flush();
+        await rollover();
+        const from = addDays(today(), LOAD_WINDOW_BACK_DAYS);
+        const to = addDays(today(), LOAD_WINDOW_FORWARD_DAYS);
+        const { data, error } = await sb.client
+          .from('tasks')
+          .select('*')
+          .gte('scheduled_date', from)
+          .lte('scheduled_date', to)
+          .order('created_at');
+        if (error || session.userId() !== store.loadedFor()) return;
+        patchState(store, {
+          tasks: queue.applyTo(replaceWindow(store.tasks(), (data ?? []) as Task[], from, to)),
+        });
+        void loadCategories();
       }
 
       async function init(): Promise<void> {
@@ -440,6 +488,7 @@ export const TaskStore = signalStore(
 
         init,
         ensureLoaded,
+        refresh,
         loadTasks,
         loadCategories,
         loadRange,
@@ -472,23 +521,17 @@ export const TaskStore = signalStore(
           }
 
           const category_id = await resolveCategory(parsed.categorySlug);
-          const { scheduled_date, reminder_at } = resolveScheduling(parsed, scheduling);
           const tempId = crypto.randomUUID();
-          const optimistic: Task = {
+          const optimistic: Task = newTask({
             id: tempId,
-            user_id: uid,
-            text: parsed.text,
-            created_date: today(),
-            scheduled_date,
-            completed_at: null,
-            energy: parsed.energy,
-            category_id,
-            reminder_at,
+            userId: uid,
+            parsed,
+            scheduling,
+            categoryId: category_id,
             notes,
-            carried_over_count: 0,
-            reschedule_count: 0,
-            created_at: new Date().toISOString(),
-          };
+            today: today(),
+            now: new Date(),
+          });
           patchState(store, { tasks: [...store.tasks(), optimistic] });
 
           // Undo may be pressed while the insert is still in flight, when
@@ -562,22 +605,7 @@ export const TaskStore = signalStore(
           }
 
           const category_id = await resolveCategory(parsed.categorySlug);
-          const { scheduled_date, reminder_at } = resolveScheduling(parsed, scheduling);
-
-          const patch: Partial<Task> = {
-            text: parsed.text,
-            energy: parsed.energy,
-            category_id,
-            scheduled_date,
-            reminder_at,
-            notes,
-          };
-
-          if (scheduled_date > task.scheduled_date) {
-            patch.reschedule_count = task.reschedule_count + 1;
-          }
-
-          return update(task, patch);
+          return update(task, editPatch(task, parsed, scheduling, category_id, notes));
         },
 
         /**
@@ -587,9 +615,7 @@ export const TaskStore = signalStore(
          */
         async toggleComplete(task: Task): Promise<void> {
           const wasComplete = !!task.completed_at;
-          const patch: Partial<Task> = wasComplete
-            ? { completed_at: null }
-            : { completed_at: new Date().toISOString(), scheduled_date: today() };
+          const patch = wasComplete ? reopenPatch() : completePatch(new Date(), today());
 
           if (!(await update(task, patch))) return;
 
@@ -601,10 +627,7 @@ export const TaskStore = signalStore(
         /** Manual push. Increments reschedule_count, never carried_over_count. */
         async reschedule(task: Task, date: string): Promise<void> {
           const from = task.scheduled_date;
-          const patch = {
-            scheduled_date: date,
-            reschedule_count: task.reschedule_count + 1,
-          };
+          const patch = reschedulePatch(task, date);
 
           if (!(await update(task, patch))) return;
 
@@ -622,4 +645,12 @@ export const TaskStore = signalStore(
       };
     },
   ),
+
+  withHooks({
+    onInit(store) {
+      globalThis.document?.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') void store.refresh();
+      });
+    },
+  }),
 );

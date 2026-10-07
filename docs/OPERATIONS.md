@@ -134,6 +134,56 @@ directly — `update public.access_requests set status = 'approved',
 decided_at = now(), decision_token_hash = null where email = '…';`. The hook
 reads `status` and nothing else.
 
+## The MCP server
+
+Claude and any other MCP client reach a user's Daybook through the `mcp`
+Edge Function, signed in through Supabase Auth's OAuth 2.1 server. See
+[`MCP-PLAN.md`](./MCP-PLAN.md). Connector URL:
+
+    https://zzacswfongmzpnhcjiqp.supabase.co/functions/v1/mcp
+
+**Dashboard, once, in this order:**
+
+1. Project Settings → JWT Keys: the signing key must be **asymmetric** (ES256
+   or RS256). `@supabase/server` rejects HS256 user tokens, so with a legacy
+   key every MCP call is a 401. Rotating keeps old tokens valid until expiry.
+2. Authentication → OAuth Server: **enable**, **Allow Dynamic Client
+   Registration** on, Authorization Path **`/oauth/consent`**.
+3. Authentication → URL Configuration: Site URL is
+   `https://daybook.noel-sebastian.com`, which the Authorization Path is
+   appended to.
+4. While there: leaked-password protection on (Gate 0 blocker 5).
+
+**Deploy** from a committed tree, with the CLI — not the MCP tool:
+
+    supabase functions deploy mcp
+
+`verify_jwt = false` comes from `config.toml`; the function does its own
+verification. Then the client, which carries `/oauth/consent`.
+
+**Check the handshake** before connecting anything:
+
+    curl -si -X POST <connector URL> | grep -i www-authenticate
+    curl -s <connector URL>/oauth-protected-resource
+
+The first must be a `401` naming `…/mcp/oauth-protected-resource`; the second
+must show `"resource"` exactly equal to the connector URL, **with no port**,
+and `authorization_servers` of `https://zzacswfongmzpnhcjiqp.supabase.co/auth/v1`.
+
+**Connect:**
+- claude.ai, desktop, phone: Settings → Connectors → Add custom connector →
+  the URL above. Sign in and Allow on the consent page.
+- Claude Code: `claude mcp add --transport http daybook <connector URL>`, then
+  `/mcp` to sign in.
+- Anything else: `npx -y @modelcontextprotocol/inspector`, Streamable HTTP.
+
+**Revoke:** Settings → Connected apps → Disconnect. That ends the app's
+sessions and refresh tokens. A user who is gone entirely is deleted in the
+dashboard, as before.
+
+**Logs:** one JSON line per tool call in the function logs — tool, user id,
+milliseconds, ok — and never task text.
+
 ## Theming
 
 `src/styles.css` defines a palette (`ink-*`, `brand-*`, `done-*`…) that is the

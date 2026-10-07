@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, map, take } from 'rxjs';
 import { SessionStore } from './session.store';
+import { takeReturn } from './return-to';
 
 /**
  * Waits for the initial getSession() round trip to resolve before deciding.
@@ -19,7 +20,13 @@ export const authGuard: CanActivateFn = () => {
     // what it does before being asked to sign in to it. The welcome page's own
     // guard sends them on to /today the moment they have a session, so the
     // two guards cannot bounce a request between them.
-    map(() => session.isAuthenticated() || router.createUrlTree(['/welcome'])),
+    map(() => {
+      if (!session.isAuthenticated()) return router.createUrlTree(['/welcome']);
+      // A sign-in that started on the OAuth consent page finishes there
+      // rather than on /today. See `return-to.ts`.
+      const back = takeReturn();
+      return back ? router.parseUrl(back) : true;
+    }),
   );
 };
 

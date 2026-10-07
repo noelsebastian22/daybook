@@ -151,6 +151,24 @@ A "day" in this app is always a local `YYYY-MM-DD` string.
 - **There is no `status` column and there will not be one.** See
   `BUILD-PLAN.md`.
 
+## Shared domain module
+
+`supabase/functions/_shared/domain/` holds the rules both the app and the
+Edge Functions apply: row types, capture parsing, the patch each action
+writes, zone conversion, the review lists. `src/app/core/models.ts`,
+`dates.ts` and `parse-capture.ts` re-export from it, so app code keeps its
+imports. See `docs/MCP-PLAN.md` §4.
+
+- **Pure.** No Angular, no Supabase client, no `Deno`, no device clock or zone
+  unless a caller passes one in.
+- **Relative imports inside it carry `.ts`.** Deno needs it; the app accepts it
+  through `rewriteRelativeImportExtensions` in `tsconfig.json`.
+- **`chrono-node` is imported bare**, mapped per function in `deno.json`.
+- **A rule about what an action does to a row goes here, not in the store**,
+  or the MCP server and the app will disagree about it. The counters above
+  all: only `rollover_and_snapshot` moves `carried_over_count`.
+- Tests: `node domain.test.mjs`, and again under `TZ=UTC`.
+
 ## Naming and file layout
 
 - Files kebab-case: `task-row.ts`, `parse-capture.ts`

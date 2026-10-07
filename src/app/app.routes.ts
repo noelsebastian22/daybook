@@ -51,6 +51,16 @@ export const routes: Routes = [
       import('./features/access-decide/access-decide').then((m) => m.AccessDecide),
   },
   {
+    // Connecting Claude or another MCP client: the OAuth server's
+    // Authorization Path. **No guard**, like `access/decide` — a signed-out
+    // visitor must be able to land here, and the page sends them through
+    // sign-in and back itself. See `features/oauth-consent/oauth-consent.ts`.
+    path: 'oauth/consent',
+    title: 'Connect an app',
+    loadComponent: () =>
+      import('./features/oauth-consent/oauth-consent').then((m) => m.OAuthConsentPage),
+  },
+  {
     // Everything signed-in hangs off one shell route, so the drawer mounts
     // once and only the outlet swaps. Login sits outside it deliberately —
     // there is nothing to navigate to until there is a session.

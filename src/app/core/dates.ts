@@ -6,26 +6,18 @@
  * which in Sydney puts anything before 10am on the previous day.
  */
 
-export function toLocalDate(d: Date = new Date()): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+import {
+  addDays,
+  fromLocalDate,
+  toLocalDate,
+} from '../../../supabase/functions/_shared/domain/dates.ts';
+
+// The calendar arithmetic is shared with the Edge Functions; the formatters
+// below are the browser's and stay here.
+export { addDays, fromLocalDate, toLocalDate };
 
 export function today(): string {
   return toLocalDate();
-}
-
-export function addDays(date: string, n: number): string {
-  const d = fromLocalDate(date);
-  d.setDate(d.getDate() + n);
-  return toLocalDate(d);
-}
-
-export function fromLocalDate(date: string): Date {
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(y, m - 1, d);
 }
 
 export function isPast(date: string): boolean {

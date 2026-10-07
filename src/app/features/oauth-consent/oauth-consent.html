@@ -1,0 +1,108 @@
+<!--
+  Connecting an app to Daybook. Same paper as /login and /access/decide:
+  sunken desk, raised sheet, the lockup on top. Reached from Claude or another
+  MCP client, often signed out, and it should look like Daybook rather than a
+  bare OAuth form, because this is the page that says what the app will be
+  allowed to do.
+-->
+<div class="grid min-h-dvh place-items-center bg-surface-sunken p-6">
+  <main class="w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <h1 class="mb-4 flex justify-center font-display">
+        <app-logo variant="lockup" tone="primary" [size]="56" />
+      </h1>
+      <p class="text-body text-text-muted">Connect an app</p>
+    </div>
+
+    <div class="rounded-panel bg-surface-raised p-6 shadow-xl" aria-live="polite">
+      @switch (view().state) {
+        @case ('loading') {
+          <p class="text-body text-text-muted" role="status">Loading the request...</p>
+        }
+
+        @case ('signed-out') {
+          <p class="text-body">
+            Sign in to Daybook first. You will come back here to finish connecting.
+          </p>
+          <button
+            type="button"
+            class="mt-6 w-full rounded-card bg-inverse px-4 py-3 font-medium text-on-inverse transition hover:bg-inverse-hover"
+            (click)="signIn()"
+          >
+            Sign in
+          </button>
+        }
+
+        @case ('consent') {
+          @if (request(); as r) {
+            <p class="text-body">
+              <strong class="font-medium">{{ r.clientName }}</strong> wants to use your Daybook.
+            </p>
+            <p class="mt-2 text-body text-text-muted">
+              Signed in as <span class="break-all">{{ r.email }}</span
+              >.
+            </p>
+
+            <h2 class="mt-6 text-body font-medium">It will be able to</h2>
+            <ul class="mt-2 list-disc pl-6 text-body text-text-muted">
+              <li>see your tasks, notes and categories</li>
+              <li>add, change, complete, move and delete tasks</li>
+            </ul>
+
+            <p class="mt-6 text-body text-text-muted">
+              After you choose, you go back to
+              <strong class="break-all font-medium text-text">{{ r.redirectHost }}</strong
+              >.
+            </p>
+            @if (r.loopback) {
+              <p class="mt-3 rounded-card bg-fill p-4 text-body text-text" role="note">
+                That is a program on this computer. Only allow it if you started connecting it
+                yourself, just now.
+              </p>
+            }
+          }
+
+          <div class="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              class="w-full rounded-card bg-inverse px-4 py-3 font-medium text-on-inverse transition hover:bg-inverse-hover disabled:bg-fill-strong disabled:text-text-subtle disabled:hover:bg-fill-strong"
+              [disabled]="busy()"
+              (click)="decide('approve')"
+            >
+              Allow
+            </button>
+            <button
+              type="button"
+              class="w-full rounded-card border border-border-strong px-4 py-3 font-medium transition hover:bg-hover disabled:border-border disabled:text-text-subtle disabled:hover:bg-transparent"
+              [disabled]="busy()"
+              (click)="decide('deny')"
+            >
+              Deny
+            </button>
+          </div>
+        }
+
+        @case ('leaving') {
+          <p class="text-body text-text-muted" role="status">
+            Taking you back to <span class="break-all">{{ leavingTo() }}</span
+            >...
+          </p>
+        }
+
+        @case ('invalid') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            This link is missing its request. Start connecting again from the app that sent you
+            here.
+          </div>
+        }
+
+        @case ('failed') {
+          <div class="rounded-card bg-fill p-4 text-body text-text-muted">
+            Could not load this request. It may have expired. Start connecting again from the app
+            that sent you here.
+          </div>
+        }
+      }
+    </div>
+  </main>
+</div>

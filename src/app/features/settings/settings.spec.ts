@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { browserTimezone } from '../../core/dates';
 import type { Category, UserSettings } from '../../core/models';
+import { OAuthConsent } from '../../core/oauth-consent';
 import { Push, type PushBlocker } from '../../core/push';
 import { SettingsStore } from '../../core/settings.store';
 import { TaskStore } from '../../core/task.store';
@@ -92,6 +93,11 @@ describe('Settings', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        // The Connected apps box has its own spec; here it only needs to render.
+        {
+          provide: OAuthConsent,
+          useValue: { connectedApps: async () => [], disconnect: async () => {} },
+        },
         {
           provide: SettingsStore,
           useValue: {
