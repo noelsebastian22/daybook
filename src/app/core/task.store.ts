@@ -259,9 +259,11 @@ export const TaskStore = signalStore(
       }
 
       /**
-       * Lazy rollover, run once per app open with the client's local date.
-       * Server clamps it and writes the day_snapshots rows for every day in
-       * the gap. Idempotent, so a double call costs nothing.
+       * Rollover on open, with the client's local date. The cron already
+       * rolls every user at their own midnight (0009), so this is the
+       * backstop: a missed tick, or a device a day ahead of the stored zone.
+       * Server clamps the date and writes the day_snapshots rows for every
+       * day in the gap. Idempotent, so a double call costs nothing.
        */
       async function rollover(): Promise<void> {
         const { data, error } = await sb.client.rpc('rollover_and_snapshot', {

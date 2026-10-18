@@ -829,7 +829,8 @@ listed here too because it is what let C1 ship unnoticed.
 16. **Housekeeping.** A partial index on `user_settings (digest_enabled) where
     digest_enabled` once the seq scan every five minutes stops being free; a
     retention purge on `cron.job_run_details`, which holds all 3,439 runs since
-    21 Aug and grows ~105k rows a year; and `pg_net` moved out of the `public`
+    21 Aug and grows ~105k rows a year — ~140k since `daybook-rollover` joined
+    `daybook-notify` on 18 Oct; and `pg_net` moved out of the `public`
     schema, per the security advisor.
 
 #### Shape of the work
@@ -899,6 +900,8 @@ tracked.
    finished and what was carried off, from two different sources — see §4.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
+   **Moved onto a cron at each user's local midnight, 18 Oct** (`0009`, §7,
+   §9); before that it waited for the app to be opened.
 7. **Optional reminder times.** State: **done, delivered to a real device
    22 Aug; re-plumbed per device 11 Sep and not yet re-verified on a phone.**
    `reminder_at` is set by the parser or the picker; `due_reminders()` finds
@@ -1223,12 +1226,30 @@ only by the `where user_id = …` its author remembered to write.
 
 ## 7. Rollover logic
 
-Rollover runs **lazily on app open**, using the client's local date, not on a
-cron. Timezone-correct by construction, nothing to debug at 2am, and idempotent
-so it does not matter how often it runs.
+Rollover runs **at each user's own local midnight, on a cron**, and again on
+app open as a backstop. Changed 18 Oct (§9): it used to run only on app open,
+and a day nobody opened the app was a day nothing moved. Idempotent, so it
+does not matter how often or from where it runs.
 
-`rollover_and_snapshot(p_today date)` in `supabase/migrations/0002_rpcs.sql`
-does three things in one transaction:
+The rule lives in one function, `daybook_rollover_user(uid, today)`
+(`0009_scheduled_rollover.sql`), and three callers reach it:
+
+| Caller | How | Date passed |
+|---|---|---|
+| `daybook-rollover` cron, every 15 min | `rollover_due_users()`, service role | the user's local date from `user_settings.timezone` |
+| the app, on open | `rollover_and_snapshot(p_today)`, signed in | the device's local date |
+| the MCP server, before a task tool | `rollover_and_snapshot(p_today)`, signed in | the zoned today |
+
+`rollover_due_users()` only touches a user whose own local date has passed an
+open task or closed a day with no snapshot, so every tick but the one just
+after their midnight is a no-op. Every 15 minutes rather than once a day
+because the cron runs in UTC and UTC midnight is 10 or 11am in Sydney; a
+quarter-hour cadence lands on local midnight in every zone, `:30` and `:45`
+included. A zone `daybook_local_now` cannot read is skipped by the cron (the
+app still rolls that user on open, falling back to UTC). One user's failure is
+caught, logged as a warning and does not stop the rest.
+
+The function does three things in one transaction:
 
 1. **Clamps `p_today`** to within a day of server time, so a wrong device clock
    cannot scramble history.
@@ -1293,8 +1314,9 @@ query. `original_date` was renamed `created_date` for clarity against it.
 **Carry-forward and reschedule are counted separately**, so the avoidance
 insight is not polluted by legitimate rescheduling.
 
-**Rollover is lazy on app open, not cron.** Cron is still needed for the email
-digest and reminders, but nothing else.
+**Rollover runs on a cron at each user's local midnight**, with the call on
+app open kept as a backstop. ~~Lazy on app open, not cron~~ — reversed 18 Oct,
+see §9.
 
 **Upcoming looks 7 days ahead.** Anything beyond a week on a daily app is a
 wish list, not a plan.
@@ -1320,6 +1342,39 @@ AGPL §13 and a "Source" link in the app: §12.
 ## 9. Decisions made during the build
 
 Not in the original Notion brief. Made while getting Phases 1 and 2 working.
+
+**Rollover moved onto a cron, 18 Oct.** It was lazy on app open by design
+(§7, §8), and that design had a hole: a day nobody opened the app was a day
+nothing moved. On 18 Oct one live account had eleven open tasks still dated
+before its own today. The 7am digest lists tasks by `scheduled_date = today`,
+so on any morning the app had not been opened yet it left out everything that
+should have carried — the email was wrong exactly when it was most needed. And
+the day's snapshot waited for the next open rather than being written when the
+day closed. Noel's call: carry at midnight.
+
+`0009_scheduled_rollover.sql` pulls the body of `rollover_and_snapshot` out
+into `daybook_rollover_user(uid, today)`, unchanged bar the uid parameter and a
+per-user advisory lock (the app and the cron can land on one user in the same
+second). `rollover_and_snapshot` is now a wrapper, so the app and the MCP
+server needed no change. The cron calls `rollover_due_users()` every 15
+minutes. Three things worth knowing:
+
+- **`daybook_rollover_user` takes any uid, so it is revoked from everyone**
+  and is not `SECURITY DEFINER`; both callers are definer functions owned by
+  `postgres`. Without the revoke, Supabase's default privileges hand new
+  functions to `anon` — measured on the local stack, not assumed.
+- **Pure SQL, no Edge Function, no key.** pg_cron runs SQL as `postgres`, so
+  unlike `daybook-notify` the schedule carries no secret and lives in the
+  migration rather than in a by-hand file.
+- **The app's call on open stays.** It costs one RPC, it is idempotent, and it
+  still covers a device a day ahead of the stored zone after travelling east.
+  The reverse case is the known cost: travelling *west* of the stored zone,
+  tasks move a few hours before the device's own midnight.
+
+`carried_over_count` still goes up by days slipped, so the number is identical
+whichever caller moves a task. Tests: `supabase/tests/scheduled_rollover.test.sql`
+against a local stack, including three mutants (UTC date instead of local, no
+due-filter, inner function granted to `authenticated`) that each fail it.
 
 **Add task is reachable without opening the drawer, 18 Sep.** It used to live in
 the drawer alone. On a phone the drawer is shut on every cold load, so the app's

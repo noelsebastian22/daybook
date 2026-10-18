@@ -151,11 +151,13 @@ substring inside one. Otherwise it reads "may" out of `#maybe`.
 
 ## How carry-forward works
 
-On app open the client sends its **local** date to the `rollover_and_snapshot`
-function. The function clamps that date to within a day of server time, writes a
-`day_snapshots` row for every day since the last one, then moves every
-incomplete past-dated task to today and adds the number of days it slipped to
-`carried_over_count`.
+A `pg_cron` job checks every 15 minutes for users whose **own** local midnight
+has just passed, using the timezone in their settings, and rolls them over:
+it writes a `day_snapshots` row for every day since the last one, then moves
+every incomplete past-dated task to today and adds the number of days it
+slipped to `carried_over_count`. The app makes the same call on open with the
+device's local date, as a backstop, so a missed tick or a travelling device
+still ends up right.
 
 Two consequences worth knowing:
 

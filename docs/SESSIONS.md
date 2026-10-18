@@ -11,6 +11,34 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-18 · claude-code · rollover on a cron
+
+**Did**
+- `0009_scheduled_rollover.sql`: `rollover_and_snapshot`'s body moved into `daybook_rollover_user(uid, today)` (+ per-user advisory lock); `rollover_and_snapshot` is now a wrapper; `rollover_due_users()` rolls every user whose own local date has passed an open task or an unsnapshotted day; pg_cron `daybook-rollover`, `*/15 * * * *`.
+- Applied live as `daybook_scheduled_rollover` (live: eleven rows). Function defs md5-identical to local; grants checked with `has_function_privilege`.
+- First live tick 07:15Z: the one account with 11 open tasks on 17 Oct now has them on 18 Oct, carried sum 20 → 31, 17 Oct snapshot written (0 done / 11 carried). Exactly as predicted before applying.
+- `supabase/tests/scheduled_rollover.test.sql`, psql against the local stack, rolls back. Local tick at 07:00Z succeeded.
+- Docs: BUILD-PLAN §4 item 16, §5 item 6, §7, §8, §9; AGENTS.md shared-domain rule; README; `task.store.ts` comment. 842 tests / 50 files, initial 439.73 kB (unchanged).
+
+**Decided**
+- Rollover runs on a cron at each user's local midnight; the call on app open stays as a backstop. Reverses §8 "lazy on app open, not cron". Noel's call. §9.
+- Every 15 min, not daily: the cron is UTC, and 15 min hits local midnight in `:30`/`:45` zones too. No Edge Function, no key, so the schedule is in the migration.
+
+**Didn't work**
+- First version of the test passed with the cron fed the UTC date: the ±1-day clamp and Kiritimati = UTC before 10:00Z masked it. Added a Pago Pago user with a stale task; the mutant now fails at every hour.
+- Checking privileges by calling as `authenticated` and catching 42501 passed even with the inner function granted: the body raised 42501 itself. Switched to `has_function_privilege`. Without the `revoke`, Supabase default privileges give `anon` the uid-taking function.
+
+**Open**
+- Travelling west of the stored zone, tasks move a few hours before the device's midnight — accepted, §9.
+- Carried-over badge after a cron rollover not yet seen on screen (data verified only).
+- Still open from before: `get_day` hardening, Gate 0 blocker 4, Gate 1 two-account pass, `/privacy`.
+
+**Next**
+- Tomorrow morning, check `cron.job_run_details` for `daybook-rollover` around 13:00Z (Sydney midnight) and that the 7am digest lists carried tasks.
+
+**Touched** — `supabase/migrations/0009_scheduled_rollover.sql`, `supabase/tests/scheduled_rollover.test.sql`, `src/app/core/task.store.ts`, `BUILD-PLAN.md`, `AGENTS.md`, `README.md`, `docs/SESSIONS.md`
+
+
 ## 2026-10-08 · claude-code · sign-out toast, welcome, branches
 
 **Did**

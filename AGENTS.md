@@ -166,7 +166,10 @@ imports. See `docs/MCP-PLAN.md` §4.
 - **`chrono-node` is imported bare**, mapped per function in `deno.json`.
 - **A rule about what an action does to a row goes here, not in the store**,
   or the MCP server and the app will disagree about it. The counters above
-  all: only `rollover_and_snapshot` moves `carried_over_count`.
+  all: only `daybook_rollover_user` moves `carried_over_count`. It is
+  reached through `rollover_and_snapshot` (app, MCP) and
+  `rollover_due_users` (the `daybook-rollover` cron); it takes any uid, so it
+  stays revoked from everyone. See `0009_scheduled_rollover.sql`.
 - Tests: `node domain.test.mjs`, and again under `TZ=UTC`.
 
 ## Naming and file layout
