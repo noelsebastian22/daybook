@@ -17,6 +17,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { isServiceRole } from './auth.ts';
+import { adminKey } from '../_shared/secret-keys.ts';
 import { sendPush, type PushSubscription, type VapidKeys } from './webpush.ts';
 
 interface DigestRow {
@@ -45,10 +46,10 @@ interface ReminderRow {
   auth: string;
 }
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-);
+// `source` is the key's name, never its value. It goes in the response so a
+// rotation can be checked from the cron's own reply without reading a key.
+const admin = adminKey(Deno.env);
+const supabase = createClient(Deno.env.get('SUPABASE_URL')!, admin.key);
 
 /**
  * Asks the database what is due, retrying a failure that is plausibly
@@ -362,7 +363,11 @@ Deno.serve(async (req) => {
   const unwrap = (result: PromiseSettledResult<unknown>) =>
     result.status === 'fulfilled' ? result.value : { error: String(result.reason) };
 
-  const body = { digests: unwrap(digests), reminders: unwrap(reminders) };
+  const body = {
+    admin_key: admin.source,
+    digests: unwrap(digests),
+    reminders: unwrap(reminders),
+  };
   console.log('notify', JSON.stringify(body));
 
   return new Response(JSON.stringify(body), {

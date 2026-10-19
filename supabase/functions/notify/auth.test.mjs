@@ -6,6 +6,7 @@
  * guard is sound only while `verify_jwt` stays true on the deployed function.
  */
 import { isServiceRole } from './auth.ts';
+import { adminKey } from '../_shared/secret-keys.ts';
 
 const b64url = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (payload) => `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.sig`;
@@ -39,13 +40,62 @@ const cases = [
   ['sb_secret_ prefix but shorter', req('Bearer sb_secret_'), false],
 ];
 
+// Once SUPABASE_SECRET_KEYS is set it is the only source. The legacy variable
+// may still hold a key that has since been revoked in the dashboard, which is
+// exactly the key a rotation is meant to kill.
+const ROTATED = 'sb_secret_new_value_after_rotation_test';
+const OTHER = 'sb_secret_a_second_named_key_for_test_';
+const rotatedEnv = {
+  get: (name) =>
+    ({
+      SUPABASE_SERVICE_ROLE_KEY: SECRET,
+      SUPABASE_SECRET_KEYS: JSON.stringify({ daybook: ROTATED, other: OTHER }),
+    })[name],
+};
+const brokenEnv = {
+  get: (name) =>
+    ({ SUPABASE_SERVICE_ROLE_KEY: SECRET, SUPABASE_SECRET_KEYS: '{not json' })[name],
+};
+const emptyEnv = {
+  get: (name) =>
+    ({ SUPABASE_SERVICE_ROLE_KEY: SECRET, SUPABASE_SECRET_KEYS: '{}' })[name],
+};
+
+cases.push(
+  ['rotated: new key accepted', req(`Bearer ${ROTATED}`), true, rotatedEnv],
+  ['rotated: any named key', req(`Bearer ${OTHER}`), true, rotatedEnv],
+  ['rotated: legacy env refused', req(`Bearer ${SECRET}`), false, rotatedEnv],
+  ['rotated: claim still read', req(`Bearer ${jwt({ role: 'service_role' })}`), true, rotatedEnv],
+  ['bad JSON falls back', req(`Bearer ${SECRET}`), true, brokenEnv],
+  ['empty object falls back', req(`Bearer ${SECRET}`), true, emptyEnv],
+);
+
 let failed = 0;
-for (const [name, request, expected] of cases) {
-  const actual = isServiceRole(request, env);
+for (const [name, request, expected, caseEnv = env] of cases) {
+  const actual = isServiceRole(request, caseEnv);
   const ok = actual === expected;
   if (!ok) failed++;
   console.log(`${ok ? 'pass' : 'FAIL'}  ${name.padEnd(26)} expected ${expected}, got ${actual}`);
 }
 
-console.log(failed === 0 ? `\nall ${cases.length} passed` : `\n${failed} failed`);
+// adminKey: which key the RLS-bypassing client is built on
+const adminCases = [
+  ['prefers the named key', rotatedEnv, ROTATED, 'daybook'],
+  ['then default', { get: (n) => ({ SUPABASE_SECRET_KEYS: JSON.stringify({ default: OTHER }) })[n] }, OTHER, 'default'],
+  ['then the legacy env', env, SECRET, 'SUPABASE_SERVICE_ROLE_KEY'],
+  ['bad JSON, legacy env', brokenEnv, SECRET, 'SUPABASE_SERVICE_ROLE_KEY'],
+];
+for (const [name, caseEnv, key, source] of adminCases) {
+  const got = adminKey(caseEnv);
+  const ok = got.key === key && got.source === source;
+  if (!ok) failed++;
+  console.log(`${ok ? 'pass' : 'FAIL'}  adminKey: ${name.padEnd(17)} expected ${source}, got ${got.source}`);
+}
+let threw = false;
+try { adminKey({ get: () => undefined }); } catch { threw = true; }
+if (!threw) failed++;
+console.log(`${threw ? 'pass' : 'FAIL'}  adminKey: throws with no key`);
+
+const total = cases.length + adminCases.length + 1;
+console.log(failed === 0 ? `\nall ${total} passed` : `\n${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

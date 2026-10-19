@@ -27,6 +27,7 @@
  * Secrets: RESEND_API_KEY, ACCESS_FROM, ACCESS_TO, APP_ORIGIN.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { adminKey } from '../_shared/secret-keys.ts';
 import {
   normalizeEmail,
   isPlausibleEmail,
@@ -38,10 +39,7 @@ import {
   type AccessStatus,
 } from './core.ts';
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-);
+const supabase = createClient(Deno.env.get('SUPABASE_URL')!, adminKey(Deno.env).key);
 
 /** How long an approval link in an inbox stays live. */
 const TOKEN_TTL_DAYS = 30;

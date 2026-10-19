@@ -5,6 +5,7 @@
  * can import the real implementation — index.ts calls `Deno.serve` at module
  * load and cannot be imported from Node. Same arrangement as webpush.ts.
  */
+import { liveSecretKeys } from '../_shared/secret-keys.ts';
 
 /** Length-safe, no early return on the first differing byte. */
 function constantTimeEquals(a: string, b: string): boolean {
@@ -40,9 +41,13 @@ function hasServiceRoleClaim(token: string): boolean {
  * Two accepted shapes, because Supabase issues two and the cron may carry
  * either:
  *
- *   1. An exact match against SUPABASE_SERVICE_ROLE_KEY. This is the only way
- *      to recognise a modern `sb_secret_…` key, which is opaque rather than a
- *      JWT and carries no readable claims.
+ *   1. An exact match against one of the project's live secret keys — every
+ *      value in SUPABASE_SECRET_KEYS, or SUPABASE_SERVICE_ROLE_KEY where that
+ *      is unset (see `_shared/secret-keys.ts`). This is the only way to
+ *      recognise a modern `sb_secret_…` key, which is opaque rather than a
+ *      JWT and carries no readable claims. Matching the live set rather than
+ *      one fixed variable is what makes a key revoked in the dashboard stop
+ *      working here too.
  *   2. A JWT whose `role` claim is `service_role` — the legacy key format.
  *      Signature verification is the gateway's job and has already happened by
  *      the time this runs, so reading the claim is enough. That holds only
@@ -53,8 +58,13 @@ export function isServiceRole(req: Request, env = Deno.env): boolean {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) return false;
 
-  const serviceRoleKey = env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (serviceRoleKey && constantTimeEquals(token, serviceRoleKey)) return true;
+  // Every key is compared, with no early exit, so timing does not reveal
+  // which one matched or how many there are.
+  let matched = false;
+  for (const key of liveSecretKeys(env)) {
+    if (constantTimeEquals(token, key)) matched = true;
+  }
+  if (matched) return true;
 
   return hasServiceRoleClaim(token);
 }
