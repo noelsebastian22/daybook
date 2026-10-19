@@ -109,7 +109,7 @@ its own entry. §14 for the whole domain and email setup.
 | 4 | Calendar, history drill-in, category filter, offline queue | **done, verified on screen**; offline queue untested |
 | 5 | Settings, email digest, weekly review, Web Push reminders | **done and fully verified, 22 Aug** — cron scheduled, digest delivered to a real inbox on both branches, push delivered to an installed iPhone PWA |
 | 6 | Hero, empty-state illustrations, charts, visual polish | **done, 21 Aug** — all five items; illustrations are hand-drawn SVG, not AI raster (§9) |
-| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, applied 19 Sep as a ninth row (corrected 7 Oct; this cell said it was not yet applied). `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. What is left of Gate 0 is blocker 4 (rotate `service_role`, move it into Vault), dashboard work not reachable from the MCP surface. Blocker 5 (leaked-password protection) is closed as won't-do: Pro-plan only, see §9 (corrected 8 Oct). **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What was left of Gate 1, the two-account pass on one device, **was done by Noel and held, reported 20 Oct**, so Gate 1 is closed. Gates 2–3 not started. §4 |
+| 7 | Multi-tenancy: many users, isolated, simultaneous | **Gate 0 applied and deployed, 11 Sep — bar two dashboard toggles.** The table layer holds up unmodified. The audit's five blockers grew six client-side siblings (C1–C6), one of which — push endpoints shared across accounts on one device — was the only cross-tenant leak found on either side. `0005` ran clean on a local stack first and every fix was reproduced as a bug before it was written. **Live was on seven migrations** when this was written and is on **eight** since `0006` landed 18 Sep — eight rows against six files, because `0002` applied as three; `0007`, the access gate, applied 19 Sep as a ninth row (corrected 7 Oct; this cell said it was not yet applied). `notify` is deployed whole (v13), so blockers 1, 2 and C1 are closed in production. Blocker 4, the last of Gate 0, **closed 20 Oct**: the leaked key is deleted, its replacement lives in Vault and the cron reads it from there (§4). Blocker 5 (leaked-password protection) is closed as won't-do: Pro-plan only, see §9 (corrected 8 Oct). **Push has not yet been seen delivering off the new table**; that is the Gate 1 pass. **Gate 1's spec half is in fact done** — corrected 18 Sep, see §4: all three store specs and the guard spec exist and carry 112 tests, against a §4 bullet that claimed none of them existed. What was left of Gate 1, the two-account pass on one device, **was done by Noel and held, reported 20 Oct**, so Gate 1 is closed. Gates 2–3 not started. §4 |
 | 8 | Structure, brand, dark mode, performance, test coverage | **done, 4 Sep.** Every template moved to a sibling `.html`; constants and static tables extracted to `.constants.ts` / `.data.ts` / `.helpers.ts`; the logo applied and the app icon redrawn; dark mode shipped as a semantic token layer with a light/dark/system toggle; the initial bundle went **532.51 kB → 438.64 kB** by dropping `createClient()` for the two Supabase packages the app actually uses; the suite went **55 tests → 680**. Two real bugs found and fixed, plus a keyboard-contract gap in the new theme toggle (§9, §12). Runs alongside Phase 7 rather than after it — none of it touches the schema |
 | 9 | Paper retheme: coral brand, warm paper surfaces, Fraunces display face, try-it welcome hero | **shipped 18 Sep.** `retheme/paper` fast-forwarded into `master` (21 commits, carrying the two older digest/key-rotation commits nobody had pushed) and pushed; production on `daybook.noel-sebastian.com` verified serving the new build — the Fraunces subset byte-identical to the repo at 40,948 bytes and `theme-color` the paper `#fffdf7`. `notify` deployed as **v14** and a forced digest confirmed **in the Gmail inbox** at 22:05Z with the new ink `#1f1b16`, muted `#6b6353` and crimson `#a3122f`, green unchanged, and the `Daybook: ` subject — the 21:00Z send an hour earlier still carried the em dash, so the two sit side by side as proof. **Noel chose to ship ahead of the installed-PWA check**; that check was done on 18 Sep on the installed production app and **held, so the phase is closed with nothing outstanding**. All nine phases of [`docs/RETHEME-PLAN.md`](./docs/RETHEME-PLAN.md) are complete and every open decision (D1–D6) is closed. Tokens, all ~70 call sites, brand assets, the digest email, a self-hosted 39.9 kB Fraunces subset, a rebuilt welcome page whose hero is a working Daybook page, a login page that follows the theme, and a signed-in polish pass whose audit found seven things the new tokens had left behind. 697 tests across 38 files, initial bundle 436.55 kB, `tools/contrast-check.mjs` green with no known gaps for the first time. **Both deploys are now done and the installed-PWA check has passed**, so nothing in Phase 9 is open. `retheme/paper` was deleted locally and on origin on 18 Sep, once `master..retheme/paper` was confirmed empty at both ends. All eight signed-in screens have now been reviewed in both themes against canned rows, which also closed D4 on the screen its gate asked for. §12 |
 | 10 | MCP server: use the app from Claude, as the user, under RLS | **live, verified 8 Oct.** Built 6 Oct, deployed 8 Oct: the `mcp` function, migration `0008` (live is on ten rows), the client with `/oauth/consent` on `daybook.noel-sebastian.com`. Connected from claude.ai; a second account through its own connector saw only its own tasks, and each account's calls logged under its own user id. 840 app tests, initial bundle 439.67 kB. [`docs/MCP-PLAN.md`](./docs/MCP-PLAN.md), OPERATIONS.md "The MCP server" |
@@ -701,6 +701,24 @@ designed.** If the schema half cannot go first, the client half does not go.
    action and is not reachable from the MCP surface or the CLI — it needs Noel.
    Rotate first, then move the new key into Vault, then update the cron command
    in one go.
+
+   **Closed 20 Oct.** Done in the other order from the one above, and
+   deliberately: create the replacement first, move everything onto it,
+   delete the leaked key last, so there was never a tick with no valid key.
+   Noel created a secret key named `daybook` and stored it in Vault as
+   `daybook_cron_key` (through the Vault UI, not the SQL editor, which keeps
+   history). `notify` and `access` were changed to read
+   `SUPABASE_SECRET_KEYS` (`_shared/secret-keys.ts`): `notify` accepts only a
+   key in the live set, and both build on `daybook`, then `default`. The
+   `SUPABASE_SERVICE_ROLE_KEY` string is not trusted once the new variable is
+   present, because nothing promises it changes when its key is deleted. The
+   cron now reads the key from Vault by name; `cron.job.command` holds no key.
+   Noel then deleted the leaked `default` key (`sb_secret_oXPW…`). Verified:
+   the 21:35Z and 21:40Z ticks returned 200 with `"admin_key":"daybook"`, the
+   second after the deletion and a fresh deploy, and `access`'s database read
+   returned 200 on the new key. **A function keeps the key set it booted with**:
+   right after the key was created, `notify` still reported `default` until it
+   was redeployed. Redeploy both after any change to the keys.
 5. **~~Turn on leaked-password protection.~~ Won't do.** Pro-plan only, and
    Daybook has no password sign-in for it to protect — §9, §14, decided 5 Sep.
    This item still read "open" until 8 Oct, and was chased again because of it.
@@ -3861,7 +3879,9 @@ Not core. Revisit once the main app is solid.
   rather than aborting the statement; and the `user_settings_validate_timezone`
   trigger rejects a bad zone on write with `22023`, leaving the stored value
   untouched. Mechanism kept in §4 Phase 7, blocker 1.
-- **The service role key is stored in plaintext in `cron.job.command`.** Found
+- **The service role key is stored in plaintext in `cron.job.command`.**
+  **Closed 20 Oct** (§4 Phase 7, blocker 4): rotated, in Vault, and the old
+  key deleted. The rest of this entry is the history. Found
   3 Sep, **still open 11 Sep** and one of the two things left in Gate 0.
   Readable by anything that can query `cron.job` as `postgres`, and it has been
   surfaced in a session transcript, so it is leaked whatever it is stored in.
@@ -3977,12 +3997,11 @@ above the whole system, which is why the three that remain (`.skip-link`,
   `do $$ declare c text; begin select command into c from cron.job where
   jobid = 1; execute c; end $$;` — useful for proving a change immediately
   rather than waiting for the next five-minute tick.
-- **`cron.job.command` contains the service role key in plain text**, since it
-  is baked into the job definition. Never `select *` from that table into
-  somewhere the key should not be. Select the columns you need, or test with
-  `command like '%…%'`. The 3 Sep audit read it despite the warning, which is
-  the argument for moving it into Vault rather than restating the warning —
-  §4 Phase 7, blocker 4.
+- ~~**`cron.job.command` contains the service role key in plain text**~~ —
+  no longer, since 20 Oct: the job reads `daybook_cron_key` from
+  `vault.decrypted_secrets` when it fires. `vault.decrypted_secrets` is now the
+  place not to `select *` from; compare against it (`decrypted_secret like
+  'sb_secret_%'`, `length(...)`) rather than reading it. §4 Phase 7, blocker 4.
 - **A newly created API key can be rejected as "JWT issued at future"** for the
   first minute or two, while its `iat` is ahead of some validators' clocks. Seen
   on 21 Aug: at the same millisecond, `due_digests` got a 401 and
