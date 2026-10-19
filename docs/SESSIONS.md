@@ -11,6 +11,39 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-20 · claude-code · key rotated, privacy page
+
+**Did**
+- Gate 0 blocker 4 closed. New secret key `daybook` (Noel, API Keys), stored in Vault as `daybook_cron_key` (Noel, Vault UI). `daybook-notify` rescheduled to read it from `vault.decrypted_secrets`; `cron.job.command` holds no key. Leaked `default` key (`sb_secret_oXPW…`) deleted by Noel. `supabase/cron/schedule-notify.sql` now schedules the Vault form.
+- `_shared/secret-keys.ts`: `liveSecretKeys` / `adminKey` read `SUPABASE_SECRET_KEYS`; `notify`'s guard accepts only a live key; `notify` and `access` build on `daybook`, then `default`. `notify`'s reply carries `admin_key` (name only). Deployed `notify` and `access` three times; 23/23 `auth.test.mjs`.
+- Verified: 21:40Z tick 200 with `admin_key: daybook` after the deletion; `access` lookup's PostgREST read 200 on the new key.
+- `/privacy` (`features/privacy/`), unguarded, linked from welcome footer, login, request-access, Settings. Contact `noel@noel-sebastian.com`, deletion and copies by email — both confirmed by Noel. Live: production serves `main-FDO46VRM.js`, same as local.
+- Gate 1 recorded closed: Noel ran the one-device two-account pass.
+- 848 tests / 51 files, initial 439.93 kB, `privacy` chunk 6.34 kB.
+
+**Decided**
+- Rotation order: create replacement, move everything onto it, delete the leaked key last, so no tick ever lacked a valid key. Reverses the "rotate first" wording in §4.
+- `SUPABASE_SERVICE_ROLE_KEY` is not trusted once `SUPABASE_SECRET_KEYS` is present; nothing promises it changes when its key is deleted.
+- Any new stored data, processor or tracker updates `/privacy` in the same commit (AGENTS.md).
+
+**Didn't work**
+- `notify` kept reporting `admin_key: default` after the `daybook` key was created. A warm function keeps the key set it booted with; it took a redeploy. Redeploy both functions after any key change.
+- Firing `notify` by hand (`execute` the cron command) was blocked by the auto-mode classifier as a real-world send; waited for scheduled ticks instead.
+- `access` swallows its database errors, so its own reply cannot prove the key works; read the PostgREST status from `edge_logs` instead.
+- curl on `daybook.noel-sebastian.com` now gets a `403` Vercel challenge (`x-vercel-mitigated: challenge`); the Vercel MCP fetch got through. Firewall config API returned 404.
+
+**Open**
+- Google brand verification is Noel's: Search Console for `noel-sebastian.com`, consent screen name/home/privacy/authorised domain, submit (§12).
+- The Vercel challenge on plain HTTP clients: check that Google's verification fetch of `/privacy` is not challenged.
+- Account deletion and export are manual (by email); Gate 2 still wants them in-app.
+- From before: `get_day` hardening; carried badge after a cron rollover unseen; `today()` heading stale across midnight.
+
+**Next**
+- Harden `get_day`'s description ("leave `date` out for today"), log the requested date, redeploy `mcp --use-api`.
+
+**Touched** — `supabase/functions/_shared/secret-keys.ts`, `supabase/functions/notify/{auth.ts,auth.test.mjs,index.ts}`, `supabase/functions/access/index.ts`, `supabase/cron/schedule-notify.sql`, `src/app/features/privacy/*`, `src/app/app.routes.ts`, `src/app/features/{welcome,login,request-access,settings}/*`, `AGENTS.md`, `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
+
 ## 2026-10-20 · claude-code · cron rollover verified
 
 **Did**
