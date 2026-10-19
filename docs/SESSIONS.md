@@ -11,6 +11,28 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-20 · claude-code · cron rollover verified
+
+**Did**
+- Verified `daybook-rollover` over two real Sydney midnights: 150/150 runs `succeeded`; 11 open tasks moved 18 → 19 → 20 Oct, carried sum 31 → 53; 18 and 19 Oct snapshots written; zero `rollover_and_snapshot` calls in the edge logs for the prior 24 h, so the cron did it. Digest sent 20 Oct after the rollover (`digest_last_sent_on`).
+- Pushed `master` at `f15be7a` (Vercel deploys on push; app change is a comment only). `supabase stop` (volumes kept). 842 tests / 50 files, initial 439.73 kB.
+- BUILD-PLAN §5 item 6 records the verification.
+
+**Didn't work**
+- `query_logs` refuses a window over 24 h; the 18→19 Oct midnight is outside it, so only the 19→20 move is proven cron-driven by logs. The 18→19 move is inferred from the counts.
+
+**Open**
+- Digest content not read in the inbox — check it lists the 11 carried tasks.
+- Carried badge after a cron rollover not yet seen on screen.
+- `today()` read once at construction (§12): a tab open across midnight refreshes its list on return but keeps yesterday's heading. Pre-existing, now more likely to be noticed.
+- From before: `get_day` hardening, Gate 0 blocker 4, Gate 1 two-account pass, `/privacy`.
+
+**Next**
+- Harden `get_day`'s description ("leave `date` out for today"), log the requested date, redeploy `mcp --use-api`.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
+
 ## 2026-10-18 · claude-code · rollover on a cron
 
 **Did**

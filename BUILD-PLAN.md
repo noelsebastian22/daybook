@@ -901,7 +901,12 @@ tracked.
 6. **Automatic carry-forward.** Incomplete tasks roll to the next day. State:
    done, and confirmed in normal use by an unattended rollover on 19 Aug.
    **Moved onto a cron at each user's local midnight, 18 Oct** (`0009`, §7,
-   §9); before that it waited for the app to be opened.
+   §9); before that it waited for the app to be opened. **Verified across two
+   real Sydney midnights, 20 Oct:** 150 of 150 `daybook-rollover` runs
+   succeeded, the 11 open tasks moved 18 → 19 → 20 Oct (carried sum 31 → 53,
+   one per task per night), 18 and 19 Oct snapshots written, and the edge logs
+   show **zero** `rollover_and_snapshot` calls in the 24 h before — the cron,
+   not an app open, did it.
 7. **Optional reminder times.** State: **done, delivered to a real device
    22 Aug; re-plumbed per device 11 Sep and not yet re-verified on a phone.**
    `reminder_at` is set by the parser or the picker; `due_reminders()` finds
