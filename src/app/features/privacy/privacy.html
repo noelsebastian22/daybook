@@ -1,0 +1,151 @@
+<!--
+  The privacy policy. No guard, so it reads the same signed in or out, and
+  Google's verification crawler can reach it.
+
+  Same paper as /login and /request-access (sunken desk, raised sheet), but a
+  wider sheet because this one is read, not filled in.
+
+  The copy is Noel's voice: first person, Australian spelling, no dashes as
+  punctuation. Everything here is on the tokens.
+-->
+<div class="min-h-dvh bg-surface-sunken p-4 sm:p-8">
+  <main class="mx-auto w-full max-w-2xl">
+    <div class="mb-8 flex justify-center">
+      <a routerLink="/" class="font-display" aria-label="Daybook home">
+        <app-logo variant="lockup" tone="primary" [size]="40" />
+      </a>
+    </div>
+
+    <article class="rounded-panel bg-surface-raised p-6 text-body text-text shadow-xl sm:p-8">
+      <h1 class="font-display text-display">Privacy</h1>
+      <p class="mt-2 text-caption text-text-subtle">Last updated {{ updated }}</p>
+
+      <p class="mt-6">
+        Daybook is a to-do app I build and run myself. I'm Noel Sebastian, and I'm in the Blue
+        Mountains, NSW, Australia. This page covers what Daybook keeps about you, where it goes,
+        and how to have it removed.
+      </p>
+      <p class="mt-3">
+        The short version: it keeps what it needs to show you your days. Nothing is sold, and there
+        are no ads, analytics or trackers.
+      </p>
+
+      <h2 class="mt-8 text-subtitle font-semibold">What Daybook stores</h2>
+      <ul class="mt-3 list-disc space-y-2 pl-6">
+        <li>
+          <strong class="font-medium">Your account.</strong> Your email address. If you sign in with
+          Google, also the name and profile picture link Google shares when you sign in.
+        </li>
+        <li>
+          <strong class="font-medium">Your tasks.</strong> What you write, any notes, the day each one
+          is on, when you finished it, its category, energy tag and reminder time, and how many times
+          it has carried over or been pushed.
+        </li>
+        <li>
+          <strong class="font-medium">Your history.</strong> A record of each day once it closes: what
+          you finished and what carried over. The calendar and reports are built from it.
+        </li>
+        <li>
+          <strong class="font-medium">Your settings.</strong> Your time zone, your categories, and
+          whether and when to send you the morning email.
+        </li>
+        <li>
+          <strong class="font-medium">Reminder devices.</strong> If you turn on reminders, the push
+          address your browser gives Daybook, one for each device.
+        </li>
+        <li>
+          <strong class="font-medium">Access requests.</strong> If you ask to be let in, your email,
+          the note you write, and the IP address the request came from. The IP is only used to stop
+          the same person sending request after request.
+        </li>
+        <li>
+          <strong class="font-medium">Connected apps.</strong> If you connect Claude or another app to
+          Daybook, a record of that connection and what you approved.
+        </li>
+      </ul>
+
+      <h2 class="mt-8 text-subtitle font-semibold">What it doesn't do</h2>
+      <ul class="mt-3 list-disc space-y-2 pl-6">
+        <li>No analytics, advertising or tracking scripts. The fonts are served by Daybook itself.</li>
+        <li>Your data is never sold, rented or shared for marketing.</li>
+        <li>
+          I don't browse your tasks. Running the service means I can reach the database, and I'll
+          only look at your data to fix a problem you've asked me about, or if the law requires it.
+        </li>
+      </ul>
+
+      <h2 class="mt-8 text-subtitle font-semibold">Who else handles it</h2>
+      <p class="mt-3">Daybook runs on a few services, each doing one job:</p>
+      <ul class="mt-3 list-disc space-y-2 pl-6">
+        <li>
+          <strong class="font-medium">Supabase</strong> holds the database and handles sign-in. Your
+          data is stored in its Sydney region.
+        </li>
+        <li>
+          <strong class="font-medium">Vercel</strong> serves the app. Like any web host, it sees your
+          IP address and browser in its request logs.
+        </li>
+        <li>
+          <strong class="font-medium">Resend</strong> sends the morning email and the access emails,
+          so it handles your email address and what's in those emails, including task text.
+        </li>
+        <li><strong class="font-medium">Google</strong>, only if you sign in with Google.</li>
+        <li>
+          <strong class="font-medium">Your browser's push service</strong> (Apple, Google or Mozilla,
+          depending on the browser) delivers reminders. Each reminder is encrypted before it leaves
+          Daybook, so the push service can't read it.
+        </li>
+        <li>
+          <strong class="font-medium">Anthropic</strong>, only if you connect Claude yourself. What
+          Claude reads through that connection is then covered by Anthropic's own privacy policy.
+        </li>
+      </ul>
+      <p class="mt-3">Some of these services process data outside Australia.</p>
+
+      <h2 class="mt-8 text-subtitle font-semibold">On your device</h2>
+      <p class="mt-3">
+        Daybook keeps your sign-in session, your theme and sidebar choice, and any changes you made
+        while offline in your browser's local storage. Nothing there is used to track you, and
+        signing out clears the session.
+      </p>
+
+      <h2 class="mt-8 text-subtitle font-semibold">Keeping it, and deleting it</h2>
+      <p class="mt-3">
+        Your data stays for as long as you have an account. The morning email and reminders can be
+        turned off at any time in Settings.
+      </p>
+      <p class="mt-3">
+        To delete your account, email me from the address you sign in with. I'll delete the account
+        and everything in it (tasks, history, settings and devices) and let you know when it's done.
+        Copies can linger in the providers' routine backups for a short time before those expire.
+      </p>
+      <p class="mt-3">
+        You can also ask what Daybook holds about you, ask for a copy of it, or ask me to correct
+        something. Same address.
+      </p>
+
+      <h2 class="mt-8 text-subtitle font-semibold">Changes</h2>
+      <p class="mt-3">
+        If this page changes in a way that matters, the date at the top changes with it.
+      </p>
+
+      <h2 class="mt-8 text-subtitle font-semibold">Contact</h2>
+      <p class="mt-3">
+        <a
+          [href]="'mailto:' + contact"
+          class="text-pen-text underline-offset-4 transition hover:text-pen-text-hover hover:underline"
+          >{{ contact }}</a
+        >
+      </p>
+    </article>
+
+    <p class="safe-pb-8 mt-6 text-center text-body">
+      <a
+        routerLink="/"
+        class="text-pen-text underline-offset-4 transition hover:text-pen-text-hover hover:underline"
+      >
+        Back to Daybook
+      </a>
+    </p>
+  </main>
+</div>

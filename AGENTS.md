@@ -172,6 +172,16 @@ imports. See `docs/MCP-PLAN.md` §4.
   stays revoked from everyone. See `0009_scheduled_rollover.sql`.
 - Tests: `node domain.test.mjs`, and again under `TZ=UTC`.
 
+## Privacy page
+
+`features/privacy/` states what Daybook stores, which services handle it and
+how to get it deleted, and Google's brand verification relies on it. **A
+change that stores a new kind of user data, adds a third-party service that
+sees user data, or adds any tracking has to update that page in the same
+commit**, and bump `PRIVACY_UPDATED`. `privacy.spec.ts` lists the processors
+by name, so adding one there is the reminder. The copy is first person, in
+Noel's voice, with no dashes as punctuation; the spec enforces the last part.
+
 ## Naming and file layout
 
 - Files kebab-case: `task-row.ts`, `parse-capture.ts`

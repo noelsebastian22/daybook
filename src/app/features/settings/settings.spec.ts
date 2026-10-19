@@ -1,5 +1,6 @@
 import { signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { browserTimezone } from '../../core/dates';
@@ -93,6 +94,8 @@ describe('Settings', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        // The Privacy link is a routerLink, which needs a Router to inject.
+        provideRouter([]),
         // The Connected apps box has its own spec; here it only needs to render.
         {
           provide: OAuthConsent,

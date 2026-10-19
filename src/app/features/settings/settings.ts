@@ -6,6 +6,7 @@ import { Push, type PushBlocker } from '../../core/push';
 import { browserTimezone } from '../../core/dates';
 import type { Category } from '../../core/models';
 import { BLOCKER_TEXT, TIMEZONES } from './settings.data';
+import { RouterLink } from '@angular/router';
 import { ConnectedApps } from './connected-apps';
 
 /**
@@ -20,7 +21,7 @@ import { ConnectedApps } from './connected-apps';
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ConnectedApps],
+  imports: [ConnectedApps, RouterLink],
   templateUrl: './settings.html',
 })
 export class Settings {

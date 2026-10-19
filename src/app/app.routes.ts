@@ -61,6 +61,14 @@ export const routes: Routes = [
       import('./features/oauth-consent/oauth-consent').then((m) => m.OAuthConsentPage),
   },
   {
+    // The privacy policy. **No guard**: it must read the same signed in or
+    // out, and Google's brand verification fetches it as a stranger. Outside
+    // the shell so a signed-out visitor gets the page rather than a redirect.
+    path: 'privacy',
+    title: 'Privacy',
+    loadComponent: () => import('./features/privacy/privacy').then((m) => m.Privacy),
+  },
+  {
     // Everything signed-in hangs off one shell route, so the drawer mounts
     // once and only the outlet swaps. Login sits outside it deliberately —
     // there is nothing to navigate to until there is a session.

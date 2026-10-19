@@ -81,7 +81,16 @@ describe('Welcome', () => {
     // because the app sets `<base href="/">` the browser resolved it against
     // the base, not the page — clicking it reloaded the welcome page instead
     // of scrolling. It is gone; this keeps it from coming back.
-    const routed = page.queryAll('a').map((a) => a.getAttribute('href'));
+    const links = page.queryAll('a');
+    // No fragment href anywhere, footer included.
+    expect(links.some((a) => a.getAttribute('href')?.startsWith('#'))).toBe(false);
+
+    // The footer's Privacy link is a legal link, not a way in, so the door
+    // rule covers everything outside it, and the footer is held to its one
+    // link separately.
+    const footer = links.filter((a) => a.closest('footer'));
+    expect(footer.map((a) => a.getAttribute('href'))).toEqual(['/privacy']);
+    const routed = links.filter((a) => !a.closest('footer')).map((a) => a.getAttribute('href'));
 
     // This used to assert a single door. The access gate added the second:
     // /login for someone who already has an account, /request-access for
