@@ -11,6 +11,26 @@ it turned out wrong, say so in a new one.
 
 <!-- newest first -->
 
+## 2026-10-20 · claude-code · Google brand verified
+
+**Did**
+- Reviewed Noel's Google Auth Platform branding: name Daybook, home `/welcome`, privacy `/privacy`, authorised domain `noel-sebastian.com`, no logo.
+- First verification failed: "home page URL is not registered to you". Fixed by Noel adding `noel-sebastian.com` to Search Console as a Domain property (TXT on Cloudflare). Verified, published; Noel confirmed the chooser says Daybook.
+- BUILD-PLAN §9 and §12 updated; the Supabase-host gap is closed.
+
+**Decided**
+- No `supabase.co` in authorised domains: it would need Search Console ownership Noel cannot have.
+
+**Open**
+- Optional logo (`public/icons/icon-128x128.png` fits); a change re-enters review.
+- From before: `get_day` hardening; Vercel challenge on plain HTTP clients; carried badge after a cron rollover unseen; `today()` heading stale across midnight; in-app deletion/export.
+
+**Next**
+- Harden `get_day`'s description ("leave `date` out for today"), log the requested date, redeploy `mcp --use-api`.
+
+**Touched** — `BUILD-PLAN.md`, `docs/SESSIONS.md`
+
+
 ## 2026-10-20 · claude-code · key rotated, privacy page
 
 **Did**

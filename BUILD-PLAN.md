@@ -3208,11 +3208,22 @@ reads it (`getAuthorizationDetails`) and decides it (`approve`/`denyAuthorizatio
 Only the client name, "Claude", comes from outside — from its own registration.
 
 **Google's chooser says "continue to zzacswfongmzpnhcjiqp.supabase.co".** It
-names the redirect host. Three ways out, none taken yet: Google brand
-verification (free; needs a `/privacy` page and Search Console ownership of
-`noel-sebastian.com`; **recommended**), a Supabase custom domain (Pro plus an
-add-on, already rejected in §9), or Google's own button with
-`signInWithIdToken` (free, but rewrites sign-in). §12.
+names the redirect host. Three ways out: Google brand verification (free;
+needs a `/privacy` page and Search Console ownership of `noel-sebastian.com`),
+a Supabase custom domain (Pro plus an add-on, already rejected in §9), or
+Google's own button with `signInWithIdToken` (free, but rewrites sign-in).
+
+**Brand verification taken and done, 20 Oct.** Branding: app name Daybook,
+home page `https://daybook.noel-sebastian.com/welcome`, privacy
+`https://daybook.noel-sebastian.com/privacy`, one authorised domain,
+`noel-sebastian.com`. **Do not add `supabase.co` there**: Google requires
+Search Console ownership of every authorised domain, and the redirect to
+Supabase works without it. The first attempt failed with "home page URL is not
+registered to you" until `noel-sebastian.com` was added to Search Console as a
+**Domain** property (DNS TXT on Cloudflare) under the same Google account that
+owns the Cloud project. Verified, then **published** — a verified result that
+is not published expires in 7 days. The chooser now says Daybook. No logo was
+uploaded; adding one later goes back through review.
 
 **Refresh on return needs the user it loaded for, 8 Oct.** `loaded` outlives
 sign-out (only the next user's `ensureLoaded` resets it), so switching back to
@@ -3265,14 +3276,10 @@ Not core. Revisit once the main app is solid.
   now and then. Five from the first connect were deleted 8 Oct, by SQL — a
   dashboard delete earlier that day had not removed them.
 
-- **Google sign-in names the Supabase host, not Daybook, 8 Oct.** §9
-  "Deploying the MCP server". **The `/privacy` page it was waiting on exists
-  as of 20 Oct.** What is left is Noel's, in Google Cloud Console and Search
-  Console: verify `noel-sebastian.com` in Search Console; on the OAuth
-  consent screen set the app name to Daybook, the home page to
-  `https://daybook.noel-sebastian.com/welcome`, the privacy policy to
-  `https://daybook.noel-sebastian.com/privacy` and `noel-sebastian.com` as an
-  authorised domain; then submit for brand verification.
+- ~~**Google sign-in names the Supabase host, not Daybook, 8 Oct.**~~
+  **Closed 20 Oct**: brand verification passed and Noel published it; the
+  Google account chooser now says Daybook. See §9 "Deploying the MCP server"
+  for how it was done.
 
 - **Counters are last-write-wins between the app and the MCP server, 6 Oct.**
   The app computes `reschedule_count + 1` from the row it holds. If Claude
